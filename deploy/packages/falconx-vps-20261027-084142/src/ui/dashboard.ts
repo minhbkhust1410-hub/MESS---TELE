@@ -1,0 +1,2410 @@
+import express from 'express';
+import path from 'path';
+import fs from 'fs';
+import crypto from 'crypto';
+import { chromium, type BrowserContext } from 'playwright';
+import { config } from '../config/env.js';
+import {
+  getAllUsers,
+  getUserById,
+  getUserByUsername,
+  createUser,
+  validateUserPassword,
+  AppUser,
+} from '../db/user-store.js';
+import {
+  getAllMappings,
+  getAllAccounts,
+  getAccountById,
+  getDefaultAccount,
+  saveAccount,
+  setDefaultAccount,
+  deleteAccount,
+  updateAccountProxy,
+  updateAccountProxyVerification,
+  FacebookAccount,
+} from '../db/store.js';
+import { messengerEngine } from '../engine/messenger-engine.js';
+import { getOrCreateTopicForCustomer, getBotUsername } from '../telegram/bot.js';
+import { loadCannedReplies, saveCannedReply } from '../config/canned-replies.js';
+import { createBrowserSession, checkCookiesLoggedIn, parseProxy, testProxyNetwork, verifyBrowserProxyIP, type SessionResult } from '../core/browser-session.js';
+import {
+  getAutoCommentConfig,
+  updateAutoCommentConfig,
+  getCommentTemplates,
+  addCommentTemplate,
+  deleteCommentTemplate,
+  getTargetGroups,
+  getJoinedEcoparkGroups,
+  syncJoinedGroupsToPool,
+  assignGroupToAccounts,
+  addTargetGroup,
+  addMultipleTargetGroups,
+  deleteTargetGroup,
+  getKeywords,
+  setKeywords,
+  addKeyword,
+  removeKeyword,
+  getCommentLogs,
+  getDailyPosts,
+  addDailyPost,
+  deleteDailyPost,
+  clearDailyPosts,
+  getPendingDrafts,
+  updateDailyPostStatus,
+  updateGroupNote,
+  toggleGroupStatus,
+} from '../db/auto-comment-store.js';
+import { autoCommentEngine } from '../engine/auto-comment-engine.js';
+import { facebookActionsEngine, type FacebookReaction } from '../engine/facebook-actions-engine.js';
+import { accountHealthService } from '../services/account-health-service.js';
+import { systemDiagnosticService } from '../services/system-diagnostic-service.js';
+import { globalLeadPoolService } from '../services/global-lead-pool.js';
+import { autoFriendService } from '../services/auto-friend-service.js';
+import {
+  getAllProperties,
+  getAvailableProperties,
+  getTodayProperties,
+  addProperties,
+  updateProperty,
+  togglePropertyStatus,
+  deleteProperty,
+  ingestPropertiesFromText,
+  ingestPropertiesFromImage,
+  ingestPropertiesFromTextWithAI,
+  ingestPropertiesFromImageWithAI,
+  getPropertyInventoryStats,
+} from '../services/property-inventory.js';
+import {
+  freeAiService,
+  getAiConfig,
+  saveAiConfig,
+  addKeysToPool,
+  removeKeyFromPool,
+  resetKeyStatus,
+} from '../services/free-ai-service.js';
+import {
+  dataModeService,
+  type OperatingMode,
+  MODE_METADATA,
+} from '../services/data-mode-service.js';
+import {
+  parseForexLead,
+  generateForexTargetedComment,
+} from '../services/forex-parser.js';
+import { groupDiscoveryService } from '../services/group-discovery-service.js';
+
+// Cache giữ các phiên mở trình duyệt Chrome để người dùng đăng nhập trực quan
+const activeBrowserLogins = new Map<string, SessionResult>();
+// Cache giữ các cửa sổ Chrome trực quan được mở với Proxy riêng biệt
+const activeVisualBrowsers = new Map<string, SessionResult>();
+
+// Hàm phân tích Cookie (hỗ trợ JSON mảng từ Extension, JSON object, chuỗi "c_user=...; xs=...", và định dạng mua nick UID|Pass|2FA|Cookie)
+function parseCookies(input: string): Array<{ name: string; value: string; domain: string; path: string; expires: number }> {
+  let trimmed = input.trim();
+  const oneYearFuture = Math.floor(Date.now() / 1000) + 365 * 24 * 3600;
+
+  // 0. Tự động bóc tách nếu dán nguyên dòng mua Acc dạng UID|Pass|2FA|Cookie|Token|Mail
+  if (trimmed.includes('|')) {
+    const segments = trimmed.split('|');
+    const cookiePart = segments.find((s) => s.includes('c_user=') || s.includes('xs='));
+    if (cookiePart) {
+      trimmed = cookiePart.trim();
+    }
+  }
+
+  // 1. JSON Mảng từ Cookie-Editor hoặc J2Team
+  if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+    try {
+      const json = JSON.parse(trimmed);
+      if (Array.isArray(json)) {
+        return json
+          .filter((c) => c && (c.name || c.key) && c.value !== undefined)
+          .map((c) => ({
+            name: String(c.name || c.key),
+            value: String(c.value),
+            domain: c.domain || '.facebook.com',
+            path: c.path || '/',
+            expires: c.expirationDate || c.expires || oneYearFuture,
+          }));
+      }
+    } catch {}
+  }
+
+  // 2. JSON Object (ví dụ: {"c_user": "...", "xs": "..."})
+  if (trimmed.startsWith('{') && trimmed.endsWith('}')) {
+    try {
+      const obj = JSON.parse(trimmed);
+      return Object.entries(obj).map(([name, value]) => ({
+        name,
+        value: String(value),
+        domain: '.facebook.com',
+        path: '/',
+        expires: oneYearFuture,
+      }));
+    } catch {}
+  }
+
+  // 3. Chuỗi phân tách bằng dấu chấm phẩy (;) hoặc xuống dòng
+  const cookies: Array<{ name: string; value: string; domain: string; path: string; expires: number }> = [];
+  const parts = trimmed.split(/[;\r\n]+/);
+  for (const part of parts) {
+    const trimmedPart = part.trim();
+    if (!trimmedPart) continue;
+    let name = '';
+    let value = '';
+    if (trimmedPart.includes('=')) {
+      const idx = trimmedPart.indexOf('=');
+      name = trimmedPart.substring(0, idx).trim();
+      value = trimmedPart.substring(idx + 1).trim();
+    } else if (trimmedPart.includes('\t') || trimmedPart.includes(' ')) {
+      const tokens = trimmedPart.split(/[\t ]+/);
+      if (tokens.length >= 2) {
+        name = tokens[0].trim();
+        value = tokens[tokens.length - 1].trim();
+      }
+    }
+    if (name && value) {
+      cookies.push({
+        name,
+        value,
+        domain: '.facebook.com',
+        path: '/',
+        expires: oneYearFuture,
+      });
+    }
+  }
+  return cookies;
+}
+
+export interface TokenPayload {
+  uid: string;
+  u: string;
+  name: string;
+  role: 'admin' | 'manager';
+  exp: number;
+}
+
+export function generateAuthToken(user: { id: string; username: string; name: string; role: 'admin' | 'manager' }): string {
+  const payload: TokenPayload = {
+    uid: user.id,
+    u: user.username,
+    name: user.name,
+    role: user.role,
+    exp: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 ngày
+  };
+  const data = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const signature = crypto.createHmac('sha256', config.authSecret).update(data).digest('base64url');
+  return `${data}.${signature}`;
+}
+
+export function verifyAuthToken(token: string): TokenPayload | null {
+  if (!token || typeof token !== 'string' || !token.includes('.')) return null;
+  const [data, signature] = token.split('.');
+  if (!data || !signature) return null;
+  const expectedSig = crypto.createHmac('sha256', config.authSecret).update(data).digest('base64url');
+  if (signature !== expectedSig) return null;
+  try {
+    const payload = JSON.parse(Buffer.from(data, 'base64url').toString('utf8')) as TokenPayload;
+    if (!payload.exp || Date.now() > payload.exp) return null;
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+export function startDashboard(): void {
+  const app = express();
+
+  // CORS middleware hỗ trợ Webhook F12 Script gọi trực tiếp từ Facebook Console
+  app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(200);
+    }
+    next();
+  });
+
+  app.use(express.json({ limit: '50mb' }));
+
+  // Xử lý lỗi cú pháp JSON nếu request gửi lên bị lỗi định dạng
+  app.use((err: any, req: any, res: any, next: any) => {
+    if (err instanceof SyntaxError && 'status' in err && (err as any).status === 400) {
+      return res.status(400).json({ success: false, error: 'Dữ liệu JSON gửi lên không đúng định dạng.' });
+    }
+    next(err);
+  });
+
+  // Phục vụ thư mục giao diện tĩnh
+  const publicDir = path.resolve('./public');
+  app.use(express.static(publicDir));
+  app.use('/proofs', express.static(path.resolve('./data/proofs')));
+
+  // ==========================================
+  // API AUTHENTICATION & MULTI-USER SYSTEM
+  // ==========================================
+
+  // API 1: Đăng ký tài khoản người dùng mới (Người quản lý nhiều nick)
+  app.post('/api/auth/register', (req, res) => {
+    try {
+      const { username, password, name } = req.body;
+      if (!username || !password) {
+        return res.status(400).json({ success: false, error: 'Vui lòng nhập tên tài khoản và mật khẩu.' });
+      }
+      if (password.length < 4) {
+        return res.status(400).json({ success: false, error: 'Mật khẩu phải có ít nhất 4 ký tự.' });
+      }
+
+      const newUser = createUser(username, password, name || username, 'manager');
+      const token = generateAuthToken(newUser);
+
+      return res.json({
+        success: true,
+        token,
+        user: {
+          id: newUser.id,
+          username: newUser.username,
+          name: newUser.name,
+          role: newUser.role,
+        },
+        message: 'Đăng ký tài khoản thành công!',
+      });
+    } catch (err: any) {
+      return res.status(400).json({ success: false, error: err.message || 'Lỗi khi tạo tài khoản.' });
+    }
+  });
+
+  // API 2: Đăng nhập hệ thống (Hỗ trợ cả Admin & Các tài khoản Người quản lý)
+  app.post('/api/auth/login', (req, res) => {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ success: false, error: 'Vui lòng nhập tài khoản và mật khẩu.' });
+    }
+
+    // 1. Kiểm tra trong cơ sở dữ liệu người dùng
+    const user = validateUserPassword(username, password);
+    if (user) {
+      const token = generateAuthToken(user);
+      return res.json({
+        success: true,
+        token,
+        user: {
+          id: user.id,
+          username: user.username,
+          name: user.name,
+          role: user.role,
+        },
+        message: 'Đăng nhập thành công',
+      });
+    }
+
+    // 2. Fallback kiểm tra tài khoản Admin gốc trong .env
+    const validAdmin = config.adminUsername || 'admin';
+    const validPass = config.adminPassword || 'ecotrang2026';
+    if (username.trim().toLowerCase() === validAdmin.toLowerCase() && password === validPass) {
+      const adminUser = { id: 'usr_admin', username: validAdmin, name: 'Quản Trị Viên (Admin)', role: 'admin' as const };
+      const token = generateAuthToken(adminUser);
+      return res.json({
+        success: true,
+        token,
+        user: adminUser,
+        message: 'Đăng nhập Admin thành công',
+      });
+    }
+
+    return res.status(401).json({
+      success: false,
+      error: 'Tài khoản hoặc mật khẩu không chính xác',
+    });
+  });
+
+  // API 3: Xác thực phiên & lấy thông tin Người Dùng Hiện Tại (Current User Profile)
+  app.get('/api/auth/me', (req, res) => {
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : (req.query.token as string);
+    const payload = token ? verifyAuthToken(token) : null;
+
+    if (!payload) {
+      return res.status(401).json({ success: false, error: 'Chưa đăng nhập hoặc phiên đã hết hạn' });
+    }
+
+    // Đếm số lượng nick người này quản lý
+    const allAccs = getAllAccounts();
+    const userAccs = payload.role === 'admin' 
+      ? allAccs 
+      : allAccs.filter((a) => a.ownerId === payload.uid);
+
+    return res.json({
+      success: true,
+      user: {
+        id: payload.uid,
+        username: payload.u,
+        name: payload.name,
+        role: payload.role,
+      },
+      managedCount: userAccs.length,
+    });
+  });
+
+  // API 4: Xác thực phiên làm việc
+  app.get('/api/auth/verify', (req, res) => {
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : (req.query.token as string);
+    const payload = token ? verifyAuthToken(token) : null;
+
+    if (payload) {
+      return res.json({ success: true, valid: true, user: payload });
+    }
+    return res.status(401).json({ success: false, valid: false, error: 'Phiên đăng nhập không hợp lệ hoặc đã hết hạn' });
+  });
+
+  // API 5: Đăng xuất
+  app.post('/api/auth/logout', (req, res) => {
+    res.json({ success: true, message: 'Đã đăng xuất an toàn' });
+  });
+
+  // Middleware bảo vệ các API nghiệp vụ và gán currentUser vào Request
+  app.use('/api', (req, res, next) => {
+    if (req.path.startsWith('/auth/') || req.path === '/members/ingest-f12' || req.path === '/members/f12-script' || req.path === '/debug-fb-state') {
+      return next();
+    }
+    const authHeader = req.headers.authorization;
+    const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : (req.query.token as string);
+    const payload = token ? verifyAuthToken(token) : null;
+
+    if (!payload) {
+      return res.status(401).json({
+        success: false,
+        error: 'Vui lòng đăng nhập để sử dụng tính năng này.',
+        requiresLogin: true,
+      });
+    }
+
+    (req as any).currentUser = payload;
+    next();
+  });
+
+  // ==========================================
+  // API QUẢN LÝ TÀI KHOẢN FACEBOOK & PROXY (THEO TỪNG USER)
+  // ==========================================
+
+  // API 1: Lấy danh sách tài khoản Facebook thuộc quyền quản lý của User hiện tại
+  app.get('/api/accounts', (req, res) => {
+    const currentUser = (req as any).currentUser as TokenPayload;
+    const all = getAllAccounts();
+
+    if (!currentUser || currentUser.role === 'admin') {
+      return res.json(all);
+    }
+
+    // Lọc theo người quản lý (ownerId)
+    const filtered = all.filter((a) => a.ownerId === currentUser.uid);
+    // Nếu user mới chưa có nick riêng, có thể hiển thị nick mẫu hoặc danh sách của họ
+    return res.json(filtered);
+  });
+
+  // API 2: Cập nhật thông tin tài khoản hoặc Proxy (Gán ownerId cho user hiện tại)
+  app.post('/api/accounts', (req, res) => {
+    const currentUser = (req as any).currentUser as TokenPayload;
+    const { id, name, proxy, uid, avatar, isDefault, status, ownerId } = req.body;
+    if (!id) {
+      return res.status(400).json({ success: false, error: 'Thiếu account ID' });
+    }
+    
+    // Tự động gán nick này cho User đang đăng nhập nếu chưa có ownerId
+    const finalOwnerId = ownerId || (currentUser ? currentUser.uid : 'usr_admin');
+
+    const saved = saveAccount({
+      id,
+      name,
+      proxy,
+      uid,
+      avatar,
+      isDefault,
+      status,
+      ownerId: finalOwnerId,
+    });
+    res.json({ success: true, account: saved });
+  });
+
+  // API 2.1: Tự động trích xuất & đồng bộ avatar thật từ Facebook
+  app.post('/api/accounts/sync-avatar', async (req, res) => {
+    try {
+      const result = await messengerEngine.syncCurrentAccountAvatar();
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // API 2.2: Cập nhật thủ công Avatar cho tài khoản (URL hoặc data-uri base64)
+  app.post('/api/accounts/update-avatar', (req, res) => {
+    const { accountId, avatarUrl } = req.body;
+    if (!accountId || !avatarUrl) {
+      return res.status(400).json({ success: false, error: 'Thiếu accountId hoặc avatarUrl' });
+    }
+    const acc = getAccountById(accountId);
+    if (!acc) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy tài khoản' });
+    }
+
+    let finalAvatar = avatarUrl.trim();
+    // Nếu là base64 data URL, lưu vào file ảnh trên đĩa để tối ưu hiệu năng
+    if (finalAvatar.startsWith('data:image/')) {
+      try {
+        const avatarsDir = path.resolve('./public/avatars');
+        if (!fs.existsSync(avatarsDir)) {
+          fs.mkdirSync(avatarsDir, { recursive: true });
+        }
+        const matches = finalAvatar.match(/^data:image\/([a-zA-Z0-9]+);base64,(.+)$/);
+        if (matches && matches[2]) {
+          const ext = matches[1] === 'jpeg' ? 'jpg' : matches[1];
+          const fileName = `${accountId}.${ext}`;
+          const filePath = path.join(avatarsDir, fileName);
+          fs.writeFileSync(filePath, Buffer.from(matches[2], 'base64'));
+          finalAvatar = `/avatars/${fileName}?t=${Date.now()}`;
+        }
+      } catch (err: any) {
+        console.warn('Lỗi ghi avatar base64:', err.message);
+      }
+    }
+
+    const saved = saveAccount({ id: accountId, avatar: finalAvatar });
+    res.json({ success: true, account: saved });
+  });
+
+  // API 2.3: Tiếp tục đăng nhập tự động nếu trang đang dừng ở bộ chọn tài khoản
+  app.post('/api/accounts/resume-login', async (req, res) => {
+    try {
+      const page = (messengerEngine as any).page;
+      let clicked = false;
+      let navResult = '';
+      if (page && !page.isClosed()) {
+        clicked = await page.evaluate(() => {
+          const btn = document.querySelector('[aria-label*="Eco Trang"], [aria-label*="Tiếp tục"]') ||
+                      Array.from(document.querySelectorAll('div, button, a')).find(el => (el.textContent || '').trim() === 'Tiếp tục');
+          if (btn) {
+            (btn as HTMLElement).click();
+            return true;
+          }
+          return false;
+        }).catch(() => false);
+
+        if (clicked) {
+          await page.waitForTimeout(3000);
+          navResult = page.url();
+        }
+      }
+      res.json({ success: true, clicked, currentUrl: navResult || page?.url() });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  app.get('/api/debug-fb-state', async (_req, res) => {
+    try {
+      const page = (messengerEngine as any).page;
+      if (!page) return res.json({ ready: false });
+      const url = page.url();
+      const title = await page.title();
+      const details = await page.evaluate(() => {
+        const els = Array.from(document.querySelectorAll('div[aria-label], div[role="button"], button, a[role="button"]'));
+        return els.map(el => ({
+          tag: el.tagName,
+          text: (el.textContent || '').trim().slice(0, 50),
+          ariaLabel: el.getAttribute('aria-label'),
+          role: el.getAttribute('role'),
+          html: el.outerHTML.slice(0, 200),
+          rect: el.getBoundingClientRect()
+        }));
+      });
+      res.json({ url, title, details });
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // API 3: Chuyển đổi Nick hoạt động (Hot-switch)
+  app.post('/api/accounts/:id/select', async (req, res) => {
+    const targetId = req.params.id;
+    const acc = getAccountById(targetId);
+    if (!acc) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy tài khoản' });
+    }
+    try {
+      await messengerEngine.switchAccount(targetId);
+      res.json({ success: true, account: getAccountById(targetId) });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // API 4: Xóa tài khoản & tự động nhả tệp bạn bè về Bể Khách Hàng Dùng Chung
+  app.delete('/api/accounts/:id', (req, res) => {
+    const all = getAllAccounts();
+    if (all.length <= 1) {
+      return res.status(400).json({ success: false, error: 'Phải giữ ít nhất 1 tài khoản trong hệ thống' });
+    }
+    const accId = req.params.id;
+    const ok = deleteAccount(accId);
+    if (ok) {
+      const releaseResult = globalLeadPoolService.releaseLeadsFromDeadAccount(accId);
+      res.json({ success: true, releasedLeads: releaseResult.releasedCount });
+      return;
+    }
+    res.json({ success: ok });
+  });
+
+  // API 4.0: Thống kê Bể Bạn Bè & Khách Hàng Dùng Chung
+  app.get('/api/leads/pool-stats', (req, res) => {
+    res.json({ success: true, stats: globalLeadPoolService.getStats() });
+  });
+
+  // API 4.01: Chủ động thu hồi và nhả toàn bộ leads từ 1 nick die về bể chung
+  app.post('/api/leads/release/:accountId', (req, res) => {
+    const result = globalLeadPoolService.releaseLeadsFromDeadAccount(req.params.accountId);
+    res.json({ success: true, releasedCount: result.releasedCount });
+  });
+
+  // API 4.03: Lấy toàn bộ Kho Data Đã Quét (Master Scanned Warehouse)
+  app.get('/api/leads/warehouse', (req, res) => {
+    try {
+      const { search, mode, timeCategory, status, limit, offset } = req.query;
+      const result = globalLeadPoolService.getWarehouseLeads({
+        search: search as string,
+        mode: mode as string,
+        timeCategory: timeCategory as string,
+        status: status as string,
+        limit: limit ? parseInt(limit as string, 10) : 500,
+        offset: offset ? parseInt(offset as string, 10) : 0,
+      });
+      res.json({ success: true, ...result });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // API 4.04: Xóa 1 UID khỏi Kho Data
+  app.delete('/api/leads/warehouse/:id', (req, res) => {
+    try {
+      const ok = globalLeadPoolService.deleteLead(req.params.id);
+      res.json({ success: ok });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // API 4.05: Dọn sạch link rác hệ thống trong Kho Data
+  app.post('/api/leads/warehouse/purge-junk', (_req, res) => {
+    try {
+      const purged = globalLeadPoolService.purgeJunk();
+      res.json({ success: true, purgedCount: purged });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // API 4.06: Xuất toàn bộ Kho Data ra file CSV chuẩn UTF-8
+  app.get('/api/leads/warehouse/export-csv', (req, res) => {
+    try {
+      const mode = req.query.mode as string;
+      const csv = globalLeadPoolService.exportCsv(mode);
+      const filename = `kho_data_da_quet_${Date.now()}.csv`;
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.send(csv);
+    } catch (err: any) {
+      res.status(500).send('Lỗi xuất file CSV: ' + err.message);
+    }
+  });
+
+  // =========================================================================
+  // API KUDOX 2: AUTO-FRIEND ENGINE (ĐỘNG CƠ TỰ ĐỘNG KẾT BẠN SINH HỌC)
+  // =========================================================================
+
+  // API 4.07: Lấy trạng thái hoạt động, tiến trình các nick & log sinh học
+  app.get('/api/autofriend/status', (_req, res) => {
+    try {
+      const status = autoFriendService.getStatus();
+      res.json({ success: true, ...status });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // API 4.08: Bắt đầu tiến trình kết bạn KudoX 2
+  app.post('/api/autofriend/start', async (req, res) => {
+    try {
+      const options = req.body || {};
+      const result = await autoFriendService.start(options);
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // API 4.09: Tạm dừng tiến trình kết bạn
+  app.post('/api/autofriend/pause', (_req, res) => {
+    try {
+      const result = autoFriendService.pause();
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // API 4.10: Tiếp tục tiến trình kết bạn
+  app.post('/api/autofriend/resume', (_req, res) => {
+    try {
+      const result = autoFriendService.resume();
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // API 4.11: Dừng hẳn tiến trình kết bạn
+  app.post('/api/autofriend/stop', (_req, res) => {
+    try {
+      const result = autoFriendService.stop();
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // API 4.12: Cập nhật cấu hình giãn cách sinh học & giới hạn an toàn
+  app.post('/api/autofriend/config', (req, res) => {
+    try {
+      const updated = autoFriendService.updateConfig(req.body || {});
+      res.json({ success: true, config: updated });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // API 4.13: Thực thi Nuôi Tương Tác đơn lẻ 1 UID/Profile (Kết Bạn + Xem Story/Thả Tym + Like 3 Bài Viết)
+  app.post('/api/autofriend/nurture-single', async (req, res) => {
+    try {
+      const { leadId, url, name, mode } = req.body || {};
+      const currentAcc = getDefaultAccount();
+      const leadItem = {
+        id: leadId || 'test_lead',
+        name: name || 'Người Dùng Test KudoX 2',
+        url: url || `https://www.facebook.com/${leadId || 'profile.php'}`,
+        mode: (mode as 'bds_ecopark' | 'forex') || 'bds_ecopark',
+        firstSeenAt: new Date().toISOString(),
+        status: 'unassigned' as const,
+      };
+      const result = await autoFriendService.executeSocialNurtureRoutine(leadItem, currentAcc);
+      res.json({ success: true, result });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // API 4.13b: Test kết bạn sinh học đơn lẻ (Tương thích ngược)
+  app.post('/api/autofriend/test-single', async (req, res) => {
+    try {
+      const { leadId, url, name, mode } = req.body || {};
+      const currentAcc = getDefaultAccount();
+      const leadItem = {
+        id: leadId || 'test_lead',
+        name: name || 'Người Dùng Test KudoX 2',
+        url: url || `https://www.facebook.com/${leadId || 'profile.php'}`,
+        mode: (mode as 'bds_ecopark' | 'forex') || 'bds_ecopark',
+        firstSeenAt: new Date().toISOString(),
+        status: 'unassigned' as const,
+      };
+      const result = await autoFriendService.executeSocialNurtureRoutine(leadItem, currentAcc);
+      res.json({ success: true, result });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // API 4.02: Mở cửa sổ Facebook trực quan bọc sẵn Proxy an toàn cho tài khoản
+  // RÀNG BUỘC TUYỆT ĐỐI: Bắt buộc mở nick thông qua Proxy ban đầu thiết lập, chống lộ IP máy thật 100%
+  app.post('/api/accounts/:id/open-browser', async (req, res) => {
+    const accId = req.params.id;
+    const acc = getAccountById(accId);
+    if (!acc) return res.status(404).json({ success: false, error: 'Không tìm thấy tài khoản' });
+
+    const { targetUrl } = req.body || {};
+    const destUrl = (typeof targetUrl === 'string' && targetUrl.startsWith('https://www.facebook.com'))
+      ? targetUrl
+      : 'https://www.facebook.com/';
+
+    // 1. RÀNG BUỘC BẢO VỆ NGHIÊM NGẶT VỀ PROXY BAN ĐẦU
+    // Nếu tài khoản đã được thiết lập Proxy, KIỂM TRA BẮT BUỘC TRƯỚC KHI MỞ:
+    // Nếu Proxy chết hoặc rò rỉ IP -> CHẶN MỞ NGAY LẬP TỨC để bảo vệ nick không bị lộ IP máy!
+    if (acc.proxy && acc.proxy.trim()) {
+      console.log(`🛡️ [Proxy Guard] Đang kiểm tra ràng buộc Proxy trước khi mở nick "${acc.name}": ${acc.proxy}`);
+      const preCheck = await testProxyNetwork(acc.proxy, 7000);
+      if (!preCheck.alive) {
+        console.error(`🚨 [Proxy Guard Blocked] Proxy của nick "${acc.name}" không phản hồi! ĐÃ CHẶN MỞ TRÌNH DUYỆT.`);
+        return res.status(400).json({
+          success: false,
+          error: `🚨 ĐÃ CHẶN MỞ FACEBOOK ĐỂ BẢO VỆ NICK:\n\nProxy ban đầu của tài khoản (${acc.proxy}) đang bị mất kết nối (${preCheck.error || 'Timeout không phản hồi'})!\n\nHệ thống kiên quyết từ chối mở trình duyệt để tuyệt đối không làm lộ IP máy thật của bạn. Vui lòng kiểm tra lại Proxy hoặc đổi Proxy mới.`,
+          proxy: acc.proxy,
+          proxyAlive: false,
+        });
+      }
+      if (preCheck.isLeakingHostIp) {
+        console.error(`🚨 [Proxy Guard Leak] Proxy của nick "${acc.name}" bị rò rỉ IP trùng với máy chủ! ĐÃ CHẶN MỞ TRÌNH DUYỆT.`);
+        return res.status(400).json({
+          success: false,
+          error: `🚨 ĐÃ CHẶN MỞ FACEBOOK VÌ RÒ RỈ IP:\n\nProxy (${acc.proxy}) bị rò rỉ IP trùng với IP mạng máy thật của bạn (${preCheck.ip})! Hệ thống đã hủy mở trình duyệt để bảo vệ nick.`,
+          proxy: acc.proxy,
+          proxyAlive: true,
+          isLeaking: true,
+        });
+      }
+    }
+
+    // 2. Nếu nick này đang là nick hoạt động chính trong messengerEngine
+    const defaultAcc = getDefaultAccount();
+    if (defaultAcc && defaultAcc.id === accId && messengerEngine.isReady()) {
+      const page = await messengerEngine.getPage();
+      if (page) {
+        await page.bringToFront().catch(() => {});
+        await page.goto(destUrl, { waitUntil: 'domcontentloaded' }).catch(() => {});
+        return res.json({
+          success: true,
+          message: `Cửa sổ FalconX của nick "${acc.name}" đã được đưa lên màn hình (đang chạy qua Proxy: ${acc.proxy || 'Trực tiếp'}).`,
+          proxy: acc.proxy,
+          isDirect: !acc.proxy,
+          destUrl,
+        });
+      }
+    }
+
+    // 3. Nếu đã có cửa sổ Chrome mở sẵn trước đó
+    if (activeVisualBrowsers.has(accId)) {
+      const existing = activeVisualBrowsers.get(accId);
+      await existing?.page.bringToFront().catch(() => {});
+      if (targetUrl) {
+        await existing?.page.goto(destUrl, { waitUntil: 'domcontentloaded' }).catch(() => {});
+      }
+      return res.json({
+        success: true,
+        message: `Cửa sổ Facebook của nick "${acc.name}" đang mở sẵn trên màn hình!`,
+        proxy: acc.proxy,
+        isDirect: !acc.proxy,
+        destUrl,
+      });
+    }
+
+    // 4. Mở cửa sổ Chrome độc lập bọc sẵn Proxy riêng của nick đó
+    try {
+      const session = await createBrowserSession({
+        userDataDir: acc.profileDir || path.resolve(`./.user-data/profiles/${accId}`),
+        proxy: acc.proxy,
+        headless: false,
+      });
+
+      activeVisualBrowsers.set(accId, session);
+      await session.page.goto(destUrl, { waitUntil: 'domcontentloaded' }).catch(() => {});
+
+      session.context.on('close', () => {
+        activeVisualBrowsers.delete(accId);
+      });
+
+      return res.json({
+        success: true,
+        message: `Đã mở cửa sổ Chrome độc lập cho nick "${acc.name}" bọc sẵn Proxy an toàn!`,
+        proxy: acc.proxy,
+        isDirect: !acc.proxy,
+        destUrl,
+      });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // API 4.1: Quét kiểm tra sức khỏe và trạng thái tài khoản trực tiếp
+  app.post('/api/accounts/health-check', async (req, res) => {
+    try {
+      const report = await accountHealthService.checkLiveHealth();
+      res.json({ success: true, report });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // API 4.2: Lấy báo cáo sức khỏe tài khoản gần nhất
+  app.get('/api/accounts/health-report', (req, res) => {
+    const report = accountHealthService.getLastReport();
+    res.json({ success: true, report });
+  });
+
+  // =========================================================================
+  // API KIỂM ĐỊNH TOÀN BỘ CHỨC NĂNG HÀNG NGÀY (DAILY SYSTEM DIAGNOSTICS)
+  // =========================================================================
+
+  // API 4.3: Lấy báo cáo kiểm định tương thích Facebook hiện tại gần nhất
+  app.get('/api/system-diagnostics/status', (req, res) => {
+    try {
+      const report = systemDiagnosticService.getLastReport();
+      const isBusy = systemDiagnosticService.isBusy();
+      res.json({ success: true, report, isBusy });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // API 4.4: Kích hoạt kiểm định toàn bộ chức năng với Facebook Live ngay lập tức
+  app.post('/api/system-diagnostics/run-now', async (req, res) => {
+    try {
+      const report = await systemDiagnosticService.runFullSystemDiagnostic('ON_DEMAND');
+      res.json({ success: true, report });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // API 5: Kiểm tra kết nối, độ trễ và rò rỉ IP của Proxy (Pre-flight Test)
+  app.post('/api/accounts/test-proxy', async (req, res) => {
+    const { proxy } = req.body;
+    if (!proxy || !proxy.trim()) {
+      return res.status(400).json({ success: false, error: 'Vui lòng nhập Proxy' });
+    }
+    const parsed = parseProxy(proxy);
+    if (!parsed) {
+      return res.status(400).json({
+        success: false,
+        error: 'Định dạng Proxy không đúng. Ví dụ: ip:port hoặc ip:port:user:pass hoặc http://user:pass@ip:port',
+      });
+    }
+
+    try {
+      const result = await testProxyNetwork(proxy, 10_000);
+      return res.json({
+        success: result.alive,
+        ...result,
+      });
+    } catch (err: any) {
+      return res.status(500).json({
+        success: false,
+        error: `Kết nối Proxy thất bại: ${err.message}`,
+      });
+    }
+  });
+
+  // API 5.1: Kiểm tra Proxy & Double-check của một Tài Khoản cụ thể
+  app.post('/api/accounts/:id/test-proxy', async (req, res) => {
+    const accId = req.params.id;
+    const acc = getAccountById(accId);
+    if (!acc) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy tài khoản' });
+    }
+
+    if (!acc.proxy || !acc.proxy.trim()) {
+      // Nick chạy IP trực tiếp
+      const directTest = await testProxyNetwork(undefined, 6_000);
+      updateAccountProxyVerification(accId, {
+        verifiedProxyIp: directTest.ip,
+        proxyStatus: 'unassigned',
+        proxyCountry: directTest.country,
+        proxyCity: directTest.city,
+        proxyLatencyMs: directTest.latencyMs,
+      });
+      return res.json({
+        success: true,
+        isDirect: true,
+        message: 'Tài khoản không gắn Proxy riêng (Chạy trực tiếp trên IP mạng nội bộ)',
+        account: getAccountById(accId),
+        testResult: directTest,
+      });
+    }
+
+    // 1. Kiểm tra mạng Proxy (Pre-flight)
+    const testResult = await testProxyNetwork(acc.proxy, 10_000);
+
+    // 2. Nếu là nick đang chạy trực tiếp trên MessengerEngine -> Chạy thêm Double-check Chromium
+    let browserVerified = false;
+    const defaultAcc = getDefaultAccount();
+    if (defaultAcc && defaultAcc.id === accId && messengerEngine.isReady()) {
+      try {
+        const doubleCheck = await messengerEngine.verifyActiveProxy();
+        if (doubleCheck.alive && !doubleCheck.isLeakingHostIp) {
+          browserVerified = true;
+          testResult.ip = doubleCheck.ip;
+          testResult.country = doubleCheck.country;
+          testResult.latencyMs = doubleCheck.latencyMs;
+        }
+      } catch (err: any) {
+        console.warn(`[Double-Check Warning] ${err.message}`);
+      }
+    }
+
+    // 3. Cập nhật vào DB
+    const updated = updateAccountProxyVerification(accId, {
+      verifiedProxyIp: testResult.ip,
+      proxyStatus: testResult.alive && !testResult.isLeakingHostIp ? 'live' : 'dead',
+      proxyCountry: testResult.country,
+      proxyCity: testResult.city,
+      proxyLatencyMs: testResult.latencyMs,
+    });
+
+    return res.json({
+      success: testResult.alive && !testResult.isLeakingHostIp,
+      browserVerified,
+      testResult,
+      account: updated,
+    });
+  });
+
+  // API 5.2: Cập nhật hoặc đổi Proxy cho một Tài Khoản
+  app.post('/api/accounts/:id/proxy', async (req, res) => {
+    const accId = req.params.id;
+    const { proxy } = req.body;
+    const acc = getAccountById(accId);
+    if (!acc) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy tài khoản' });
+    }
+
+    const cleanProxy = proxy ? String(proxy).trim() : '';
+
+    // Nếu có proxy, kiểm tra trước
+    if (cleanProxy) {
+      const parsed = parseProxy(cleanProxy);
+      if (!parsed) {
+        return res.status(400).json({ success: false, error: 'Định dạng Proxy không hợp lệ. Ví dụ: ip:port hoặc ip:port:user:pass' });
+      }
+      const test = await testProxyNetwork(cleanProxy, 9_000);
+      if (!test.alive) {
+        return res.status(400).json({
+          success: false,
+          error: `Proxy không thể kết nối (${test.error || 'Timeout'}). Vui lòng kiểm tra lại Proxy!`,
+          testResult: test,
+        });
+      }
+      if (test.isLeakingHostIp) {
+        return res.status(400).json({
+          success: false,
+          error: `Proxy trả về IP trùng với IP máy thật (${test.ip})! Không an toàn để sử dụng.`,
+          testResult: test,
+        });
+      }
+
+      updateAccountProxy(accId, cleanProxy);
+      updateAccountProxyVerification(accId, {
+        verifiedProxyIp: test.ip,
+        proxyStatus: 'live',
+        proxyCountry: test.country,
+        proxyCity: test.city,
+        proxyLatencyMs: test.latencyMs,
+      });
+
+      return res.json({
+        success: true,
+        message: `Đã cập nhật Proxy an toàn! IP: ${test.ip} (${test.country}, ping ${test.latencyMs}ms)`,
+        account: getAccountById(accId),
+        testResult: test,
+      });
+    } else {
+      updateAccountProxy(accId, '');
+      return res.json({
+        success: true,
+        message: 'Đã gỡ bỏ Proxy. Tài khoản sẽ dùng IP trực tiếp.',
+        account: getAccountById(accId),
+      });
+    }
+  });
+
+  // API 6: Đăng nhập Facebook siêu tốc bằng Cookie kèm Proxy (An toàn, không lộ IP)
+  app.post('/api/accounts/login-cookie', async (req, res) => {
+    const { cookie, proxy, name } = req.body;
+    if (!cookie) {
+      return res.status(400).json({ success: false, error: 'Vui lòng dán chuỗi Cookie' });
+    }
+
+    const parsedCookies = parseCookies(cookie);
+    const cUser = parsedCookies.find((c) => c.name === 'c_user');
+    if (!cUser || !cUser.value) {
+      return res.status(400).json({
+        success: false,
+        error: 'Cookie không hợp lệ: Không tìm thấy giá trị "c_user" (Facebook UID). Vui lòng kiểm tra lại cookie đã copy.',
+      });
+    }
+
+    const uid = cUser.value;
+    const accountId = `acc_${uid}`;
+    const profileDir = path.resolve(`./.user-data/profiles/${accountId}`);
+    if (!fs.existsSync(profileDir)) {
+      fs.mkdirSync(profileDir, { recursive: true });
+    }
+
+    let fbName = name ? name.trim() : `Facebook User (${uid})`;
+    const avatar = `https://graph.facebook.com/${uid}/picture?type=large`;
+    let tempSession = null;
+    let verifiedIp: string | undefined;
+    let proxyLatencyMs: number | undefined;
+    let proxyCountry: string | undefined;
+
+    const cleanProxy = proxy ? proxy.trim() : undefined;
+    if (cleanProxy) {
+      console.log(`🔍 [Login Cookie] Kiểm tra Pre-flight cho Proxy: ${cleanProxy}...`);
+      const preflight = await testProxyNetwork(cleanProxy, 10_000);
+      if (!preflight.alive) {
+        return res.status(400).json({
+          success: false,
+          error: `Proxy không thể kết nối (${preflight.error || 'Timeout'}). ĐÃ TỰ ĐỘNG CHẶN ĐĂNG NHẬP để chống lộ IP máy thật!`,
+        });
+      }
+      if (preflight.isLeakingHostIp) {
+        return res.status(400).json({
+          success: false,
+          error: `Proxy trả về IP trùng với IP máy thật (${preflight.ip})! ĐÃ HỦY ĐĂNG NHẬP để tránh bị Facebook liên kết các nick với nhau.`,
+        });
+      }
+      verifiedIp = preflight.ip;
+      proxyLatencyMs = preflight.latencyMs;
+      proxyCountry = preflight.country;
+    }
+
+    try {
+      tempSession = await createBrowserSession({
+        userDataDir: profileDir,
+        proxy: cleanProxy,
+        headless: true,
+      });
+
+      if (tempSession.verifiedIp) verifiedIp = tempSession.verifiedIp;
+      if (tempSession.proxyLatencyMs) proxyLatencyMs = tempSession.proxyLatencyMs;
+      if (tempSession.proxyCountry) proxyCountry = tempSession.proxyCountry;
+
+      await tempSession.context.addCookies(parsedCookies);
+
+      // Mở Facebook để kiểm tra cookie & lấy tên tài khoản thực tế
+      await tempSession.page.goto('https://www.facebook.com/me', {
+        waitUntil: 'domcontentloaded',
+        timeout: 25000,
+      });
+      await tempSession.page.waitForTimeout(2000);
+
+      const title = await tempSession.page.title();
+      if (title && !title.toLowerCase().includes('facebook') && !title.toLowerCase().includes('đăng nhập')) {
+        fbName = title.split('|')[0].trim();
+      } else {
+        const extracted = await tempSession.page.evaluate(() => {
+          const h1 = document.querySelector('h1');
+          return h1 ? h1.innerText.trim() : '';
+        });
+        if (extracted) fbName = extracted;
+      }
+      await tempSession.close();
+    } catch (err: any) {
+      if (tempSession) await tempSession.close().catch(() => {});
+      return res.status(500).json({
+        success: false,
+        error: `Lỗi khởi chạy trình duyệt an toàn: ${err.message}`,
+      });
+    }
+
+    const shouldMakeDefault = req.body.makeDefault !== false;
+    
+    // Lưu tệp backup cookies.json trong thư mục profile
+    try {
+      fs.writeFileSync(path.join(profileDir, 'cookies.json'), JSON.stringify(parsedCookies, null, 2), 'utf-8');
+    } catch {}
+
+    const savedAcc = saveAccount({
+      id: accountId,
+      uid,
+      name: fbName,
+      avatar,
+      proxy: cleanProxy || '',
+      verifiedProxyIp: verifiedIp,
+      proxyStatus: cleanProxy ? 'live' : 'unassigned',
+      proxyCountry,
+      proxyLatencyMs,
+      lastProxyCheckAt: new Date().toISOString(),
+      profileDir,
+      cookies: parsedCookies,
+      status: 'live',
+      isDefault: shouldMakeDefault,
+    });
+
+    if (shouldMakeDefault) {
+      // Tự động chuyển Messenger Engine sang nick mới
+      await messengerEngine.switchAccount(accountId).catch(() => {});
+    }
+
+    return res.json({
+      success: true,
+      message: `Đăng nhập thành công: ${fbName} (UID: ${uid})`,
+      account: savedAcc,
+    });
+  });
+
+  // API 7: Khởi chạy cửa sổ Chrome trực quan gắn sẵn Proxy để đăng nhập thủ công
+  app.post('/api/accounts/launch-login-browser', async (req, res) => {
+    const { proxy } = req.body;
+    const tempId = `login_${Date.now()}`;
+    const profileDir = path.resolve(`./.user-data/profiles/${tempId}`);
+    const cleanProxy = proxy ? String(proxy).trim() : undefined;
+
+    if (cleanProxy) {
+      const preflight = await testProxyNetwork(cleanProxy, 10_000);
+      if (!preflight.alive) {
+        return res.status(400).json({
+          success: false,
+          error: `Proxy không thể kết nối (${preflight.error || 'Timeout'}). ĐÃ HỦY MỞ CHROME để ngăn chặn lộ IP máy thật!`,
+        });
+      }
+      if (preflight.isLeakingHostIp) {
+        return res.status(400).json({
+          success: false,
+          error: `Proxy trả về IP trùng với IP máy thật (${preflight.ip})! Không an toàn để mở trình duyệt.`,
+        });
+      }
+    }
+
+    try {
+      const session = await createBrowserSession({
+        userDataDir: profileDir,
+        proxy: cleanProxy,
+        headless: false, // Mở Chrome có giao diện
+      });
+
+      activeBrowserLogins.set(tempId, session);
+      await session.page.goto('https://www.facebook.com', { waitUntil: 'domcontentloaded' }).catch(() => {});
+
+      res.json({
+        success: true,
+        loginSessionId: tempId,
+        message: 'Cửa sổ Chrome đã được mở với Proxy cách ly. Vui lòng đăng nhập tài khoản trên cửa sổ Chrome đó!',
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // API 7.5: Hủy phiên mở Chrome đăng nhập thủ công
+  app.post('/api/accounts/cancel-browser-login', async (req, res) => {
+    const { loginSessionId } = req.body;
+    if (loginSessionId && activeBrowserLogins.has(loginSessionId)) {
+      const session = activeBrowserLogins.get(loginSessionId);
+      await session?.close().catch(() => {});
+      activeBrowserLogins.delete(loginSessionId);
+    }
+    res.json({ success: true });
+  });
+
+  // API 8: Hoàn tất đăng nhập trực quan & Lưu Nick
+  app.post('/api/accounts/finish-browser-login', async (req, res) => {
+    const { loginSessionId, name, proxy, makeDefault } = req.body;
+    const session = activeBrowserLogins.get(loginSessionId);
+    if (!session) {
+      return res.status(400).json({ success: false, error: 'Phiên đăng nhập không tồn tại hoặc đã đóng' });
+    }
+
+    const check = await checkCookiesLoggedIn(session.context);
+    if (!check.isLoggedIn || !check.fbUid) {
+      return res.status(400).json({
+        success: false,
+        error: 'Chưa phát hiện tài khoản đã đăng nhập! Vui lòng hoàn thành đăng nhập trên Chrome trước khi bấm nút này.',
+      });
+    }
+
+    const uid = check.fbUid;
+    let fbName = name ? name.trim() : `Facebook User (${uid})`;
+    try {
+      const title = await session.page.title();
+      if (title && !title.toLowerCase().includes('facebook') && !title.toLowerCase().includes('đăng nhập')) {
+        fbName = title.split('|')[0].trim();
+      }
+    } catch {}
+
+    await session.close().catch(() => {});
+    activeBrowserLogins.delete(loginSessionId);
+
+    const oldDir = path.resolve(`./.user-data/profiles/${loginSessionId}`);
+    const newId = `acc_${uid}`;
+    const newDir = path.resolve(`./.user-data/profiles/${newId}`);
+
+    try {
+      if (fs.existsSync(newDir)) {
+        fs.rmSync(newDir, { recursive: true, force: true });
+      }
+      fs.renameSync(oldDir, newDir);
+    } catch {}
+
+    const shouldMakeDefault = makeDefault !== false;
+    const savedAcc = saveAccount({
+      id: newId,
+      uid,
+      name: fbName,
+      avatar: `https://graph.facebook.com/${uid}/picture?type=large`,
+      proxy: proxy ? proxy.trim() : '',
+      verifiedProxyIp: session.verifiedIp,
+      proxyStatus: proxy ? 'live' : 'unassigned',
+      proxyCountry: session.proxyCountry,
+      proxyLatencyMs: session.proxyLatencyMs,
+      lastProxyCheckAt: new Date().toISOString(),
+      profileDir: fs.existsSync(newDir) ? newDir : oldDir,
+      status: 'live',
+      isDefault: shouldMakeDefault,
+    });
+
+    if (shouldMakeDefault) {
+      await messengerEngine.switchAccount(newId).catch(() => {});
+    }
+
+    res.json({
+      success: true,
+      message: `Đăng nhập thành công: ${fbName} (UID: ${uid})`,
+      account: savedAcc,
+    });
+  });
+
+  // ==========================================
+  // CÁC API HỆ THỐNG & ĐỒNG BỘ TIN NHẮN
+  // ==========================================
+
+  // API 9: Lấy thông tin trạng thái toàn hệ thống
+  app.get('/api/status', (req, res) => {
+    const currentAcc = getDefaultAccount();
+    const mappings = getAllMappings();
+    res.json({
+      status: 'running',
+      accountId: currentAcc.id,
+      fbUid: currentAcc.uid,
+      fbName: currentAcc.name,
+      fbAvatar: currentAcc.avatar,
+      fbProxy: currentAcc.proxy,
+      fbStatus: currentAcc.status,
+      telegramBot: getBotUsername() ? `@${getBotUsername()}` : 'Đang kết nối Telegram…',
+      telegramGroupId: config.telegramGroupId,
+      headless: config.headless,
+      customerCount: mappings.length,
+      isPinRequired: messengerEngine.isPinRequired,
+      uptime: process.uptime(),
+      currentMode: dataModeService.getCurrentMode(),
+      modeInfo: dataModeService.getModeMetadata(),
+    });
+  });
+
+  // ==========================================
+  // OPERATING MODE APIS (BĐS ECOPARK vs FOREX TÀI CHÍNH)
+  // ==========================================
+
+  // Lấy trạng thái mode hiện tại & metadata
+  app.get('/api/mode/current', (req, res) => {
+    const currentMode = dataModeService.getCurrentMode();
+    res.json({
+      success: true,
+      currentMode,
+      metadata: dataModeService.getModeMetadata(currentMode),
+      allModes: MODE_METADATA,
+      stats: dataModeService.getModeStats(),
+    });
+  });
+
+  // Chuyển đổi mode vận hành
+  app.post('/api/mode/switch', (req, res) => {
+    const { mode } = req.body;
+    if (mode !== 'bds_ecopark' && mode !== 'forex_finance') {
+      return res.status(400).json({ success: false, error: 'Chế độ không hợp lệ. Chọn bds_ecopark hoặc forex_finance' });
+    }
+    const metadata = dataModeService.setMode(mode as OperatingMode);
+    res.json({
+      success: true,
+      currentMode: mode,
+      metadata,
+      stats: dataModeService.getModeStats(),
+      message: `Đã kích hoạt chế độ: ${metadata.name}`,
+    });
+  });
+
+  // Lấy danh sách groups theo mode
+  app.get('/api/mode/groups', (req, res) => {
+    const requestedMode = (req.query.mode as OperatingMode) || dataModeService.getCurrentMode();
+    const groups = dataModeService.getGroupsForMode(requestedMode);
+    res.json({
+      success: true,
+      mode: requestedMode,
+      metadata: dataModeService.getModeMetadata(requestedMode),
+      groups,
+      total: groups.length,
+    });
+  });
+
+  // Lấy danh sách members / leads phân loại theo mode
+  app.get('/api/mode/leads', (req, res) => {
+    const requestedMode = (req.query.mode as OperatingMode) || dataModeService.getCurrentMode();
+    const leads = dataModeService.getLeadsForMode(requestedMode);
+    res.json({
+      success: true,
+      mode: requestedMode,
+      metadata: dataModeService.getModeMetadata(requestedMode),
+      leads,
+      total: leads.length,
+    });
+  });
+
+  // Phân loại nội dung theo NLP Forex
+  app.post('/api/forex/classify', (req, res) => {
+    const { text } = req.body;
+    if (!text || typeof text !== 'string') {
+      return res.status(400).json({ success: false, error: 'Thiếu nội dung văn bản cần phân tích' });
+    }
+    const result = parseForexLead(text);
+    const suggestedComment = generateForexTargetedComment(result);
+    res.json({
+      success: true,
+      result,
+      suggestedComment,
+    });
+  });
+
+  // API 10: Lấy danh sách ánh xạ khách hàng
+  app.get('/api/mappings', (req, res) => {
+    res.json(getAllMappings());
+  });
+
+  // API 11: Gửi tin nhắn trực tiếp từ Web sang Facebook
+  app.post('/api/send', async (req, res) => {
+    const { fbThreadId, text } = req.body;
+    if (!fbThreadId || !text) {
+      return res.status(400).json({ success: false, error: 'Thiếu fbThreadId hoặc text' });
+    }
+    try {
+      const ok = await messengerEngine.sendMessage(fbThreadId, text);
+      if (ok) {
+        return res.json({ success: true });
+      } else {
+        return res.status(500).json({ success: false, error: 'Không thể gửi tin nhắn qua trình duyệt' });
+      }
+    } catch (e: any) {
+      return res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  // API 12: Thử nghiệm tạo Topic trên Telegram
+  app.post('/api/test-topic', async (req, res) => {
+    try {
+      const demoId = `test_${Date.now().toString().slice(-4)}`;
+      const topicId = await getOrCreateTopicForCustomer(demoId, `Khách Thử Nghiệm ${demoId}`);
+      res.json({ success: true, topicId });
+    } catch (e: any) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  // API 13: Kiểm tra trạng thái yêu cầu PIN E2EE
+  app.get('/api/pin-status', async (req, res) => {
+    const isRequired = await messengerEngine.checkPinModal();
+    res.json({ isPinRequired: isRequired });
+  });
+
+  // API 14: Nhập mã PIN 6 số giải mã E2EE (hỗ trợ cả /api/enter-pin lẫn /api/pin)
+  app.post(['/api/enter-pin', '/api/pin'], async (req, res) => {
+    const { pin } = req.body;
+    if (!pin) {
+      return res.status(400).json({ success: false, error: 'Vui lòng cung cấp mã PIN 6 số' });
+    }
+    const result = await messengerEngine.enterPin(pin);
+    if (result.success) {
+      res.json({ success: true, message: result.message });
+    } else {
+      res.status(400).json({ success: false, error: result.message });
+    }
+  });
+
+  // API 15: Đóng modal PIN để chat ngay
+  app.post('/api/dismiss-pin', async (req, res) => {
+    const page = await messengerEngine.getPage();
+    if (!page) {
+      return res.status(500).json({ success: false, error: 'Trình duyệt chưa sẵn sàng' });
+    }
+    try {
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(500);
+
+      await page.evaluate(() => {
+        const dialog = document.querySelector('[role="dialog"]');
+        if (dialog) {
+          const closeBtn = dialog.querySelector(
+            '[role="button"][aria-label*="Đóng" i], [role="button"][aria-label*="Close" i], [role="button"]'
+          );
+          if (closeBtn) (closeBtn as HTMLElement).click();
+        }
+      });
+      await page.waitForTimeout(1000);
+
+      res.json({ success: true, message: 'Đã đóng popup PIN' });
+    } catch (e: any) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  // API 16: Chụp màn hình trình duyệt hiện tại
+  app.get('/api/screenshot', async (req, res) => {
+    const buffer = await messengerEngine.getScreenshot();
+    if (!buffer) {
+      return res.status(500).send('Không thể chụp màn hình');
+    }
+    res.setHeader('Content-Type', 'image/png');
+    res.send(buffer);
+  });
+
+  // API Debug Composer
+  app.get('/api/debug-composer', async (_req, res) => {
+    try {
+      const debugInfo = await messengerEngine.withNewFacebookPage(async (page) => {
+        await page.goto('https://www.facebook.com/', { waitUntil: 'domcontentloaded', timeout: 35000 });
+        await page.waitForTimeout(3000);
+        const url = page.url();
+        const title = await page.title();
+        const proofDir = path.resolve('./.tmp_media');
+        if (!fs.existsSync(proofDir)) fs.mkdirSync(proofDir, { recursive: true });
+        const screenshotPath = path.join(proofDir, 'debug_feed.png');
+        await page.screenshot({ path: screenshotPath });
+
+        const texts = await page.evaluate(() => {
+          const els = Array.from(document.querySelectorAll('div[role="button"], [aria-label], div[data-pagelet]'));
+          return els.map(e => ({
+            tag: e.tagName,
+            role: e.getAttribute('role'),
+            ariaLabel: e.getAttribute('aria-label'),
+            pagelet: e.getAttribute('data-pagelet'),
+            text: (e as HTMLElement).innerText?.slice(0, 60),
+          })).filter(x => x.ariaLabel || (x.text && x.text.trim().length > 0)).slice(0, 80);
+        });
+
+        return { url, title, screenshotPath, texts };
+      });
+      res.json(debugInfo);
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/debug-click-tile', async (_req, res) => {
+    try {
+      const result = await messengerEngine.withNewFacebookPage(async (page) => {
+        await page.goto('https://www.facebook.com/', { waitUntil: 'domcontentloaded', timeout: 35000 });
+        await page.waitForTimeout(3000);
+        const tile = page.locator('div[role="button"]').filter({ hasText: /^Eco Trang$/i }).first();
+        const visible = await tile.isVisible({ timeout: 5000 }).catch(() => false);
+        if (!visible) return { error: 'Tile Eco Trang not visible', url: page.url() };
+        await tile.click();
+        await page.waitForTimeout(6000);
+        const url = page.url();
+        const title = await page.title();
+        const proofDir = path.resolve('./.tmp_media');
+        const screenshotPath = path.join(proofDir, 'debug_after_tile_click.png');
+        await page.screenshot({ path: screenshotPath });
+        return { url, title, screenshotPath };
+      });
+      res.json(result);
+    } catch (e: any) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // API 17: Mẫu câu trả lời nhanh
+  app.get('/api/canned-replies', (req, res) => {
+    res.json(loadCannedReplies());
+  });
+
+  app.post('/api/canned-replies', (req, res) => {
+    const { key, content } = req.body;
+    if (!key || !content) {
+      return res.status(400).json({ success: false, error: 'Thiếu key hoặc content' });
+    }
+    saveCannedReply(key, content);
+    res.json({ success: true, all: loadCannedReplies() });
+  });
+
+  // ==========================================
+  // API AUTO-COMMENT & GROUP SEEDING
+  // ==========================================
+
+  app.get('/api/autocmt/data', (req, res) => {
+    const requestedMode = (req.query.mode as OperatingMode) || dataModeService.getCurrentMode();
+    const isAll = req.query.all === 'true';
+    const groups = isAll ? getTargetGroups() : dataModeService.getGroupsForMode(requestedMode);
+    res.json({
+      config: getAutoCommentConfig(),
+      templates: getCommentTemplates(),
+      groups,
+      allGroupsCount: getTargetGroups().length,
+      currentMode: requestedMode,
+      modeMetadata: dataModeService.getModeMetadata(requestedMode),
+      keywords: getKeywords(),
+      logs: getCommentLogs(40),
+    });
+  });
+
+  app.post('/api/autocmt/config', (req, res) => {
+    const updated = updateAutoCommentConfig(req.body);
+    if (updated.enabled) {
+      autoCommentEngine.startWatcher(10);
+    } else {
+      autoCommentEngine.stopWatcher();
+    }
+    res.json({ success: true, config: updated });
+  });
+
+  app.post('/api/autocmt/templates', (req, res) => {
+    const { content } = req.body;
+    if (!content) return res.status(400).json({ success: false, error: 'Thiếu nội dung mẫu' });
+    const tpl = addCommentTemplate(content);
+    res.json({ success: true, template: tpl, all: getCommentTemplates() });
+  });
+
+  app.delete('/api/autocmt/templates/:id', (req, res) => {
+    deleteCommentTemplate(req.params.id);
+    res.json({ success: true, all: getCommentTemplates() });
+  });
+
+  app.post('/api/autocmt/groups', (req, res) => {
+    const { url, name } = req.body;
+    if (!url) return res.status(400).json({ success: false, error: 'Thiếu link nhóm' });
+    const grp = addTargetGroup(url, name);
+    res.json({ success: true, group: grp, all: getTargetGroups() });
+  });
+
+  // Đồng bộ các Group BĐS Ecopark ĐÃ THAM GIA (Joined) thực tế trên Facebook vào Kho Group
+  app.post('/api/groups/sync-joined', async (_req, res) => {
+    try {
+      const scanRes = await messengerEngine.scanJoinedEcoparkGroups();
+      if (!scanRes.success) {
+        return res.status(500).json({ success: false, error: scanRes.error });
+      }
+      const syncStats = syncJoinedGroupsToPool(scanRes.joinedGroups, scanRes.accountId, 'BĐS Ecopark');
+      res.json({
+        success: true,
+        accountId: scanRes.accountId,
+        ...syncStats,
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Chỉ định Nick phụ trách cho 1 Group trong Kho Group
+  app.post('/api/groups/:id/assign', (req, res) => {
+    const { accountIds } = req.body;
+    if (!Array.isArray(accountIds)) {
+      return res.status(400).json({ success: false, error: 'accountIds phải là mảng' });
+    }
+    const updated = assignGroupToAccounts(req.params.id, accountIds);
+    if (!updated) return res.status(404).json({ success: false, error: 'Không tìm thấy Group' });
+    res.json({ success: true, group: updated, all: getTargetGroups() });
+  });
+
+  app.post('/api/autocmt/groups/batch', (req, res) => {
+    const { groups } = req.body;
+    if (!Array.isArray(groups)) return res.status(400).json({ success: false, error: 'Thiếu danh sách nhóm' });
+    const result = addMultipleTargetGroups(groups);
+    res.json({ success: true, ...result, all: getTargetGroups() });
+  });
+
+  app.delete('/api/autocmt/groups/:id', (req, res) => {
+    deleteTargetGroup(req.params.id);
+    res.json({ success: true, all: getTargetGroups() });
+  });
+
+  // Cập nhật Ghi chú / Trạng thái đăng bài cho 1 Group trong Kho
+  app.post('/api/groups/:id/note', (req, res) => {
+    const { postNotes, postingStatus, status, notes } = req.body;
+    const finalNote = postNotes !== undefined ? postNotes : notes;
+    const updated = updateGroupNote(req.params.id, { postNotes: finalNote, postingStatus, status });
+    if (!updated) return res.status(404).json({ success: false, error: 'Không tìm thấy Group' });
+    res.json({ success: true, group: updated, all: getTargetGroups() });
+  });
+
+  // Bật / Tắt trạng thái tham gia phân phối bài của 1 Group
+  app.post('/api/groups/:id/toggle', (req, res) => {
+    const updated = toggleGroupStatus(req.params.id);
+    if (!updated) return res.status(404).json({ success: false, error: 'Không tìm thấy Group' });
+    res.json({ success: true, group: updated, all: getTargetGroups() });
+  });
+
+  // Lấy thống kê sức khỏe và khả năng đăng bài của toàn bộ Kho Group
+  app.get('/api/groups/posting-health', (_req, res) => {
+    const groups = getTargetGroups();
+    const stats = {
+      total: groups.length,
+      directSuccess: groups.filter((g) => g.postingStatus === 'direct_success').length,
+      pendingApproval: groups.filter((g) => g.postingStatus === 'pending_approval').length,
+      failedOrRestricted: groups.filter((g) => g.postingStatus === 'failed' || g.postingStatus === 'restricted').length,
+      unknown: groups.filter((g) => !g.postingStatus || g.postingStatus === 'unknown').length,
+      activeForPosting: groups.filter((g) => g.status === 'active').length,
+    };
+    res.json({ success: true, stats, groups });
+  });
+
+  // ==============================================================
+  // KHO NGUỒN BĐS & QUỸ CĂN TRONG NGÀY (REAL ESTATE INVENTORY)
+  // ==============================================================
+  app.get('/api/properties', (_req, res) => {
+    res.json({
+      success: true,
+      stats: getPropertyInventoryStats(),
+      properties: getAllProperties(),
+      todayProperties: getTodayProperties(),
+      config: getAutoCommentConfig(),
+    });
+  });
+
+  app.get('/api/properties/today', (_req, res) => {
+    const todayList = getTodayProperties();
+    res.json({
+      success: true,
+      count: todayList.length,
+      todayProperties: todayList,
+      stats: getPropertyInventoryStats(),
+    });
+  });
+
+  app.post('/api/properties/scan-text', async (req, res) => {
+    const { text } = req.body;
+    if (!text || typeof text !== 'string') {
+      return res.status(400).json({ success: false, error: 'Thiếu nội dung văn bản cần quét.' });
+    }
+    const added = await ingestPropertiesFromTextWithAI(text, 'web_manual');
+    res.json({
+      success: true,
+      count: added.length,
+      properties: added,
+      all: getAllProperties(),
+      todayProperties: getTodayProperties(),
+      stats: getPropertyInventoryStats(),
+    });
+  });
+
+  app.post('/api/properties/scan-image', async (req, res) => {
+    const { imageBase64 } = req.body;
+    if (!imageBase64) {
+      return res.status(400).json({ success: false, error: 'Thiếu dữ liệu ảnh (Base64).' });
+    }
+    try {
+      const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+      const buffer = Buffer.from(cleanBase64, 'base64');
+      const { textExtracted, properties } = await ingestPropertiesFromImageWithAI(buffer, 'web_image');
+      res.json({
+        success: true,
+        textExtracted,
+        count: properties.length,
+        properties,
+        all: getAllProperties(),
+        todayProperties: getTodayProperties(),
+        stats: getPropertyInventoryStats(),
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message || 'Lỗi nhận diện OCR ảnh.' });
+    }
+  });
+
+  // ==============================================================
+  // FREE AI CONFIGURATION & SIMULATION APIS (AUTO FAILOVER & KEY POOL)
+  // ==============================================================
+  app.get('/api/ai/config', (_req, res) => {
+    const cfg = getAiConfig();
+    const maskedKey = cfg.apiKey ? (cfg.apiKey.length > 8 ? `${cfg.apiKey.slice(0, 4)}••••${cfg.apiKey.slice(-4)}` : '••••••••') : '';
+    res.json({
+      success: true,
+      config: {
+        ...cfg,
+        apiKey: maskedKey,
+        hasKey: Boolean(cfg.apiKey) || (cfg.keysPool && cfg.keysPool.length > 0),
+        keysPool: (cfg.keysPool || []).map(k => ({
+          ...k,
+          apiKey: k.maskedKey,
+        })),
+      },
+    });
+  });
+
+  app.post('/api/ai/config', (req, res) => {
+    const { provider, apiKey, keysText, model, autoAiComment, autoFailover, autoCascadeProvider, cooldownSeconds } = req.body;
+    const updatePayload: any = {};
+    if (provider) updatePayload.provider = provider;
+    if (typeof apiKey === 'string' && !apiKey.includes('••••') && apiKey.trim()) {
+      updatePayload.apiKey = apiKey.trim();
+      addKeysToPool(apiKey.trim(), provider);
+    }
+    if (typeof keysText === 'string' && keysText.trim()) {
+      addKeysToPool(keysText, provider);
+    }
+    if (model) updatePayload.model = model;
+    if (typeof autoAiComment === 'boolean') updatePayload.autoAiComment = autoAiComment;
+    if (typeof autoFailover === 'boolean') updatePayload.autoFailover = autoFailover;
+    if (typeof autoCascadeProvider === 'boolean') updatePayload.autoCascadeProvider = autoCascadeProvider;
+    if (typeof cooldownSeconds === 'number') updatePayload.cooldownSeconds = cooldownSeconds;
+
+    const saved = saveAiConfig(updatePayload);
+    const maskedKey = saved.apiKey ? (saved.apiKey.length > 8 ? `${saved.apiKey.slice(0, 4)}••••${saved.apiKey.slice(-4)}` : '••••••••') : '';
+    res.json({
+      success: true,
+      config: {
+        ...saved,
+        apiKey: maskedKey,
+        hasKey: Boolean(saved.apiKey) || (saved.keysPool && saved.keysPool.length > 0),
+        keysPool: (saved.keysPool || []).map(k => ({ ...k, apiKey: k.maskedKey })),
+      },
+    });
+  });
+
+  app.post('/api/ai/keys/add', (req, res) => {
+    const { keys, provider } = req.body;
+    if (!keys) {
+      return res.status(400).json({ success: false, error: 'Vui lòng cung cấp danh sách API Key.' });
+    }
+    const updated = addKeysToPool(keys, provider);
+    res.json({
+      success: true,
+      message: 'Đã thêm key vào Bể Khóa Dự Phòng thành công!',
+      keysPool: (updated.keysPool || []).map(k => ({ ...k, apiKey: k.maskedKey })),
+      config: getAiConfig(),
+    });
+  });
+
+  app.delete('/api/ai/keys/:id', (req, res) => {
+    const { id } = req.params;
+    const cfg = removeKeyFromPool(id);
+    res.json({
+      success: true,
+      message: 'Đã xóa key khỏi Bể Khóa.',
+      config: {
+        ...cfg,
+        keysPool: (cfg.keysPool || []).map(k => ({ ...k, apiKey: k.maskedKey })),
+      },
+    });
+  });
+
+  app.post('/api/ai/keys/:id/reset', (req, res) => {
+    const { id } = req.params;
+    const cfg = resetKeyStatus(id);
+    res.json({
+      success: true,
+      message: 'Đã khôi phục trạng thái hoạt động cho Key!',
+      config: {
+        ...cfg,
+        keysPool: (cfg.keysPool || []).map(k => ({ ...k, apiKey: k.maskedKey })),
+      },
+    });
+  });
+
+  app.post('/api/ai/keys/test-pool', async (_req, res) => {
+    const testResult = await freeAiService.testAllKeysInPool();
+    res.json({
+      success: true,
+      ...testResult,
+      config: getAiConfig(),
+    });
+  });
+
+  app.post('/api/ai/test', async (req, res) => {
+    const { provider, apiKey } = req.body;
+    const currentCfg = getAiConfig();
+    const targetKey = (typeof apiKey === 'string' && !apiKey.includes('••••') && apiKey.trim()) ? apiKey.trim() : currentCfg.apiKey;
+    const targetProvider = provider || currentCfg.provider || 'gemini';
+
+    const testResult = await freeAiService.testConnection(targetProvider, targetKey);
+    res.json({
+      success: testResult.success,
+      message: testResult.message,
+      modelUsed: testResult.modelUsed,
+      config: getAiConfig(),
+    });
+  });
+
+  app.post('/api/ai/simulate', async (req, res) => {
+    const { postContent } = req.body;
+    if (!postContent || typeof postContent !== 'string') {
+      return res.status(400).json({ success: false, error: 'Thiếu nội dung bài viết cần mô phỏng.' });
+    }
+    const available = getAvailableProperties();
+    const result = await freeAiService.simulateFullMatching(postContent, available);
+    res.json({
+      success: true,
+      analysis: result,
+    });
+  });
+
+  app.post('/api/properties', (req, res) => {
+    const { project, type, bedroom, price, priceText, furniture, phone, ownerNotes, rawText } = req.body;
+    const added = addProperties([{
+      project: project || 'Ecopark (Chung)',
+      type: type || 'rent',
+      bedroom: bedroom || '2PN',
+      price: price || 0,
+      priceText: priceText || 'Thỏa thuận',
+      furniture: furniture || 'Full đồ',
+      phone,
+      ownerNotes,
+      rawText: rawText || `${project} ${bedroom} ${priceText}`,
+    }], 'web_manual');
+    res.json({ success: true, property: added[0], all: getAllProperties(), stats: getPropertyInventoryStats() });
+  });
+
+  app.post('/api/properties/:id/toggle', (req, res) => {
+    const updated = togglePropertyStatus(req.params.id);
+    if (!updated) return res.status(404).json({ success: false, error: 'Không tìm thấy căn hộ.' });
+    res.json({ success: true, property: updated, all: getAllProperties(), stats: getPropertyInventoryStats() });
+  });
+
+  app.delete('/api/properties/:id', (req, res) => {
+    const ok = deleteProperty(req.params.id);
+    if (!ok) return res.status(404).json({ success: false, error: 'Không tìm thấy căn hộ để xóa.' });
+    res.json({ success: true, all: getAllProperties(), stats: getPropertyInventoryStats() });
+  });
+
+  app.post('/api/config/inventory-topic', (req, res) => {
+    const { topicId } = req.body;
+    updateAutoCommentConfig({ telegramInventoryTopicId: topicId ? parseInt(topicId, 10) : undefined });
+    res.json({ success: true, config: getAutoCommentConfig() });
+  });
+
+  app.post('/api/autocmt/keywords', (req, res) => {
+    const { keywords } = req.body;
+    if (Array.isArray(keywords)) {
+      setKeywords(keywords);
+    }
+    res.json({ success: true, all: getKeywords() });
+  });
+
+  app.post('/api/autocmt/comment-now', async (req, res) => {
+    const { postUrl, commentText, accountId } = req.body;
+    if (!postUrl || !commentText) {
+      return res.status(400).json({ success: false, error: 'Thiếu link bài viết hoặc nội dung comment' });
+    }
+    try {
+      const targetAcc = accountId ? getAccountById(accountId) || undefined : undefined;
+      const result = await autoCommentEngine.commentOnPost(postUrl, commentText, targetAcc);
+      res.json(result);
+    } catch (e: any) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  app.post('/api/autocmt/scan-now', async (req, res) => {
+    try {
+      autoCommentEngine.runScanCycle().then((result) => {
+        console.log('[AutoComment] Quét thủ công hoàn tất:', result);
+      });
+      res.json({ success: true, message: 'Đã kích hoạt quét nhóm nền!' });
+    } catch (e: any) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  // ==========================================
+  // API DAILY POSTS, DRAFTS & EXECUTIVE MONITOR
+  // ==========================================
+
+  let latestPostProofPath: string | null = null;
+
+  function saveBase64PhotosToDisk(photoDataUrls?: string[]): string[] {
+    if (!Array.isArray(photoDataUrls) || photoDataUrls.length === 0) return [];
+    const mediaDir = path.resolve('./.tmp_media');
+    if (!fs.existsSync(mediaDir)) fs.mkdirSync(mediaDir, { recursive: true });
+    const savedPaths: string[] = [];
+    photoDataUrls.forEach((dataUrl, idx) => {
+      if (typeof dataUrl !== 'string') return;
+      if (fs.existsSync(dataUrl)) {
+        savedPaths.push(dataUrl);
+        return;
+      }
+      const match = dataUrl.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
+      if (match && match[2]) {
+        const rawExt = match[1].toLowerCase();
+        const ext = rawExt === 'jpeg' ? 'jpg' : rawExt.replace(/[^a-z0-9]/g, '') || 'jpg';
+        const filePath = path.join(mediaDir, `web_upload_${Date.now()}_${idx}.${ext}`);
+        fs.writeFileSync(filePath, Buffer.from(match[2], 'base64'));
+        savedPaths.push(filePath);
+      }
+    });
+    return savedPaths;
+  }
+
+  app.get('/api/posts/proof-image', (_req, res) => {
+    if (latestPostProofPath && fs.existsSync(latestPostProofPath)) {
+      return res.sendFile(path.resolve(latestPostProofPath));
+    }
+    res.status(404).send('No post proof image available');
+  });
+
+  app.get('/api/daily-posts', (req, res) => {
+    res.json(getDailyPosts());
+  });
+
+  app.post('/api/daily-posts', (req, res) => {
+    const { content, mediaUrls, photoDataUrls, type, groupUrls } = req.body;
+    const uploadedPaths = saveBase64PhotosToDisk(photoDataUrls);
+    const allMedia = [
+      ...(Array.isArray(mediaUrls) ? mediaUrls : []),
+      ...uploadedPaths,
+    ];
+    if ((!content || !String(content).trim()) && allMedia.length === 0) {
+      return res.status(400).json({ success: false, error: 'Thiếu nội dung hoặc hình ảnh bài đăng' });
+    }
+    const post = addDailyPost({
+      content: (content || '').trim(),
+      mediaUrls: allMedia,
+      type: type || 'group_post',
+    });
+    if (Array.isArray(groupUrls) && groupUrls.length > 0) {
+      post.targetGroupIds = groupUrls;
+    }
+    post.status = 'confirmed';
+    post.confirmedAt = new Date().toISOString();
+    res.json({ success: true, post });
+  });
+
+  app.get('/api/pending-drafts', (req, res) => {
+    res.json(getPendingDrafts());
+  });
+
+  app.post('/api/daily-posts/:id/run', async (req, res) => {
+    const post = updateDailyPostStatus(req.params.id, 'running', 'Đang thực thi đăng bài thật qua Facebook...');
+    if (!post) return res.status(404).json({ success: false, error: 'Không tìm thấy bài đăng' });
+
+    res.json({ success: true, post, message: 'Đã gửi lệnh vào hàng đợi thực thi Facebook' });
+
+    // Gọi trực tiếp Engine thực thi bằng Playwright
+    (async () => {
+      try {
+        const result = await messengerEngine.publishFacebookPost({
+          content: post.content,
+          targetType: post.targetType || post.type || 'personal_post',
+          groupUrls: post.targetGroupIds,
+          photoPaths: post.mediaUrls,
+        });
+
+        if (result.screenshotPath) {
+          latestPostProofPath = result.screenshotPath;
+        }
+
+        if (result.success && result.publishedCount > 0) {
+          updateDailyPostStatus(
+            req.params.id,
+            'completed',
+            `Đã đăng thành công lên ${result.publishedCount} đích thực tế!`,
+            result.receipts
+          );
+        } else {
+          updateDailyPostStatus(
+            req.params.id,
+            'failed',
+            `Đăng bài thất bại: ${result.error || 'Không xuất bản được nội dung'}`,
+            result.receipts
+          );
+        }
+      } catch (err: any) {
+        updateDailyPostStatus(req.params.id, 'failed', `Lỗi ngoại lệ khi đăng bài: ${err.message}`);
+      }
+    })();
+  });
+
+  // Đăng bài trực tiếp từ Web Dashboard (Hỗ trợ Text + Ảnh + Lựa chọn Đích đến)
+  app.post('/api/posts/publish-direct', async (req, res) => {
+    const { content, targetType, groupUrls, photoPaths, photoDataUrls } = req.body;
+    const uploadedPaths = saveBase64PhotosToDisk(photoDataUrls);
+    const allPhotoPaths = [
+      ...(Array.isArray(photoPaths) ? photoPaths : []),
+      ...uploadedPaths,
+    ];
+
+    if ((!content || !String(content).trim()) && allPhotoPaths.length === 0) {
+      return res.status(400).json({ success: false, error: 'Vui lòng nhập nội dung bài viết hoặc đính kèm ít nhất 1 ảnh' });
+    }
+
+    try {
+      const post = addDailyPost({
+        content: (content || '').trim(),
+        mediaUrls: allPhotoPaths,
+        type: targetType || 'personal_post',
+      });
+      post.status = 'running';
+      post.targetType = targetType || 'personal_post';
+      post.targetGroupIds = Array.isArray(groupUrls) ? groupUrls : [];
+
+      const result = await messengerEngine.publishFacebookPost({
+        content: (content || '').trim(),
+        targetType: targetType || 'personal_post',
+        groupUrls: Array.isArray(groupUrls) ? groupUrls : [],
+        photoPaths: allPhotoPaths,
+      });
+
+      if (result.screenshotPath) {
+        latestPostProofPath = result.screenshotPath;
+      }
+
+      if (result.success && result.publishedCount > 0) {
+        updateDailyPostStatus(
+          post.id,
+          'completed',
+          `Đã đăng thành công lên ${result.publishedCount}/${result.totalTargets} đích!`
+        );
+      } else {
+        updateDailyPostStatus(
+          post.id,
+          'failed',
+          `Đăng bài thất bại: ${result.error || 'Facebook từ chối xuất bản'}`
+        );
+      }
+
+      res.json({
+        success: result.success,
+        result,
+        post,
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Kiểm tra thực tế tính năng đính kèm ảnh vào khung soạn bài Facebook (Dry-run có chụp ảnh bằng chứng)
+  app.post('/api/posts/test-photo-composer', async (req, res) => {
+    const { content, photoPaths, photoDataUrls, groupUrl } = req.body;
+    const uploadedPaths = saveBase64PhotosToDisk(photoDataUrls);
+    const allPhotoPaths = [
+      ...(Array.isArray(photoPaths) ? photoPaths : []),
+      ...uploadedPaths,
+    ];
+    try {
+      const result = await messengerEngine.verifyPhotoUploadInComposer({
+        photoPaths: allPhotoPaths,
+        content: content || 'Kiểm tra tính năng đính kèm hình ảnh FalconX {tự động|chuẩn người thật} ✨',
+        groupUrl,
+      });
+      if (result.screenshotPath) {
+        latestPostProofPath = result.screenshotPath;
+      }
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Xóa một bài đăng khỏi hàng đợi
+  app.delete('/api/daily-posts/:id', (req, res) => {
+    const success = deleteDailyPost(req.params.id);
+    res.json({ success });
+  });
+
+  // Xóa toàn bộ hàng đợi bài đăng
+  app.post('/api/daily-posts/clear', (_req, res) => {
+    clearDailyPosts();
+    res.json({ success: true });
+  });
+
+  // API Quét Thành Viên Group Mới (Topic 3) từ Web Dashboard
+  app.post('/api/members/scan', async (req, res) => {
+    const { groupUrl, resetBaseline } = req.body;
+    if (!groupUrl || typeof groupUrl !== 'string') {
+      return res.status(400).json({ success: false, error: 'Thiếu link Facebook Group hợp lệ' });
+    }
+
+    if (resetBaseline) {
+      const scanFile = path.resolve('./data/facebook_member_scan.json');
+      if (fs.existsSync(scanFile)) {
+        try { fs.unlinkSync(scanFile); } catch {}
+      }
+    }
+
+    try {
+      const result = await facebookActionsEngine.scanRecentGroupMembers(groupUrl.trim(), !!resetBaseline);
+      res.json({ success: true, ...result });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Reset mốc tham chiếu thành viên Group
+  app.post('/api/members/reset', (_req, res) => {
+    const scanFile = path.resolve('./data/facebook_member_scan.json');
+    if (fs.existsSync(scanFile)) {
+      try { fs.unlinkSync(scanFile); } catch {}
+    }
+    res.json({ success: true, message: 'Đã xóa toàn bộ mốc tham chiếu thành viên cũ' });
+  });
+
+  // Lấy dữ liệu mốc quét thành viên đã lưu
+  app.get('/api/members/state', (_req, res) => {
+    const scanFile = path.resolve('./data/facebook_member_scan.json');
+    if (fs.existsSync(scanFile)) {
+      try {
+        const raw = JSON.parse(fs.readFileSync(scanFile, 'utf8'));
+        return res.json({ success: true, state: raw });
+      } catch {}
+    }
+    res.json({ success: true, state: { groups: {} } });
+  });
+
+  // API tiếp nhận dữ liệu cào trực tiếp từ KudoX F12 Console Scanner
+  app.post('/api/members/ingest-f12', (req, res) => {
+    const { sourceUrl, groupName, members } = req.body;
+    if (!Array.isArray(members) || members.length === 0) {
+      return res.status(400).json({ success: false, error: 'Không có dữ liệu thành viên hợp lệ' });
+    }
+
+    const scanFile = path.resolve('./data/facebook_member_scan.json');
+    let state: any = { groups: {} };
+    if (fs.existsSync(scanFile)) {
+      try {
+        state = JSON.parse(fs.readFileSync(scanFile, 'utf8'));
+      } catch {}
+    }
+
+    const groupKey = (sourceUrl || 'F12_Console_Scan').split('?')[0].replace(/\/+$/, '');
+    const previous = state.groups[groupKey];
+    const known = new Set<string>(previous?.knownIds || []);
+    let newlyAdded = 0;
+
+    for (const m of members) {
+      if (m && m.id && !known.has(m.id)) {
+        known.add(m.id);
+        newlyAdded++;
+      }
+    }
+
+    state.groups[groupKey] = {
+      groupName: groupName || 'Facebook Group',
+      knownIds: [...known],
+      lastScannedAt: new Date().toISOString(),
+      members: members,
+    };
+
+    try {
+      fs.mkdirSync(path.dirname(scanFile), { recursive: true });
+      fs.writeFileSync(scanFile, JSON.stringify(state, null, 2), 'utf8');
+    } catch (e: any) {
+      console.warn('[IngestF12] Lỗi ghi file member scan:', e.message);
+    }
+
+    // Đổ vào Global Lead Pool
+    try {
+      globalLeadPoolService.ingestScannedMembers(members, sourceUrl, groupName);
+    } catch {}
+
+    console.log(`📥 [KudoX F12 Scanner] Đã nhận ${members.length} thành viên Clean từ F12 (${newlyAdded} thành viên mới)!`);
+
+    res.json({
+      success: true,
+      addedCount: newlyAdded,
+      totalCount: members.length,
+      groupKey,
+      message: `Đã nạp thành công ${newlyAdded} thành viên mới vào hệ thống FalconX!`,
+    });
+  });
+
+  // API lấy nội dung mã F12 Console Script để người dùng copy
+  app.get('/api/members/f12-script', (_req, res) => {
+    const scriptPath = path.resolve('./public/scripts/kudox-f12-member-scanner.js');
+    if (fs.existsSync(scriptPath)) {
+      try {
+        const code = fs.readFileSync(scriptPath, 'utf8');
+        return res.json({ success: true, script: code });
+      } catch (e: any) {
+        return res.status(500).json({ success: false, error: e.message });
+      }
+    }
+    res.status(404).json({ success: false, error: 'Không tìm thấy file script F12' });
+  });
+
+  // Gửi lời mời kết bạn từ Web Dashboard (Topic 4)
+  app.post('/api/actions/friend', async (req, res) => {
+    const { profileUrl } = req.body;
+    if (!profileUrl || typeof profileUrl !== 'string') {
+      return res.status(400).json({ success: false, error: 'Thiếu đường dẫn hồ sơ Facebook' });
+    }
+    try {
+      const message = await facebookActionsEngine.requestFriend(profileUrl.trim());
+      res.json({ success: true, message });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Tham gia nhóm Facebook mục tiêu
+  app.post('/api/groups/join-single', async (req, res) => {
+    const { url } = req.body;
+    if (!url || typeof url !== 'string') {
+      return res.status(400).json({ success: false, error: 'Thiếu đường dẫn nhóm Facebook' });
+    }
+    try {
+      const result = await facebookActionsEngine.joinGroup(url.trim());
+      res.json({ success: true, result });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Tham gia N nhóm mục tiêu đầu tiên (mặc định 15)
+  app.post('/api/groups/join-top', async (req, res) => {
+    const count = Number(req.body?.count) || 15;
+    try {
+      const summary = await facebookActionsEngine.joinTopGroups(count);
+      res.json({ success: true, ...summary });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+  app.post('/api/actions/react', async (req, res) => {
+    const { url, reaction } = req.body;
+    if (!url || typeof url !== 'string') {
+      return res.status(400).json({ success: false, error: 'Thiếu đường dẫn bài viết hoặc Story Facebook' });
+    }
+    try {
+      const isStory = /stories\/|story\.php/i.test(url);
+      const message = isStory
+        ? await facebookActionsEngine.reactToStory(url.trim(), (reaction || 'like') as FacebookReaction)
+        : await facebookActionsEngine.reactToPost(url.trim(), (reaction || 'like') as FacebookReaction);
+      res.json({ success: true, message });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // ========================================================
+  // API TỰ ĐỘNG TÌM KIẾM & KHÁM PHÁ NHÓM FACEBOOK MỚI (TOPIC 1/2)
+  // ========================================================
+
+  // Lấy danh sách nhóm đã khám phá kèm thống kê
+  app.get('/api/groups/discover/list', (req, res) => {
+    try {
+      const category = typeof req.query.category === 'string' ? req.query.category : undefined;
+      const groups = groupDiscoveryService.getDiscoveredGroups(category);
+      const stats = groupDiscoveryService.getStats();
+      const isBusy = groupDiscoveryService.isBusy();
+      res.json({ success: true, stats, isBusy, groups });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Tìm kiếm nhóm mới trên Facebook theo từ khóa (Playwright DOM scraper)
+  app.post('/api/groups/discover/search', async (req, res) => {
+    try {
+      const { keyword, maxResults } = req.body;
+      if (!keyword || typeof keyword !== 'string' || !keyword.trim()) {
+        return res.status(400).json({ success: false, error: 'Thiếu từ khóa tìm kiếm nhóm' });
+      }
+      const limit = Number(maxResults) || 12;
+      const result = await groupDiscoveryService.searchGroupsOnFacebook(keyword.trim(), limit);
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Thêm nhóm đã khám phá vào Kho Nhóm Săn Khách (TargetGroups)
+  app.post('/api/groups/discover/add-to-pool', (req, res) => {
+    try {
+      const { groupId } = req.body;
+      if (!groupId || typeof groupId !== 'string') {
+        return res.status(400).json({ success: false, error: 'Thiếu định danh nhóm (groupId)' });
+      }
+      const result = groupDiscoveryService.addDiscoveredGroupToPool(groupId.trim());
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Tự động tham gia nhóm qua Playwright
+  app.post('/api/groups/discover/join', async (req, res) => {
+    try {
+      const { groupId } = req.body;
+      if (!groupId || typeof groupId !== 'string') {
+        return res.status(400).json({ success: false, error: 'Thiếu định danh nhóm (groupId)' });
+      }
+      const result = await groupDiscoveryService.joinGroup(groupId.trim());
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Tự động quét mở rộng hàng loạt từ khóa theo ngành
+  app.post('/api/groups/discover/auto-expand', async (req, res) => {
+    try {
+      const keywords = Array.isArray(req.body?.keywords) ? req.body.keywords : undefined;
+      const result = await groupDiscoveryService.autoExpandDiscovery(keywords);
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  app.get('/api/executive-summary', (req, res) => {
+    const accounts = getAllAccounts();
+    const liveAccounts = accounts.filter((a) => a.status === 'live' || a.status === 'active');
+    const mappings = getAllMappings();
+    const autoCfg = getAutoCommentConfig();
+    const dailyPosts = getDailyPosts();
+    const pendingDrafts = getPendingDrafts().filter((d) => d.status === 'pending');
+    const logs = getCommentLogs(25);
+
+    res.json({
+      systemStatus: 'online',
+      isPinRequired: messengerEngine.isPinRequired,
+      accounts: {
+        total: accounts.length,
+        live: liveAccounts.length,
+        items: accounts,
+      },
+      telegram: {
+        connected: true,
+        groupId: config.telegramGroupId,
+        customerMappingsCount: mappings.length,
+        topics: {
+          commentTopicId: autoCfg.telegramTopicId || 81,
+          postTopicId: autoCfg.telegramPostManageTopicId || 83,
+          reportTopicId: autoCfg.telegramReportTopicId || 86,
+        },
+      },
+      dailyPosts: {
+        total: dailyPosts.length,
+        confirmed: dailyPosts.filter((p) => p.status === 'confirmed').length,
+        running: dailyPosts.filter((p) => p.status === 'running').length,
+        completed: dailyPosts.filter((p) => p.status === 'completed').length,
+        items: dailyPosts.slice(0, 15),
+      },
+      pendingDrafts: {
+        pendingCount: pendingDrafts.length,
+        items: pendingDrafts,
+      },
+      autoComment: {
+        enabled: autoCfg.enabled,
+        groupsCount: getTargetGroups().length,
+        keywordsCount: getKeywords().length,
+        templatesCount: getCommentTemplates().length,
+        logs,
+      },
+    });
+  });
+
+  // Fallback về trang index.html
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(publicDir, 'index.html'));
+  });
+
+  // Global Error Handler cho API Express (chống crash tiến trình)
+  app.use((err: any, req: any, res: any, next: any) => {
+    console.error('⚠️ [Dashboard API Error]', err.message);
+    if (!res.headersSent) {
+      res.status(500).json({ success: false, error: err.message || 'Lỗi xử lý yêu cầu' });
+    }
+  });
+
+  const host = config.dashboardHost || '0.0.0.0';
+  const server = app.listen(config.dashboardPort, host, () => {
+    console.log(`🌐 [FalconX Dashboard] Giao diện điều khiển mở tại: http://${host === '0.0.0.0' ? 'localhost' : host}:${config.dashboardPort} (Lắng nghe toàn mạng: ${host}:${config.dashboardPort})`);
+  });
+
+  server.on('error', (err: any) => {
+    console.error(`🚨 [FalconX Dashboard Server Error]:`, err.message);
+  });
+}

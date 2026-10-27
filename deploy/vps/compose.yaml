@@ -1,0 +1,36 @@
+name: falconx
+
+services:
+  app:
+    build: .
+    image: falconx-vps:local
+    restart: unless-stopped
+    init: true
+    shm_size: 1gb
+    environment:
+      NODE_ENV: production
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:?Set TELEGRAM_BOT_TOKEN in the server .env}
+      TELEGRAM_GROUP_ID: ${TELEGRAM_GROUP_ID:?Set TELEGRAM_GROUP_ID in the server .env}
+      ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:?Set a strong ADMIN_PASSWORD in the server .env}
+      AUTH_SECRET: ${AUTH_SECRET:?Set a random AUTH_SECRET in the server .env}
+      HEADLESS: "false"
+      PORT: "3300"
+      DASHBOARD_HOST: 0.0.0.0
+    # The server's HTTPS reverse proxy will forward to this loopback port.
+    ports:
+      - "127.0.0.1:3300:3300"
+    volumes:
+      - app_data:/app/data
+      - browser_profiles:/app/.user-data
+      - temporary_media:/app/.tmp_media
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+volumes:
+  app_data:
+  browser_profiles:
+  temporary_media:

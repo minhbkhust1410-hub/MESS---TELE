@@ -1,0 +1,12 @@
+**
+!package.json
+!package-lock.json
+!tsconfig.json
+!Dockerfile
+!.dockerignore
+!src/
+!src/**
+!public/
+!public/index.html
+!public/scripts/
+!public/scripts/**

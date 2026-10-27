@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+
+# Environment variables & secrets (CỰC KỲ QUAN TRỌNG - KHÔNG ĐƯỢC ĐẨY LÊN GITHUB)
+.env
+*.env.local
+*.env.*.local
+
+# User data & browser profiles (Chứa cookie Facebook live)
+.user-data/
+*.user-data*
+
+# Database & Mappings & Sensitive state
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Binaries & large tools
+cloudflared.exe
+*.exe
+
+# Build outputs
+dist/
+cloud_dist/
+build/
+
+# Logs & temp files
+*.log
+.tmp/
+.tmp_media/
+.backup/
+*.traineddata
+
+# Audio & debug screenshots
+debug_*.png
+scratch_*.png
+current_screen.png
+*.mp3
+
+# OS and IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
