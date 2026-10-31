@@ -1,23 +1,25 @@
 import { chromium } from 'playwright';
 import fs from 'fs';
 import path from 'path';
-import { getDefaultAccount, saveAccount } from '../db/store.js';
+import { getDefaultAccount, getAccountById, saveAccount } from '../db/store.js';
 
 async function main() {
-  const currentAcc = getDefaultAccount();
-  const profileDir = currentAcc.profileDir || 'D:\\KudoX_Mess_Tele\\.user-data\\profiles\\acc_61577949601039';
+  const targetId = process.argv[2];
+  const targetAcc = targetId ? getAccountById(targetId) : getDefaultAccount();
+  const currentAcc = targetAcc || getDefaultAccount();
+  const profileDir = currentAcc.profileDir || path.resolve('./.user-data/profiles', currentAcc.id || 'default');
 
   if (!fs.existsSync(profileDir)) {
     fs.mkdirSync(profileDir, { recursive: true });
   }
 
   console.log(`\n===========================================================`);
-  console.log(`🔑 FALCONX - TIỆN ÍCH ĐĂNG NHẬP FACEBOOK`);
+  console.log(`🔑 FALCONX CLI - ĐĂNG NHẬP FACEBOOK CHUẨN STEALTH`);
   console.log(`👤 Tài khoản: ${currentAcc.name} (ID: ${currentAcc.id})`);
-  console.log(`📁 Hồ sơ Chrome: ${profileDir}`);
+  console.log(`📁 Thư mục Profile: ${profileDir}`);
   console.log(`===========================================================\n`);
 
-  console.log('⏳ Đang mở trình duyệt Google Chrome...');
+  console.log('⏳ Đang khởi chạy trình duyệt bảo mật...');
   const hasRealChrome = fs.existsSync('C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe');
 
   const context = await chromium.launchPersistentContext(profileDir, {
@@ -31,12 +33,10 @@ async function main() {
   console.log('🔗 Đang mở https://www.facebook.com/ ...');
   await page.goto('https://www.facebook.com/', { waitUntil: 'domcontentloaded' });
 
-  console.log('\n👉 BẠN CHỈ CẦN THAO TÁC TRÊN CỬA SỔ CHROME VỪA HIỆN:');
-  console.log('1. Nhập mật khẩu nick Facebook "Eco Trang" (nếu có form).');
-  console.log('2. Bấm "Đăng nhập" để vào Bảng tin Facebook bình thường.');
-  console.log('3. Hệ thống sẽ TỰ ĐỘNG nhận diện khi bạn đăng nhập xong, lưu Cookie mới và hoàn tất!\n');
+  console.log('\n👉 HƯỚNG DẪN:');
+  console.log('1. Nhập thông tin đăng nhập trên cửa sổ Chrome vừa mở.');
+  console.log('2. Hệ thống sẽ TỰ ĐỘNG phát hiện cookie phiên mới và lưu vào cơ sở dữ liệu Cloud.\n');
 
-  // Vòng lặp tự động lắng nghe khi c_user xuất hiện
   let isDone = false;
   const checkTimer = setInterval(async () => {
     try {
@@ -46,13 +46,11 @@ async function main() {
         isDone = true;
         clearInterval(checkTimer);
 
-        console.log(`\n🎉 ĐÃ ĐĂNG NHẬP THÀNH CÔNG! UID: ${cUser.value}`);
-        // Lưu cookies vào cookies.json
+        console.log(`\n🎉 ĐĂNG NHẬP THÀNH CÔNG! UID Facebook: ${cUser.value}`);
         const cookieBackupPath = path.join(profileDir, 'cookies.json');
         fs.writeFileSync(cookieBackupPath, JSON.stringify(cookies, null, 2), 'utf-8');
-        console.log(`💾 Đã lưu ${cookies.length} Cookies mới vào: ${cookieBackupPath}`);
+        console.log(`💾 Đã lưu ${cookies.length} Cookies an toàn.`);
 
-        // Cập nhật database
         saveAccount({
           id: currentAcc.id,
           uid: cUser.value,
@@ -60,9 +58,9 @@ async function main() {
           cookies: cookies as any,
           lastActiveAt: new Date().toISOString(),
         });
-        console.log(`✅ Đã cập nhật trạng thái Live cho tài khoản [${currentAcc.name}] trong cơ sở dữ liệu!`);
+        console.log(`✅ Đã cập nhật trạng thái Live cho [${currentAcc.name}]!`);
 
-        console.log('\n✨ Đang đóng trình duyệt sau 3 giây...');
+        console.log('✨ Đang đóng trình duyệt sau 3 giây...');
         setTimeout(async () => {
           await context.close().catch(() => {});
           process.exit(0);

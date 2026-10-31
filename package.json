@@ -1,15 +1,18 @@
 {
-  "name": "kudox-mess-tele",
-  "version": "2.0.0",
-  "description": "High-Reliability Facebook Messenger <-> Telegram Forum Topics Bridge powered by KudoX Stealth Engine",
+  "name": "falconx-mess-tele",
+  "version": "2.5.0",
+  "description": "Enterprise-grade Real-Time Bridge between Facebook Messenger and Telegram Forum Topics powered by KudoX Stealth Engine",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "start": "tsx src/index.ts",
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "type-check": "tsc --noEmit",
+    "login": "tsx src/scripts/login.ts",
     "test-tele": "tsx src/scripts/test-telegram.ts",
     "status": "tsx src/scripts/status.ts",
-    "login": "tsx src/scripts/login.ts",
-    "build": "tsc"
+    "cloud:sync": "tsx src/scripts/sync-cloud.ts"
   },
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",

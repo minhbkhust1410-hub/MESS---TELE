@@ -188,7 +188,7 @@ export async function extractTextFromImage(
   let worker: any = null;
   try {
     worker = await createWorker(['vie', 'eng'], undefined, {
-      errorHandler: (e) => console.warn('[Tesseract Worker Warning]', e),
+      errorHandler: (e: any) => console.warn('[Tesseract Worker Warning]', e),
     });
     const ret = await worker.recognize(imagePathOrBuffer);
     const text = ret.data.text || '';
