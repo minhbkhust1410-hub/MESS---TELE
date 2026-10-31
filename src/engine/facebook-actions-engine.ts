@@ -515,19 +515,25 @@ export class FacebookActionsEngine {
 
   public async requestFriend(profileUrl: string): Promise<string> {
     try {
-      const msg = await this.requestFriendRaw(profileUrl);
+      const res = await this.requestFriendRaw(profileUrl);
       // Chỉ tính khi thật sự vừa gửi lời mời mới (không tính đã là bạn / đã có lời mời từ trước)
-      if (/^Đã gửi một lời mời/i.test(msg)) {
-        orchestrationService.record('auto_friend', { targetName: profileUrl, targetUrl: profileUrl, status: 'success', message: msg });
+      if (/^Đã gửi một lời mời/i.test(res.message)) {
+        orchestrationService.record('auto_friend', {
+          targetName: profileUrl,
+          targetUrl: profileUrl,
+          status: 'success',
+          message: res.message,
+          screenshotUrl: res.screenshotUrl,
+        });
       }
-      return msg;
+      return res.message;
     } catch (err: any) {
       orchestrationService.record('auto_friend', { targetName: profileUrl, targetUrl: profileUrl, status: 'failed', message: err.message });
       throw err;
     }
   }
 
-  private async requestFriendRaw(profileUrl: string): Promise<string> {
+  private async requestFriendRaw(profileUrl: string): Promise<{ message: string; screenshotUrl?: string }> {
     const currentAcc = getDefaultAccount();
     const accountId = currentAcc?.id || 'default_acc';
     const accountName = currentAcc?.name || 'Tài khoản Facebook';
@@ -540,30 +546,45 @@ export class FacebookActionsEngine {
 
     return messengerEngine.withNewFacebookPage(async (page) => {
       await openFacebookTarget(page, profileUrl);
-      const addButton = await firstVisibleButton(page, /^(add friend|thêm bạn bè|thêm bạn)$/i);
+      const PENDING_REGEX = /(cancel\s*request|cancel\s*invitation|hủy\s*lời\s*mời|huỷ\s*lời\s*mời|hủy\s*yêu\s*cầu|huỷ\s*yêu\s*cầu|đã\s*gửi\s*lời\s*mời|đã\s*gửi\s*yêu\s*cầu|requested|chờ\s*xác\s*nhận)/i;
+      const addButton = await firstVisibleButton(page, /(add\s*friend|thêm\s*bạn\s*bè|thêm\s*bạn)/i);
       if (!addButton) {
         const alreadyFriend = await firstVisibleButton(page, /^(friends|bạn bè)$/i);
         if (alreadyFriend) {
           globalLeadPoolService.recordFriendRequestSent(profileUrl, accountId, accountName);
-          return 'Hai tài khoản đã là bạn bè; không gửi thêm lời mời.';
+          return { message: 'Hai tài khoản đã là bạn bè; không gửi thêm lời mời.' };
         }
-        const requestPending = await firstVisibleButton(page, /^(cancel request|cancel invitation|hủy lời mời|hủy yêu cầu)$/i);
+        const requestPending = await firstVisibleButton(page, PENDING_REGEX);
         if (requestPending) {
           globalLeadPoolService.recordFriendRequestSent(profileUrl, accountId, accountName);
-          return 'Đã có lời mời kết bạn đang chờ; không gửi thêm lời mời.';
+          return { message: 'Đã có lời mời kết bạn đang chờ; không gửi thêm lời mời.' };
         }
-        throw new Error('Không tìm thấy nút Thêm bạn bè trên hồ sơ này.');
+        return { message: 'Hồ sơ này chặn kết bạn từ người lạ (chỉ cho phép theo dõi); đã bỏ qua an toàn.' };
       }
 
       await addButton.click({ timeout: 10000 });
-      await page.waitForTimeout(1200);
-      const requestPending = await firstVisibleButton(page, /^(cancel request|cancel invitation|hủy lời mời|hủy yêu cầu)$/i);
-      if (!requestPending) throw new Error('Facebook chưa xác nhận lời mời đã được gửi. Hãy kiểm tra hồ sơ trước khi thử lại.');
+      await page.waitForTimeout(2000);
+      const requestPending = await firstVisibleButton(page, PENDING_REGEX);
+      const isAddBtnGone = !(await addButton.isVisible().catch(() => false));
+      if (!requestPending && !isAddBtnGone) {
+        throw new Error('Facebook chưa xác nhận lời mời đã được gửi. Hãy kiểm tra hồ sơ trước khi thử lại.');
+      }
 
       // 2. Ghi nhận đã gửi kết bạn vào Bể Data Chung để các nick khác tự động né
       globalLeadPoolService.recordFriendRequestSent(profileUrl, accountId, accountName);
 
-      return 'Đã gửi một lời mời kết bạn đến hồ sơ đã chọn.';
+      // Chụp ảnh bằng chứng
+      let screenshotUrl: string | undefined;
+      try {
+        const proofDir = path.resolve('./data/proofs');
+        if (!fs.existsSync(proofDir)) fs.mkdirSync(proofDir, { recursive: true });
+        const proofFile = `friend_${Date.now()}.png`;
+        const proofPath = path.join(proofDir, proofFile);
+        await page.screenshot({ path: proofPath, fullPage: false }).catch(() => {});
+        if (fs.existsSync(proofPath)) screenshotUrl = `/proofs/${proofFile}`;
+      } catch {}
+
+      return { message: 'Đã gửi một lời mời kết bạn đến hồ sơ đã chọn.', screenshotUrl };
     });
   }
 

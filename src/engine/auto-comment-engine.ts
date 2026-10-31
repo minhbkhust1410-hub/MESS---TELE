@@ -121,7 +121,15 @@ export class AutoCommentEngine {
     let totalPostsFound = 0;
     let totalCommentsMade = 0;
 
-    const accounts = getAllAccounts().filter((a) => a.status === 'live' || a.status === 'active');
+    const accounts = getAllAccounts().filter((a) => {
+      if (a.status !== 'live' && a.status !== 'active') return false;
+      if (a.isDefault) return true;
+      return Array.isArray(a.cookies) && a.cookies.length > 0;
+    });
+    if (accounts.length === 0) {
+      const defaultAcc = getDefaultAccount();
+      if (defaultAcc) accounts.push(defaultAcc);
+    }
     if (accounts.length === 0) {
       console.warn('[AutoComment Engine] Không có tài khoản Facebook nào đang hoạt động.');
       this.isScanning = false;
@@ -330,7 +338,7 @@ export class AutoCommentEngine {
     try {
       if (isCurrentActive && messengerEngine.isReady()) {
         await messengerEngine.withNewFacebookPage(performScrape);
-      } else {
+      } else if (Array.isArray(account.cookies) && account.cookies.length > 0) {
         session = await createBrowserSession({
           userDataDir: account.profileDir,
           proxy: account.proxy || undefined,
@@ -339,6 +347,11 @@ export class AutoCommentEngine {
         await performScrape(session.page);
         await session.close();
         session = null;
+      } else if (messengerEngine.isReady()) {
+        console.log(`[FalconX Scanner] Nick [${account.name}] chưa có phiên riêng -> Tự động điều phối qua Nick chính [Eco Trang]...`);
+        await messengerEngine.withNewFacebookPage(performScrape);
+      } else {
+        console.warn(`[AutoComment Engine] Không có phiên đăng nhập hợp lệ cho nick ${account.name}`);
       }
     } catch (err: any) {
       if (session) await session.close().catch(() => {});
@@ -463,7 +476,7 @@ export class AutoCommentEngine {
       if (isCurrentActive && messengerEngine.isReady()) {
         // Dùng tab riêng trong context đang chạy để tránh đè lockfile
         result = await messengerEngine.withNewFacebookPage(executeCommentTask);
-      } else {
+      } else if (Array.isArray(acc.cookies) && acc.cookies.length > 0) {
         session = await createBrowserSession({
           userDataDir: acc.profileDir,
           proxy: acc.proxy || undefined,
@@ -472,6 +485,11 @@ export class AutoCommentEngine {
         result = await executeCommentTask(session.page);
         await session.close();
         session = null;
+      } else if (messengerEngine.isReady()) {
+        console.log(`[FalconX AutoComment] Nick [${acc.name}] chưa có phiên riêng -> Điều phối bình luận qua Nick chính...`);
+        result = await messengerEngine.withNewFacebookPage(executeCommentTask);
+      } else {
+        throw new Error(`Tài khoản ${acc.name} chưa đăng nhập và không có phiên hoạt động.`);
       }
 
       // Lưu nhật ký có kiểm chứng

@@ -414,12 +414,16 @@ export class AutoFriendService {
         const found = allAccounts.find((a) => a.id === this.state.config.targetAccountId);
         if (found) activeAccounts = [found];
       } else {
-        activeAccounts = allAccounts.filter((a) => a.status === 'live' || a.status === 'active');
+        activeAccounts = allAccounts.filter((a) => {
+          if (a.status !== 'live' && a.status !== 'active') return false;
+          if (a.isDefault) return true;
+          return Array.isArray(a.cookies) && a.cookies.length > 0;
+        });
       }
 
       if (activeAccounts.length === 0) {
         const defaultAcc = getDefaultAccount();
-        activeAccounts = [defaultAcc];
+        if (defaultAcc) activeAccounts = [defaultAcc];
       }
 
       for (const acc of activeAccounts) {
@@ -536,6 +540,7 @@ export class AutoFriendService {
               targetUrl: chosenLead.url,
               status: 'success',
               message: `Facebook đã xác nhận lời mời kết bạn tới "${chosenLead.name}".`,
+              screenshotUrl: result.friendScreenshotUrl,
             });
           }
           if (result.storyLoved) {
@@ -547,6 +552,7 @@ export class AutoFriendService {
               targetUrl: chosenLead.url,
               status: 'success',
               message: `Đã thả tim Story của "${chosenLead.name}".`,
+              screenshotUrl: result.storyScreenshotUrl,
             });
           }
           if (result.postsLiked > 0) {
@@ -650,6 +656,8 @@ export class AutoFriendService {
     alreadyFriend: boolean;
     storyLoved: boolean;
     postsLiked: number;
+    friendScreenshotUrl?: string;
+    storyScreenshotUrl?: string;
     message: string;
   }> {
     const profileUrl = lead.url.startsWith('http') ? lead.url : `https://www.facebook.com/${lead.id}`;
@@ -671,6 +679,8 @@ export class AutoFriendService {
     let alreadyFriend = existingHist.friendStatus === 'friend';
     let storyLoved = false;
     let postsLiked = 0;
+    let friendScreenshotUrl: string | undefined;
+    let storyScreenshotUrl: string | undefined;
 
     this.addLog({
       type: 'human_step',
@@ -760,10 +770,8 @@ export class AutoFriendService {
             message: `[Giai Đoạn 1: Kết Bạn] Hai tài khoản đã là bạn bè từ trước -> Bỏ qua kết bạn, tiếp tục nuôi tương tác!`,
           });
         } else {
-          const requestPendingBtn = await firstVisibleButton(
-            page,
-            /^(cancel request|cancel invitation|hủy lời mời|hủy yêu cầu|đã gửi lời mời)$/i
-          );
+          const PENDING_REGEX = /(cancel\s*request|cancel\s*invitation|hủy\s*lời\s*mời|huỷ\s*lời\s*mời|hủy\s*yêu\s*cầu|huỷ\s*yêu\s*cầu|đã\s*gửi\s*lời\s*mời|đã\s*gửi\s*yêu\s*cầu|requested|chờ\s*xác\s*nhận)/i;
+          const requestPendingBtn = await firstVisibleButton(page, PENDING_REGEX);
           if (requestPendingBtn) {
             existingHist.friendStatus = 'requested';
             globalLeadPoolService.recordFriendRequestSent(profileUrl, account.id, account.name, lead.name);
@@ -776,7 +784,7 @@ export class AutoFriendService {
               message: `[Giai Đoạn 1: Kết Bạn] Lời mời kết bạn đang chờ xét duyệt -> Tiếp tục nuôi tương tác!`,
             });
           } else {
-            const addFriendBtn = await firstVisibleButton(page, /^(add friend|thêm bạn bè|thêm bạn)$/i);
+            const addFriendBtn = await firstVisibleButton(page, /(add\s*friend|thêm\s*bạn\s*bè|thêm\s*bạn)/i);
             if (addFriendBtn) {
               this.addLog({
                 type: 'human_step',
@@ -787,25 +795,39 @@ export class AutoFriendService {
                 message: `[Giai Đoạn 1: Kết Bạn] Rà chuột mượt mà (bezier 10 bước) đến nút "Thêm bạn bè" -> Click nhẹ nhàng...`,
               });
               await humanHoverAndClick(page, addFriendBtn);
-              await randomSleep(1800, 2600);
+              await randomSleep(2000, 3000);
 
-              // XÁC MINH THẬT: chỉ tính là đã gửi khi nút chuyển sang "Hủy lời mời" (Facebook đã nhận)
-              const confirmedPending = await firstVisibleButton(
-                page,
-                /^(cancel request|cancel invitation|hủy lời mời|hủy yêu cầu|đã gửi lời mời)$/i
-              );
-              if (confirmedPending) {
+              // XÁC MINH THẬT: kiểm tra nút chuyển sang "Hủy lời mời" hoặc nút Thêm bạn bè đã biến mất
+              const confirmedPending = await firstVisibleButton(page, PENDING_REGEX);
+              const isAddBtnGone = !(await addFriendBtn.isVisible().catch(() => false));
+
+              if (confirmedPending || isAddBtnGone) {
                 friendSent = true;
                 existingHist.friendStatus = 'requested';
                 existingHist.friendRequestedAt = new Date().toISOString();
                 globalLeadPoolService.recordFriendRequestSent(profileUrl, account.id, account.name, lead.name);
+
+                // Lưu ảnh bằng chứng xác thực
+                let screenshotUrl: string | undefined;
+                try {
+                  const proofDir = path.resolve('./data/proofs');
+                  if (!fs.existsSync(proofDir)) fs.mkdirSync(proofDir, { recursive: true });
+                  const proofFile = `friend_${lead.id}_${Date.now()}.png`;
+                  const proofPath = path.join(proofDir, proofFile);
+                  await page.screenshot({ path: proofPath, fullPage: false }).catch(() => {});
+                  if (fs.existsSync(proofPath)) {
+                    screenshotUrl = `/proofs/${proofFile}`;
+                    friendScreenshotUrl = screenshotUrl;
+                  }
+                } catch {}
+
                 this.addLog({
                   type: 'success',
                   accountId: account.id,
                   accountName: account.name,
                   leadId: lead.id,
                   leadName: lead.name,
-                  message: `[Giai Đoạn 1: Kết Bạn] ✅ Facebook đã xác nhận lời mời kết bạn tới "${lead.name}" (nút chuyển sang "Hủy lời mời").`,
+                  message: `[Giai Đoạn 1: Kết Bạn] ✅ Facebook đã xác nhận lời mời kết bạn tới "${lead.name}" (nút đã chuyển sang trạng thái Đã gửi).`,
                 });
               } else {
                 this.addLog({
@@ -1063,6 +1085,8 @@ export class AutoFriendService {
       alreadyFriend,
       storyLoved,
       postsLiked,
+      friendScreenshotUrl,
+      storyScreenshotUrl,
       message: `Nuôi tương tác hoàn tất: Kết bạn: ${friendSent ? 'Đã gửi' : 'Bỏ qua'}, Story: ${
         storyLoved ? 'Thả tim' : 'Không có'
       }, Bài viết: Like ${postsLiked} bài`,
