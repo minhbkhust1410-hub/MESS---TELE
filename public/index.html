@@ -2254,7 +2254,13 @@
               </button>
             </div>
 
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-2">
+              <button id="btn-autofriend-scanned-list" onclick="startAutoFriendScannedList()" class="text-xs px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-extrabold transition flex items-center gap-2 shadow-lg shadow-emerald-500/20">
+                <span>🤝</span> <span>Tự Động Kết Bạn DS Đã Quét (Nhãn F12: "Thêm bạn bè")</span>
+              </button>
+              <button onclick="openF12ScriptModal()" class="text-xs px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/35 font-bold transition flex items-center gap-1.5">
+                <span>🦁</span> Mã F12 Auto-Friend
+              </button>
               <button onclick="copyAllScannedMemberLinks()" class="text-xs px-3.5 py-1.5 rounded-xl bg-[#24201C] hover:bg-[#2C2723] text-[#f0f6fc] border border-[#30363d] font-semibold transition flex items-center gap-1.5">
                 <span>📋</span> Sao Chép Link
               </button>
@@ -2264,10 +2270,34 @@
             </div>
           </div>
 
+          <!-- BẢNG ĐIỀU KHIỂN CHẾ ĐỘ TỰ ĐỘNG KẾT BẠN VỚI DANH SÁCH ĐÃ QUÉT (HUMAN ANTI-CHECKPOINT) -->
+          <div id="scanned-autofriend-live-box" class="p-4 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-[#141210] to-sky-500/10 border border-emerald-500/35 space-y-2.5">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[11px] font-extrabold flex items-center gap-1.5">
+                  <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                  🤝 Chế Độ Tự Động Kết Bạn Danh Sách Đã Quét
+                </span>
+                <span class="px-2.5 py-1 rounded-lg bg-[#1A1613] text-amber-300 border border-amber-500/30 text-[10px] font-mono">
+                  🎯 Nhãn F12 chuẩn: [role="button"][aria-label="Thêm bạn bè"] | span:text-is("Thêm bạn bè")
+                </span>
+                <span class="px-2.5 py-1 rounded-lg bg-[#1A1613] text-sky-300 border border-sky-500/30 text-[10px] font-mono">
+                  🧬 Hành vi Human: Cuộn mượt • Bezier 10 bước • Hover 600ms • Nghỉ 20-38s • Chặn Popup Checkpoint
+                </span>
+              </div>
+              <div class="flex items-center gap-2 text-[11px]">
+                <span id="scanned-af-badge-state" class="px-2.5 py-0.5 rounded-full bg-white/10 text-[#8b949e] font-mono font-bold">Sẵn sàng chạy</span>
+              </div>
+            </div>
+            <div id="scanned-af-status-line" class="text-xs text-[#c9d1d9] font-mono bg-[#0d1117]/80 px-3.5 py-2 rounded-xl border border-[#30363d]">
+              💡 Nhấn <strong>"🤝 Tự Động Kết Bạn DS Đã Quét (Nhãn F12: 'Thêm bạn bè')"</strong> ở trên để phân bổ danh sách thành viên đã quét cho dàn nick tự động kết bạn với hành vi người thật chống Checkpoint.
+            </div>
+          </div>
+
           <!-- Bảng hiển thị danh sách thành viên đã quét -->
-          <div class="overflow-x-auto rounded-2xl border border-[#30363d] bg-[#141210]">
+          <div class="overflow-x-auto max-h-[440px] overflow-y-auto rounded-2xl border border-[#30363d] bg-[#141210]">
             <table class="w-full text-left text-xs font-sans">
-              <thead class="bg-[#1A1613] border-b border-[#30363d] text-[11px] font-mono text-[#8b949e]">
+              <thead class="bg-[#1A1613] sticky top-0 z-10 border-b border-[#30363d] text-[11px] font-mono text-[#8b949e]">
                 <tr>
                   <th class="py-3 px-4">#</th>
                   <th class="py-3 px-4">Thành viên & Thời gian gia nhập</th>
@@ -2369,6 +2399,9 @@
               </div>
             </div>
             <div class="flex flex-wrap items-center gap-2">
+              <button onclick="startAutoFriendScannedList()" class="text-xs px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-extrabold transition flex items-center gap-1.5 shadow-sm" title="Tự động kết bạn với danh sách đã quét (Trỏ đúng nhãn F12 Thêm bạn bè + Hành vi Human)">
+                <span>🤝</span> <span>Tự Động Kết Bạn DS Đã Quét ("Thêm bạn bè")</span>
+              </button>
               <button onclick="loadWarehouseLeads()" class="text-xs px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold transition border border-white/10 flex items-center gap-1.5" title="Tải lại danh sách mới nhất trong kho">
                 <span>🔄</span> <span>Làm Mới Kho</span>
               </button>
@@ -6761,8 +6794,28 @@ async function runAiSimulation() {
       }
     }
 
+    let isScannedAutoFriendRunning = false;
+
     async function loadSavedScannedMembers() {
       try {
+        // Ưu tiên nạp danh sách thành viên đã quét hợp nhất từ API /api/members/scanned-list
+        const unifiedRes = await fetch('/api/members/scanned-list?filter=all').then(r => r.json()).catch(() => null);
+        if (unifiedRes && unifiedRes.success && Array.isArray(unifiedRes.members) && unifiedRes.members.length > 0) {
+          currentScannedMembers = unifiedRes.members.map(m => ({
+            id: m.id || '',
+            name: m.name || 'Thành viên Facebook',
+            url: m.url || m.profileUrl || '#',
+            subtitle: m.joinedTimeText || m.subtitle || m.timeCategoryLabel || '',
+            joinedTimeText: m.joinedTimeText || m.subtitle || '',
+            timeCategory: m.timeCategory || m.category,
+            timeCategoryLabel: m.timeCategoryLabel || m.categoryLabel,
+            autoFriendQueued: false,
+          }));
+          updateScannedMetrics();
+          renderScannedMembersTable();
+          return;
+        }
+
         const res = await fetch('/api/members/state').then(r => r.json());
         if (res && res.success && res.state && res.state.groups) {
           const list = [];
@@ -6792,6 +6845,79 @@ async function runAiSimulation() {
         }
       } catch (e) {
         console.warn('Lỗi nạp danh sách members:', e);
+      }
+    }
+
+    /**
+     * 🤝 KÍCH HOẠT CHẾ ĐỘ TỰ ĐỘNG KẾT BẠN VỚI DANH SÁCH ĐÃ QUÉT
+     * - Trỏ chuẩn xác nhãn F12 đúng chữ "Thêm bạn bè" ([role="button"][aria-label="Thêm bạn bè"] | span:text-is("Thêm bạn bè"))
+     * - Hành vi Human chống Checkpoint cho dàn nick (Cuộn mượt, đọc 2s, rê chuột Bezier, dừng Hover 600ms, nghỉ giải lao 50-80s mỗi 4 người)
+     */
+    async function startAutoFriendScannedList() {
+      if (currentScannedMembers.length === 0) {
+        await loadSavedScannedMembers();
+      }
+
+      const btn = document.getElementById('btn-autofriend-scanned-list');
+      const badgeState = document.getElementById('scanned-af-badge-state');
+      const statusLine = document.getElementById('scanned-af-status-line');
+
+      let filteredList = currentScannedMembers;
+      if (activeMemberFilter !== 'all') {
+        filteredList = currentScannedMembers.filter(m => getMemberTimeCategory(m) === activeMemberFilter);
+      }
+
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<span class="animate-spin">⏳</span> <span>Đang kích hoạt kết bạn Human ("Thêm bạn bè")...</span>`;
+      }
+
+      try {
+        const res = await fetch('/api/autofriend/start-scanned-list', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            members: filteredList,
+            timeCategory: activeMemberFilter || 'all',
+            mode: window.__ACTIVE_DATA_MODE__ === 'forex_finance' ? 'forex' : 'bds_ecopark',
+            nurtureAction: 'friend_only',
+            dailyLimitPerAccount: 20,
+            minDelaySec: 20,
+            maxDelaySec: 38,
+          }),
+        }).then(r => r.json());
+
+        if (res && res.success) {
+          isScannedAutoFriendRunning = true;
+          currentScannedMembers = currentScannedMembers.map(m => ({
+            ...m,
+            autoFriendQueued: activeMemberFilter === 'all' || getMemberTimeCategory(m) === activeMemberFilter,
+          }));
+          renderScannedMembersTable();
+
+          if (badgeState) {
+            badgeState.className = 'px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-mono font-bold animate-pulse';
+            badgeState.textContent = `🟢 ĐANG CHẠY HUMAN (${res.queuedCount} thành viên • ${res.targetAccountsCount} nick)`;
+          }
+          if (statusLine) {
+            statusLine.innerHTML = `✅ <strong>Đã kích hoạt thành công:</strong> Đang tự động kết bạn với <strong>${res.queuedCount}</strong> thành viên trong danh sách đã quét qua <strong>${res.targetAccountsCount} nick</strong> — Trỏ đúng nhãn F12 <code class="text-emerald-300 font-bold">"Thêm bạn bè"</code> (<code>${escapeHtml(res.selectorSpec || '[role="button"][aria-label="Thêm bạn bè"]')}</code>) • Hành vi Human chống Checkpoint!`;
+          }
+          if (typeof loadAutoFriendStatus === 'function') {
+            loadAutoFriendStatus();
+          }
+          if (typeof showToast === 'function') {
+            showToast(res.message || 'Đã kích hoạt tự động kết bạn danh sách đã quét!', 'success');
+          }
+        } else {
+          alert('❌ Không thể kích hoạt: ' + (res?.error || res?.message || 'Lỗi không xác định'));
+        }
+      } catch (err) {
+        alert('❌ Lỗi kết nối máy chủ: ' + err.message);
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `<span>🤝</span> <span>${isScannedAutoFriendRunning ? 'Đang Chạy Kết Bạn DS Đã Quét (Nhãn "Thêm bạn bè")' : 'Tự Động Kết Bạn DS Đã Quét (Nhãn F12: "Thêm bạn bè")'}</span>`;
+        }
       }
     }
 
@@ -6878,15 +7004,19 @@ async function runAiSimulation() {
       tbody.innerHTML = list.map((m, idx) => {
         const timeBadge = getMemberTimeBadge(m);
         const timeTextDisplay = m.joinedTimeText || m.subtitle || 'Thành viên mới';
+        const queuedBadge = m.autoFriendQueued
+          ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-mono">🧬 Human Queue: "Thêm bạn bè"</span>'
+          : '';
 
         return `
           <tr class="hover:bg-[#1A1613] transition font-sans">
             <td class="py-3 px-4 font-mono text-[#8b949e] font-bold">${idx + 1}</td>
             <td class="py-3 px-4">
               <div class="space-y-1">
-                <div class="flex items-center gap-2">
+                <div class="flex flex-wrap items-center gap-2">
                   <span class="font-bold text-[#f0f6fc] text-xs">${escapeHtml(m.name)}</span>
                   ${timeBadge}
+                  ${queuedBadge}
                 </div>
                 <span class="text-[10px] text-[#86868b] font-mono block">${escapeHtml(timeTextDisplay)}</span>
               </div>
@@ -6902,8 +7032,8 @@ async function runAiSimulation() {
                 <a href="${escapeHtml(m.url)}" target="_blank" class="px-2.5 py-1 rounded-lg bg-[#24201C] hover:bg-[#2C2723] text-[#f0f6fc] border border-[#30363d] text-[10px] font-semibold transition">
                   Mở Profile ↗
                 </a>
-                <button onclick="quickAddFriendFromWeb('${escapeHtml(m.url)}', this)" class="px-2.5 py-1 rounded-lg bg-[#F59E0B]/15 hover:bg-[#F59E0B]/25 text-[#F59E0B] border border-[#F59E0B]/30 text-[10px] font-bold transition">
-                  ➕ Kết Bạn
+                <button onclick="quickAddFriendFromWeb('${escapeHtml(m.url)}', this)" class="px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/35 text-[10px] font-bold transition">
+                  🤝 Thêm bạn bè (Human)
                 </button>
               </div>
             </td>

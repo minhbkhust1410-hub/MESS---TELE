@@ -2,6 +2,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { Page, Locator } from 'playwright';
 import { messengerEngine } from '../engine/messenger-engine.js';
+import {
+  facebookActionsEngine,
+  findExactAddFriendButton,
+  handleAddFriendCheckpointModal,
+} from '../engine/facebook-actions-engine.js';
 import { globalLeadPoolService, type LeadItem } from './global-lead-pool.js';
 import { getAllAccounts, getDefaultAccount, type FacebookAccount } from '../db/store.js';
 import {
@@ -337,6 +342,140 @@ export class AutoFriendService {
     });
 
     return { success: true, message: 'Đã kích hoạt Động Cơ Nuôi Tương Tác KudoX 2 thành công!' };
+  }
+
+  /**
+   * 🤝 CHẾ ĐỘ TỰ ĐỘNG KẾT BẠN VỚI DANH SÁCH ĐÃ QUÉT (HUMAN ANTI-CHECKPOINT)
+   * - Nạp danh sách thành viên đã quét (từ bảng quét hoặc kho F12) vào hàng đợi
+   * - Trỏ chuẩn xác nhãn F12 đúng chữ "Thêm bạn bè" ([role="button"][aria-label="Thêm bạn bè"] / span:text-is("Thêm bạn bè"))
+   * - Áp dụng hành vi Human (Cuộn mượt, đọc hồ sơ 1.5s-3.0s, rê chuột Bezier, dừng Hover 450ms-850ms, nghỉ sâu mỗi 4 người, tự đóng popup cảnh báo chống Checkpoint)
+   */
+  public async startScannedListAutoFriend(params: {
+    members?: Array<{
+      id?: string;
+      uid?: string;
+      name: string;
+      url: string;
+      subtitle?: string;
+      joinedTimeText?: string;
+      timeCategory?: '2_days' | '1_week' | '2_weeks' | 'older';
+      sourceGroup?: string;
+    }>;
+    timeCategory?: 'all' | '2_days' | '1_week' | '2_weeks';
+    mode?: 'all' | 'bds_ecopark' | 'forex';
+    nurtureAction?: NurtureActionMode;
+    dailyLimitPerAccount?: number;
+    minDelaySec?: number;
+    maxDelaySec?: number;
+    targetAccountId?: string;
+  }): Promise<{
+    success: boolean;
+    message: string;
+    queuedCount: number;
+    targetAccountsCount: number;
+    selectorSpec: string;
+  }> {
+    const filter = params.timeCategory || 'all';
+    const targetMode = params.mode || this.state.config.mode || 'bds_ecopark';
+    const ingestMode: 'bds_ecopark' | 'forex' = targetMode === 'forex' ? 'forex' : 'bds_ecopark';
+
+    // 1. Tập hợp danh sách thành viên đã quét
+    let scannedList = facebookActionsEngine.getScannedMembersList(filter);
+    if (Array.isArray(params.members) && params.members.length > 0) {
+      const normalized = params.members
+        .filter((m) => m && (m.id || m.uid) && m.url)
+        .map((m) => ({
+          id: String(m.id || m.uid),
+          name: m.name || 'Thành viên Group',
+          url: m.url,
+          subtitle: m.subtitle || m.joinedTimeText || '',
+          joinedTimeText: m.joinedTimeText || m.subtitle || 'Mới tham gia',
+          timeCategory: (m.timeCategory as any) || '2_days',
+          sourceGroup: m.sourceGroup || 'Danh sách thành viên đã quét',
+        }));
+      if (normalized.length > 0) {
+        globalLeadPoolService.ingestScannedMembers(
+          normalized,
+          'https://www.facebook.com/groups/ecopark',
+          normalized[0].sourceGroup || 'Danh sách đã quét',
+          ingestMode
+        );
+        scannedList = normalized;
+      }
+    } else if (scannedList.length > 0) {
+      globalLeadPoolService.ingestScannedMembers(
+        scannedList,
+        'https://www.facebook.com/groups/ecopark',
+        scannedList[0]?.sourceGroup || 'Danh sách thành viên đã quét',
+        ingestMode
+      );
+    }
+
+    // 2. Cập nhật cấu hình Human Anti-Checkpoint cho các nick
+    this.updateConfig({
+      mode: targetMode,
+      nurtureAction: params.nurtureAction || 'friend_only',
+      dailyLimitPerAccount: params.dailyLimitPerAccount || 20,
+      minDelaySec: params.minDelaySec || 20,
+      maxDelaySec: params.maxDelaySec || 38,
+      deepRestAfterEvery: 4,
+      deepRestMinSec: 50,
+      deepRestMaxSec: 80,
+      multiAccountDistribution: true,
+      simulateHumanBioScroll: true,
+      targetAccountId: params.targetAccountId || 'all',
+    });
+
+    const allAccounts = getAllAccounts();
+    const activeAccounts = allAccounts.filter(
+      (a) => a.status === 'live' || a.status === 'active' || a.isDefault
+    );
+    const accCount = Math.max(1, activeAccounts.length);
+
+    // 3. Mở khóa cho phép chạy lại danh sách đã quét nếu cần
+    for (const m of scannedList.slice(0, 30)) {
+      if (this.nurtureHistory[m.id] && this.nurtureHistory[m.id].friendStatus === 'unassigned') {
+        delete this.nurtureHistory[m.id].lastNurturedAt;
+      }
+    }
+    this.saveNurtureHistory();
+
+    this.addLog({
+      type: 'info',
+      accountId: 'SYSTEM',
+      accountName: 'Human Anti-Checkpoint Engine',
+      message: `🤝 KÍCH HOẠT TỰ ĐỘNG KẾT BẠN DANH SÁCH ĐÃ QUÉT: Đã nạp ${scannedList.length} thành viên (Lọc: ${filter}) phân bổ cho ${accCount} nick hoạt động.`,
+    });
+
+    this.addLog({
+      type: 'human_step',
+      accountId: 'SYSTEM',
+      accountName: 'F12 Selector Guard',
+      message: `🎯 [Trỏ Chuẩn Nhãn F12] Selector mục tiêu: [role="button"][aria-label="Thêm bạn bè"] | div[role="button"]:has(span:text-is("Thêm bạn bè")) — Tự động loại trừ "Tìm bạn bè", "Hủy lời mời", "Nhắn tin".`,
+    });
+
+    const sampleNames = scannedList.slice(0, 4).map((m) => m.name).join(', ');
+    if (sampleNames) {
+      const firstAcc = activeAccounts[0] || getDefaultAccount();
+      this.addLog({
+        type: 'human_step',
+        accountId: firstAcc?.id || 'acc_1',
+        accountName: firstAcc?.name || 'Eco Trang',
+        message: `🧬 [Hành Vi Human Chống Checkpoint] Khởi chạy hàng đợi kết bạn (${sampleNames}...) -> Cuộn mượt 280px, đọc hồ sơ 2.2s, rê chuột Bezier 10 bước, dừng Hover 620ms trên nhãn "Thêm bạn bè", nghỉ giải lao 50-80s sau mỗi 4 lời mời.`,
+      });
+    }
+
+    if (!this.state.isRunning || this.state.isPaused) {
+      await this.start();
+    }
+
+    return {
+      success: true,
+      message: `Đã kích hoạt chế độ Tự Động Kết Bạn Danh Sách Đã Quét (${scannedList.length} thành viên) — Trỏ đúng nhãn F12 "Thêm bạn bè" với hành vi Human chống Checkpoint!`,
+      queuedCount: scannedList.length,
+      targetAccountsCount: accCount,
+      selectorSpec: '[role="button"][aria-label="Thêm bạn bè"] | span:text-is("Thêm bạn bè")',
+    };
   }
 
   public pause(): { success: boolean; message: string } {
@@ -784,7 +923,9 @@ export class AutoFriendService {
               message: `[Giai Đoạn 1: Kết Bạn] Lời mời kết bạn đang chờ xét duyệt -> Tiếp tục nuôi tương tác!`,
             });
           } else {
-            const addFriendBtn = await firstVisibleButton(page, /(add\s*friend|thêm\s*bạn\s*bè|thêm\s*bạn)/i);
+            const addFriendBtn =
+              (await findExactAddFriendButton(page)) ||
+              (await firstVisibleButton(page, /^(thêm bạn bè|add friend)$/i));
             if (addFriendBtn) {
               this.addLog({
                 type: 'human_step',
@@ -792,10 +933,24 @@ export class AutoFriendService {
                 accountName: account.name,
                 leadId: lead.id,
                 leadName: lead.name,
-                message: `[Giai Đoạn 1: Kết Bạn] Rà chuột mượt mà (bezier 10 bước) đến nút "Thêm bạn bè" -> Click nhẹ nhàng...`,
+                message: `[Nhãn F12: "Thêm bạn bè"] Đã trỏ đúng nút "Thêm bạn bè" -> Rê chuột Bezier 10 bước, dừng Hover 600ms & Click Human...`,
               });
               await humanHoverAndClick(page, addFriendBtn);
-              await randomSleep(2000, 3000);
+              await humanLingerAfterAction(page);
+
+              // 🛡️ Kiểm tra hộp thoại cảnh báo kết bạn của Facebook ("Bạn có biết người này ngoài đời không?")
+              const modalGuard = await handleAddFriendCheckpointModal(page);
+              if (modalGuard.warned) {
+                this.addLog({
+                  type: 'warning',
+                  accountId: account.id,
+                  accountName: account.name,
+                  leadId: lead.id,
+                  leadName: lead.name,
+                  message: `🛡️ [Anti-Checkpoint Guard] ${modalGuard.reason}`,
+                });
+                throw new Error(modalGuard.reason);
+              }
 
               // XÁC MINH THẬT: kiểm tra nút chuyển sang "Hủy lời mời" hoặc nút Thêm bạn bè đã biến mất
               const confirmedPending = await firstVisibleButton(page, PENDING_REGEX);

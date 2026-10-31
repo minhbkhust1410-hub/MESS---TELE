@@ -2,6 +2,13 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { Locator, Page } from 'playwright';
 import { detectCheckpoint } from '../core/checkpoint-guard.js';
+import {
+  humanHoverAndClick,
+  humanLingerAfterAction,
+  humanMoveMouseRandomly,
+  humanScroll,
+  randomSleep,
+} from '../core/human-behavior.js';
 import { messengerEngine } from './messenger-engine.js';
 import { getTargetGroups } from '../db/auto-comment-store.js';
 import { globalLeadPoolService } from '../services/global-lead-pool.js';
@@ -117,6 +124,96 @@ async function firstVisibleButtonInScope(scope: Locator, names: RegExp): Promise
     if (label && names.test(label) && (await fallback.isVisible().catch(() => false))) return fallback;
   }
   return null;
+}
+
+/**
+ * 🎯 TRỎ ĐÚNG NHÃN TRONG F12 ĐÚNG CHỮ "Thêm bạn bè":
+ * - Ưu tiên số 1: [role="button"][aria-label="Thêm bạn bè"] hoặc span/div chứa đúng chữ "Thêm bạn bè"
+ * - Ưu tiên số 2: [role="button"][aria-label^="Thêm "][aria-label$=" làm bạn bè"] có text hiển thị "Thêm bạn bè"
+ * - Tuyệt đối loại trừ "Tìm bạn bè" trên thanh Header, "Hủy lời mời", "Đã gửi lời mời", "Nhắn tin", "Bạn bè".
+ */
+export async function findExactAddFriendButton(page: Page): Promise<Locator | null> {
+  const mainScope = page.locator('div[role="main"]').first();
+  const rootScope = (await mainScope.isVisible().catch(() => false)) ? mainScope : page.locator('body');
+
+  const exactSelectors = [
+    '[role="button"][aria-label="Thêm bạn bè"]',
+    'div[role="button"]:has(span:text-is("Thêm bạn bè"))',
+    'button:has-text("Thêm bạn bè")',
+    '[role="button"][aria-label^="Thêm "][aria-label$=" làm bạn bè"]',
+    '[role="button"][aria-label="Add friend"]',
+    'div[role="button"]:has(span:text-is("Add friend"))',
+    '[role="button"][aria-label^="Add "][aria-label$=" as a friend"]',
+  ];
+
+  for (const sel of exactSelectors) {
+    const candidates = rootScope.locator(sel);
+    const count = Math.min(await candidates.count().catch(() => 0), 15);
+    for (let i = 0; i < count; i++) {
+      const btn = candidates.nth(i);
+      if (!(await btn.isVisible().catch(() => false))) continue;
+
+      const isAllowed = await btn
+        .evaluate((el) => {
+          if (el.closest('[role="banner"], [role="navigation"], header')) return false;
+          const aria = (el.getAttribute('aria-label') || '').replace(/\s+/g, ' ').trim();
+          const txt = ((el as HTMLElement).innerText || el.textContent || '').replace(/\s+/g, ' ').trim();
+
+          if (/tìm bạn bè|hủy lời mời|đã gửi lời mời|nhắn tin|theo dõi|bạn bè chung|find friends|cancel request/i.test(aria + ' ' + txt)) {
+            if (!(/^Thêm\s+.+\s+làm bạn bè$/i.test(aria) && txt === 'Thêm bạn bè')) {
+              return false;
+            }
+          }
+
+          return (
+            aria === 'Thêm bạn bè' ||
+            txt === 'Thêm bạn bè' ||
+            (/^Thêm\s+.+\s+làm bạn bè$/i.test(aria) && (txt === 'Thêm bạn bè' || txt === '')) ||
+            aria === 'Add friend' ||
+            txt === 'Add friend'
+          );
+        })
+        .catch(() => false);
+
+      if (isAllowed) {
+        return btn;
+      }
+    }
+  }
+
+  return null;
+}
+
+/**
+ * 🛡️ CHỐNG CHECKPOINT HỘP THOẠI CẢNH BÁO KẾT BẠN CỦA FACEBOOK:
+ * Tự động phát hiện và đóng popup "Bạn có biết người này ngoài đời không?" / "Chỉ gửi lời mời kết bạn cho những người bạn biết"
+ */
+export async function handleAddFriendCheckpointModal(page: Page): Promise<{ warned: boolean; reason?: string }> {
+  const dialogs = page.locator('div[role="dialog"]');
+  const count = Math.min(await dialogs.count().catch(() => 0), 5);
+  for (let i = 0; i < count; i++) {
+    const dlg = dialogs.nth(i);
+    if (!(await dlg.isVisible().catch(() => false))) continue;
+    const text = ((await dlg.innerText().catch(() => '')) || '').toLowerCase();
+    if (
+      text.includes('bạn có biết người này') ||
+      text.includes('chỉ gửi lời mời kết bạn cho những người bạn biết') ||
+      text.includes('do you know this person') ||
+      text.includes('only send friend requests to people you know') ||
+      text.includes('tạm thời bị chặn')
+    ) {
+      const cancelBtn = await firstVisibleButtonInScope(dlg, /^(hủy|huỷ|đóng|cancel|close|ok)$/i);
+      if (cancelBtn) {
+        await cancelBtn.click().catch(() => {});
+        await page.waitForTimeout(1000);
+      }
+      return {
+        warned: true,
+        reason: 'Phát hiện cảnh báo giới hạn kết bạn của Facebook ("Bạn có biết người này ngoài đời không?"). Đã tự động đóng hộp thoại và dừng bảo vệ nick chống Checkpoint.',
+      };
+    }
+  }
+  return { warned: false };
 }
 
 /**
@@ -533,6 +630,58 @@ export class FacebookActionsEngine {
     }
   }
 
+  /**
+   * Lấy toàn bộ danh sách thành viên đã quét từ các nhóm (kèm bộ lọc thời gian)
+   * Phục vụ chế độ "Tự động kết bạn với danh sách đã quét"
+   */
+  public getScannedMembersList(filter: 'all' | '2_days' | '1_week' | '2_weeks' = 'all'): GroupMemberProfile[] {
+    const state = readMemberScanState();
+    const byId = new Map<string, GroupMemberProfile>();
+
+    for (const [groupUrl, rec] of Object.entries(state.groups || {})) {
+      if (Array.isArray(rec.members)) {
+        for (const m of rec.members) {
+          if (m && m.id && m.url && !byId.has(m.id)) {
+            byId.set(m.id, {
+              ...m,
+              sourceGroup: m.sourceGroup || groupUrl,
+            });
+          }
+        }
+      }
+    }
+
+    // Bổ sung thêm các thành viên từ Global Lead Pool nếu có
+    try {
+      const wh = globalLeadPoolService.getWarehouseLeads({ limit: 300 });
+      for (const lead of wh.leads) {
+        const uid = lead.id;
+        const url = lead.url;
+        if (uid && url && !byId.has(uid)) {
+          byId.set(uid, {
+            id: uid,
+            name: lead.name || 'Thành viên Group',
+            url,
+            subtitle: lead.joinedTimeText || lead.sourceGroupName || '',
+            joinedTimeText: lead.joinedTimeText || 'Mới tham gia',
+            timeCategory: (lead.timeCategory as any) || '2_days',
+            timeCategoryLabel:
+              lead.timeCategory === '1_week'
+                ? '⚡ 1 tuần gần nhất'
+                : lead.timeCategory === '2_weeks'
+                  ? '📅 2 tuần gần nhất'
+                  : '🔥 2 ngày gần nhất (Cực Hot)',
+            sourceGroup: lead.sourceGroupName || lead.sourceGroup || 'Facebook Group',
+          });
+        }
+      }
+    } catch {}
+
+    const all = Array.from(byId.values());
+    if (filter === 'all') return all;
+    return all.filter((m) => (m.timeCategory || '2_days') === filter);
+  }
+
   private async requestFriendRaw(profileUrl: string): Promise<{ message: string; screenshotUrl?: string }> {
     const currentAcc = getDefaultAccount();
     const accountId = currentAcc?.id || 'default_acc';
@@ -546,8 +695,19 @@ export class FacebookActionsEngine {
 
     return messengerEngine.withNewFacebookPage(async (page) => {
       await openFacebookTarget(page, profileUrl);
+
+      // 🧬 HÀNH VI HUMAN ANTI-CHECKPOINT:
+      // Rê chuột tự nhiên theo đường cong Bezier + cuộn nhẹ xem hồ sơ 1.5s - 3.0s trước khi tìm nhãn "Thêm bạn bè"
+      await humanMoveMouseRandomly(page).catch(() => {});
+      await randomSleep(900, 1800);
+      await humanScroll(page, 220).catch(() => {});
+      await randomSleep(800, 1500);
+      await page.mouse.wheel(0, -160).catch(() => {});
+
       const PENDING_REGEX = /(cancel\s*request|cancel\s*invitation|hủy\s*lời\s*mời|huỷ\s*lời\s*mời|hủy\s*yêu\s*cầu|huỷ\s*yêu\s*cầu|đã\s*gửi\s*lời\s*mời|đã\s*gửi\s*yêu\s*cầu|requested|chờ\s*xác\s*nhận)/i;
-      const addButton = await firstVisibleButton(page, /(add\s*friend|thêm\s*bạn\s*bè|thêm\s*bạn)/i);
+
+      // 🎯 Trỏ chuẩn xác nhãn F12 đúng chữ "Thêm bạn bè"
+      const addButton = (await findExactAddFriendButton(page)) || (await firstVisibleButton(page, /^(thêm bạn bè|add friend)$/i));
       if (!addButton) {
         const alreadyFriend = await firstVisibleButton(page, /^(friends|bạn bè)$/i);
         if (alreadyFriend) {
@@ -562,8 +722,16 @@ export class FacebookActionsEngine {
         return { message: 'Hồ sơ này chặn kết bạn từ người lạ (chỉ cho phép theo dõi); đã bỏ qua an toàn.' };
       }
 
-      await addButton.click({ timeout: 10000 });
-      await page.waitForTimeout(2000);
+      // 🧬 Di chuyển chuột Bezier -> Hover dừng 350-850ms trên nhãn "Thêm bạn bè" -> Click
+      await humanHoverAndClick(page, addButton);
+      await humanLingerAfterAction(page);
+
+      // 🛡️ Kiểm tra hộp thoại cảnh báo kết bạn của Facebook ("Bạn có biết người này ngoài đời không?")
+      const modalGuard = await handleAddFriendCheckpointModal(page);
+      if (modalGuard.warned) {
+        throw new Error(modalGuard.reason || 'Facebook cảnh báo giới hạn kết bạn; đã tự động dừng bảo vệ nick chống Checkpoint.');
+      }
+
       const requestPending = await firstVisibleButton(page, PENDING_REGEX);
       const isAddBtnGone = !(await addButton.isVisible().catch(() => false));
       if (!requestPending && !isAddBtnGone) {
@@ -584,7 +752,7 @@ export class FacebookActionsEngine {
         if (fs.existsSync(proofPath)) screenshotUrl = `/proofs/${proofFile}`;
       } catch {}
 
-      return { message: 'Đã gửi một lời mời kết bạn đến hồ sơ đã chọn.', screenshotUrl };
+      return { message: 'Đã gửi một lời mời kết bạn (nhãn F12 "Thêm bạn bè" • Human Anti-Checkpoint) đến hồ sơ đã chọn.', screenshotUrl };
     });
   }
 

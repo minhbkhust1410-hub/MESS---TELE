@@ -913,6 +913,27 @@ export function startDashboard(): void {
     }
   });
 
+  // API 4.08b: Chế độ tự động kết bạn với danh sách thành viên đã quét (Trỏ đúng nhãn F12 "Thêm bạn bè" • Hành vi Human chống Checkpoint)
+  app.post('/api/autofriend/start-scanned-list', async (req, res) => {
+    try {
+      const result = await autoFriendService.startScannedListAutoFriend(req.body || {});
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // API 4.08c: Lấy danh sách thành viên đã quét (hợp nhất từ các nhóm & kho F12)
+  app.get('/api/members/scanned-list', (req, res) => {
+    try {
+      const filter = ((req.query.filter as string) || 'all') as 'all' | '2_days' | '1_week' | '2_weeks';
+      const members = facebookActionsEngine.getScannedMembersList(filter);
+      res.json({ success: true, total: members.length, members });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
   // API 4.09: Tạm dừng tiến trình kết bạn
   app.post('/api/autofriend/pause', (_req, res) => {
     try {
