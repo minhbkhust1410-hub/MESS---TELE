@@ -1,0 +1,29 @@
+# ==============================================================================
+# FALCONX RENDER.COM 1-CLICK BLUEPRINT
+# ==============================================================================
+
+services:
+  - type: web
+    name: falconx-cluster
+    env: docker
+    dockerfilePath: Dockerfile
+    plan: free
+    region: singapore
+    branch: main
+    autoDeploy: true
+    healthCheckPath: /healthz
+    envVars:
+      - key: PORT
+        value: 7860
+      - key: HEADLESS
+        value: "true"
+      - key: MAX_CONCURRENT_BROWSERS
+        value: "2"
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_GROUP_ID
+        sync: false
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD
+        value: ecotrang2026

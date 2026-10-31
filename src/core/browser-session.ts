@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { chromium, request, type BrowserContext, type Page } from 'playwright';
 import { config } from '../config/env.js';
+import { getAllAccounts, saveAccount } from '../db/store.js';
 import { detectCheckpoint } from './checkpoint-guard.js';
 
 export interface ProxyTestResult {
@@ -17,12 +18,14 @@ export interface ProxyTestResult {
 }
 
 export interface SessionOptions {
+  accountId?: string;
   headless?: boolean;
   userDataDir?: string;
   viewport?: { width: number; height: number };
   proxy?: string | { server: string; username?: string; password?: string };
   skipProxyDoubleCheck?: boolean;
   requireProxyVerified?: boolean;
+  initialCookies?: Array<{ name: string; value: string; domain: string; path: string; expires?: number }>;
 }
 
 export interface SessionResult {
@@ -114,10 +117,6 @@ export function parseProxy(proxyInput?: string | { server: string; username?: st
 
 /**
  * Kiểm tra kết nối mạng của Proxy trước khi mở trình duyệt (Pre-flight Test)
- * - Đo latency thực tế
- * - Kiểm tra IP ra ngoài
- * - Lấy thông tin quốc gia, thành phố, nhà mạng
- * - So sánh đối chứng với IP máy thật để phát hiện rò rỉ (Leak Check)
  */
 export async function testProxyNetwork(
   proxyInput?: string | { server: string; username?: string; password?: string },
@@ -127,7 +126,6 @@ export async function testProxyNetwork(
   const parsed = parseProxy(proxyInput);
 
   if (!parsed) {
-    // Không có proxy -> Đo mạng trực tiếp của máy
     const hostIp = await getHostPublicIP(true);
     let country = 'Vietnam';
     let city = 'Hanoi';
@@ -168,7 +166,6 @@ export async function testProxyNetwork(
       timeout: timeoutMs,
     });
 
-    // 1. Lấy IP ngoại mạng qua tunnel proxy
     let detectedIp = '';
     const res = await reqCtx.get('https://api.ipify.org?format=json', { timeout: timeoutMs }).catch(() => null);
     if (res && res.ok()) {
@@ -177,7 +174,6 @@ export async function testProxyNetwork(
     }
 
     if (!detectedIp) {
-      // Fallback endpoint nếu ipify bị bận
       const res2 = await reqCtx.get('https://httpbin.org/ip', { timeout: timeoutMs }).catch(() => null);
       if (res2 && res2.ok()) {
         const data2 = await res2.json().catch(() => null);
@@ -190,11 +186,8 @@ export async function testProxyNetwork(
     }
 
     const latencyMs = Date.now() - start;
-
-    // 2. Kiểm tra rò rỉ IP (Leak Check)
     const isLeakingHostIp = Boolean(hostIp && detectedIp === hostIp);
 
-    // 3. Tra cứu thông tin Quốc gia & Nhà mạng (Geo Lookup)
     let country = 'Unknown';
     let city = 'Unknown';
     let isp = 'Unknown';
@@ -235,9 +228,7 @@ export async function testProxyNetwork(
 }
 
 /**
- * DOUBLE-CHECK trong trình duyệt Chromium:
- * Chạy lệnh truy vấn trực tiếp từ Page context của Chromium để đảm bảo 100%
- * trình duyệt Chromium đã được bọc trong Proxy tunnel trước khi mở Facebook.
+ * DOUBLE-CHECK trong trình duyệt Chromium
  */
 export async function verifyBrowserProxyIP(
   page: Page,
@@ -248,7 +239,6 @@ export async function verifyBrowserProxyIP(
   const hostIp = await getHostPublicIP();
 
   try {
-    // Mở trang nhẹ kiểm tra IP trực tiếp từ nhân Chromium
     const resp = await page.goto('https://api.ipify.org?format=json', {
       waitUntil: 'domcontentloaded',
       timeout: 15_000,
@@ -266,7 +256,6 @@ export async function verifyBrowserProxyIP(
     }
 
     if (!detectedIp) {
-      // Thử fallback evaluate fetch
       detectedIp = await page.evaluate(async () => {
         try {
           const r = await fetch('https://api.ipify.org?format=json');
@@ -285,7 +274,6 @@ export async function verifyBrowserProxyIP(
     const latencyMs = Date.now() - start;
     const isLeakingHostIp = Boolean(parsed && hostIp && detectedIp === hostIp);
 
-    // Lấy thông tin quốc gia
     let country = 'Vietnam';
     let city = 'Hanoi';
     let isp = 'ISP';
@@ -333,34 +321,34 @@ export async function createBrowserSession(options: SessionOptions = {}): Promis
     fs.mkdirSync(profileDir, { recursive: true });
   }
 
-  // Tự động dọn dẹp Chromium lockfiles nếu bị crash trước đó (KudoX Feature)
   for (const lockFileName of ['lockfile', 'parent.lock', 'SingletonLock', 'SingletonCookie', 'SingletonSocket']) {
     const lockPath = path.join(profileDir, lockFileName);
     if (fs.existsSync(lockPath)) {
       try {
         fs.unlinkSync(lockPath);
-      } catch {
-        // Bỏ qua nếu đang bị process khác giữ
-      }
+      } catch {}
     }
   }
 
+  // Tìm tài khoản tương ứng trong Cloud DB (để lấy Proxy riêng & Cookie đồng bộ đám mây)
+  const matchedAccount = getAllAccounts().find(
+    (a) =>
+      (options.accountId && a.id === options.accountId) ||
+      path.resolve(a.profileDir || '') === path.resolve(profileDir)
+  );
+
+  const effectiveProxy = options.proxy !== undefined ? options.proxy : matchedAccount?.proxy;
   const isHeadless = options.headless !== undefined ? options.headless : config.headless;
   const hasRealChrome = fs.existsSync('C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe');
-  const parsedProxy = parseProxy(options.proxy);
+  const parsedProxy = parseProxy(effectiveProxy);
 
   let verifiedIp: string | undefined;
   let proxyLatencyMs: number | undefined;
   let proxyCountry: string | undefined;
 
-  // =========================================================================
-  // BƯỚC 1: PRE-FLIGHT TEST PROXY (Kiểm tra trước khi mở trình duyệt)
-  // Nếu nick được gắn Proxy mà Proxy chết -> DỪNG NGAY KHÔNG MỞ TRÌNH DUYỆT
-  // Nhằm tuyệt đối chống rò rỉ IP máy thật hoặc làm Facebook checkpoint nick!
-  // =========================================================================
   if (parsedProxy) {
     console.log(`🌐 [KudoX Pre-flight] Đang kiểm tra an toàn Proxy riêng: ${parsedProxy.server}...`);
-    const preflight = await testProxyNetwork(options.proxy, 10_000);
+    const preflight = await testProxyNetwork(effectiveProxy, 10_000);
 
     if (!preflight.alive) {
       const errDetail = `[PROXY LỖI KẾT NỐI] Proxy ${parsedProxy.server} không phản hồi (${preflight.error || 'Timeout'}). ĐÃ HỦY MỞ TRÌNH DUYỆT ĐỂ CHỐNG LỘ IP GỐC!`;
@@ -382,7 +370,6 @@ export async function createBrowserSession(options: SessionOptions = {}): Promis
     console.log(`🌐 [KudoX Network] Tài khoản không gắn Proxy -> Chạy IP trực tiếp của máy.`);
   }
 
-  // Khởi chạy Chromium persistent context với cấu hình chống rò rỉ WebRTC & DNS
   const context = await chromium.launchPersistentContext(profileDir, {
     headless: isHeadless,
     channel: hasRealChrome ? 'chrome' : undefined,
@@ -400,7 +387,6 @@ export async function createBrowserSession(options: SessionOptions = {}): Promis
       '--disable-dev-shm-usage',
       '--disable-infobars',
       '--disable-notifications',
-      // CHỐNG RÒ RỈ WEBRTC & DNS QUA MẠNG NỘI BỘ (WebRTC STUN Leak Armor)
       '--force-webrtc-ip-handling-policy=disable_non_proxied_udp',
       '--disable-features=WebRtcHideLocalIpsWithMdns',
       '--enforce-webrtc-ip-permission-check',
@@ -409,25 +395,48 @@ export async function createBrowserSession(options: SessionOptions = {}): Promis
     ignoreDefaultArgs: ['--enable-automation'],
   });
 
+  // =========================================================================
+  // KHÔI PHỤC COOKIE ĐÁM MÂY TỰ ĐỘNG (Cloud Portable Session Restore)
+  // Giúp 40-100 nick chạy ngay trên bất kỳ Server Public / Container nào mà không cần copy thư mục .user-data
+  // =========================================================================
+  const cloudCookies = options.initialCookies || matchedAccount?.cookies;
+  if (cloudCookies && Array.isArray(cloudCookies) && cloudCookies.length > 0) {
+    try {
+      const existingCookies = await context.cookies('https://www.facebook.com').catch(() => []);
+      const hasLoggedInCookie = existingCookies.some((c) => c.name === 'c_user' && c.value);
+      if (!hasLoggedInCookie) {
+        const sanitized = cloudCookies
+          .filter((c) => c && c.name && c.value)
+          .map((c) => ({
+            name: String(c.name),
+            value: String(c.value),
+            domain: c.domain || '.facebook.com',
+            path: c.path || '/',
+            ...(typeof c.expires === 'number' && c.expires > 0 ? { expires: c.expires } : {}),
+          }));
+        if (sanitized.length > 0) {
+          await context.addCookies(sanitized);
+          console.log(`☁️ [Cloud Cookie Vault] Đã tự động nạp ${sanitized.length} cookie đám mây cho tài khoản ${matchedAccount?.name || profileDir}`);
+        }
+      }
+    } catch (e: any) {
+      console.warn(`⚠️ [Cloud Cookie Vault] Không thể nạp cookie ban đầu: ${e.message}`);
+    }
+  }
+
   const page = context.pages()[0] || (await context.newPage());
   page.setDefaultTimeout(45_000);
 
-  // KudoX Stealth script injection: xóa cờ navigator.webdriver
   await page.addInitScript(() => {
     Object.defineProperty(navigator, 'webdriver', {
       get: () => undefined,
     });
   });
 
-  // =========================================================================
-  // BƯỚC 2: DOUBLE-CHECK NỘI BỘ TRÌNH DUYỆT (In-Browser Verification)
-  // Thực hiện truy vấn IP trực tiếp từ trong nhân Chromium vừa mở.
-  // Đảm bảo 100% Chromium thực sự đi qua Proxy, không bị bypass âm thầm.
-  // =========================================================================
   if (parsedProxy && !options.skipProxyDoubleCheck) {
     console.log(`🛡️ [KudoX Double-Check] Đang kiểm tra lớp thứ 2 từ bên trong Chromium...`);
     try {
-      const doubleCheck = await verifyBrowserProxyIP(page, options.proxy);
+      const doubleCheck = await verifyBrowserProxyIP(page, effectiveProxy);
 
       if (!doubleCheck.alive) {
         await context.close().catch(() => {});
@@ -450,6 +459,29 @@ export async function createBrowserSession(options: SessionOptions = {}): Promis
   }
 
   const close = async () => {
+    // Trước khi đóng Chromium, tự động chụp lại Cookie mới nhất đẩy vào Cloud DB
+    if (matchedAccount) {
+      try {
+        const latestCookies = await context.cookies('https://www.facebook.com').catch(() => []);
+        const cUser = latestCookies.find((c) => c.name === 'c_user' && c.value);
+        if (cUser) {
+          saveAccount({
+            id: matchedAccount.id,
+            uid: cUser.value,
+            cookies: latestCookies.map((c) => ({
+              name: c.name,
+              value: c.value,
+              domain: c.domain,
+              path: c.path,
+              expires: c.expires,
+            })),
+            verifiedProxyIp: verifiedIp || matchedAccount.verifiedProxyIp,
+            proxyLatencyMs: proxyLatencyMs || matchedAccount.proxyLatencyMs,
+            proxyCountry: proxyCountry || matchedAccount.proxyCountry,
+          });
+        }
+      } catch {}
+    }
     await context.close().catch(() => undefined);
   };
 

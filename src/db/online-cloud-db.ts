@@ -17,11 +17,11 @@ const realFs = {
   rmSync: fs.rmSync.bind(fs),
 };
 
-const REPO_OWNER = 'minhbkhust1410-hub';
-const REPO_NAME = 'MESS---TELE';
-const CLOUD_BRANCH = 'cloud-database';
+const REPO_OWNER = process.env.CLOUD_DB_OWNER || 'minhbkhust1410-hub';
+const REPO_NAME = process.env.CLOUD_DB_REPO || 'MESS---TELE';
+const CLOUD_BRANCH = process.env.CLOUD_DB_BRANCH || 'cloud-database';
 const VAULT_FILENAME = 'cloud_db_vault.json';
-const MASTER_KEY_SEED = 'falconx_cloud_db_master_key_2026';
+const MASTER_KEY_SEED = process.env.CLOUD_DB_MASTER_KEY || 'falconx_cloud_db_master_key_2026';
 const ENC_CLOUD_TOKEN = 'Cut3iZDYVWeLa+Nj1Y6LRurmeWWJxPYuu/C/tdfUTAwfqSY/RuQ7qA==.ltabok1+vVMHLWsaAH03dg==';
 
 function getMasterKey(): Buffer {
@@ -29,6 +29,7 @@ function getMasterKey(): Buffer {
 }
 
 function decryptCloudToken(): string {
+  if (process.env.GITHUB_CLOUD_TOKEN) return process.env.GITHUB_CLOUD_TOKEN.trim();
   try {
     const [encB64, tagB64] = ENC_CLOUD_TOKEN.split('.');
     const key = getMasterKey();
@@ -87,10 +88,6 @@ class OnlineCloudDatabase {
   private lastError: string | null = null;
   private initialized = false;
 
-  /**
-   * Chuẩn hóa đường dẫn sang khóa ảo Cloud VFS (ví dụ: "data/mappings.json", ".tmp_media/img.png")
-   * Trả về null nếu đường dẫn KHÔNG thuộc vùng dữ liệu cần lưu Cloud
-   */
   public toVirtualKey(targetPath: any): string | null {
     if (typeof targetPath !== 'string' && !Buffer.isBuffer(targetPath)) return null;
     const abs = path.resolve(String(targetPath)).replace(/\\/g, '/');
@@ -111,9 +108,6 @@ class OnlineCloudDatabase {
     return null;
   }
 
-  /**
-   * Hấp thụ toàn bộ tệp dữ liệu cục bộ (nếu còn sót) lên bộ nhớ Cloud VFS và XÓA SẠCH khỏi ổ cứng Local
-   */
   public absorbAndPurgeLocalDisk(): number {
     let absorbed = 0;
     const dirsToAbsorb = ['data', '.tmp_media'];
@@ -199,13 +193,14 @@ class OnlineCloudDatabase {
     const headers = {
       Authorization: `Bearer ${token}`,
       Accept: 'application/vnd.github+json',
+      'Cache-Control': 'no-cache',
       'User-Agent': 'FalconX-Cloud-DB',
     };
 
     try {
       await this.ensureCloudBranch(token);
       const res = await fetch(
-        `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${VAULT_FILENAME}?ref=${CLOUD_BRANCH}`,
+        `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${VAULT_FILENAME}?ref=${CLOUD_BRANCH}&_t=${Date.now()}`,
         { headers }
       );
       if (!res.ok) return false;
@@ -217,7 +212,6 @@ class OnlineCloudDatabase {
       if (data.content) {
         rawJson = Buffer.from(data.content, 'base64').toString('utf8');
       } else if (data.sha) {
-        // Khi file Vault > 1MB, GitHub Contents API để trống content và trả về qua Git Blob API
         const blobRes = await fetch(
           `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/git/blobs/${data.sha}`,
           { headers }
@@ -270,16 +264,16 @@ class OnlineCloudDatabase {
       Authorization: `Bearer ${token}`,
       Accept: 'application/vnd.github+json',
       'Content-Type': 'application/json',
+      'Cache-Control': 'no-cache',
       'User-Agent': 'FalconX-Cloud-DB',
     };
 
     try {
       await this.ensureCloudBranch(token);
 
-      // Lấy SHA mới nhất nếu chưa có
       if (!this.lastCloudSha) {
         const cur = await fetch(
-          `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${VAULT_FILENAME}?ref=${CLOUD_BRANCH}`,
+          `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${VAULT_FILENAME}?ref=${CLOUD_BRANCH}&_t=${Date.now()}`,
           { headers }
         );
         if (cur.ok) {
@@ -288,7 +282,6 @@ class OnlineCloudDatabase {
         }
       }
 
-      // Đóng gói toàn bộ các tệp JSON và ảnh bằng chứng nhỏ (< 350KB) vào Vault đám mây
       const serializable: Record<string, string> = {};
       for (const [k, buf] of this.vfs.entries()) {
         if (k.endsWith('.tmp') || k === 'daemon_crash.log') continue;
@@ -307,39 +300,48 @@ class OnlineCloudDatabase {
         body.sha = this.lastCloudSha;
       }
 
-      let putRes = await fetch(
-        `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${VAULT_FILENAME}`,
-        {
-          method: 'PUT',
-          headers,
-          body: JSON.stringify(body),
-        }
-      );
+      let putRes: Response | null = null;
+      let lastErrText = '';
 
-      // Nếu xung đột SHA (409/422), lấy lại SHA mới nhất rồi thử lại 1 lần
-      if (putRes.status === 409 || putRes.status === 422) {
-        const cur = await fetch(
-          `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${VAULT_FILENAME}?ref=${CLOUD_BRANCH}`,
-          { headers }
+      // Tự động chống xung đột 409/422 tối đa 4 lần (trích xuất trực tiếp SHA từ thông báo 409 của GitHub)
+      for (let attempt = 0; attempt < 4; attempt++) {
+        putRes = await fetch(
+          `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${VAULT_FILENAME}`,
+          {
+            method: 'PUT',
+            headers,
+            body: JSON.stringify(body),
+          }
         );
-        if (cur.ok) {
-          const curData: any = await cur.json();
-          this.lastCloudSha = curData.sha || null;
-          body.sha = this.lastCloudSha;
-          putRes = await fetch(
-            `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${VAULT_FILENAME}`,
-            {
-              method: 'PUT',
-              headers,
-              body: JSON.stringify(body),
-            }
+
+        if (putRes.ok) break;
+
+        lastErrText = await putRes.text().catch(() => '');
+        if (putRes.status === 409 || putRes.status === 422) {
+          const shaMatch = lastErrText.match(/does not match ([0-9a-f]{40})/i);
+          if (shaMatch && shaMatch[1]) {
+            this.lastCloudSha = shaMatch[1];
+            body.sha = this.lastCloudSha;
+            continue;
+          }
+
+          await new Promise((r) => setTimeout(r, 350 * (attempt + 1)));
+          const cur = await fetch(
+            `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${VAULT_FILENAME}?ref=${CLOUD_BRANCH}&_t=${Date.now()}`,
+            { headers }
           );
+          if (cur.ok) {
+            const curData: any = await cur.json();
+            this.lastCloudSha = curData.sha || null;
+            body.sha = this.lastCloudSha;
+          }
+          continue;
         }
+        break;
       }
 
-      if (!putRes.ok) {
-        const errText = await putRes.text();
-        throw new Error(`GitHub Cloud API ${putRes.status}: ${errText.slice(0, 180)}`);
+      if (!putRes || !putRes.ok) {
+        throw new Error(`GitHub Cloud API ${putRes?.status || 500}: ${lastErrText.slice(0, 180)}`);
       }
 
       const putData: any = await putRes.json();
@@ -450,7 +452,6 @@ class OnlineCloudDatabase {
     (fs as any).mkdirSync = function (p: fs.PathLike, options?: any): any {
       const vKey = self.toVirtualKey(p);
       if (vKey !== null) {
-        // Không tạo thư mục trên ổ cứng Local!
         return undefined;
       }
       return realFs.mkdirSync(p, options);
@@ -568,14 +569,10 @@ class OnlineCloudDatabase {
     this.initialized = true;
 
     console.log('☁️ [Online Cloud DB] Đang kết nối Cơ Sở Dữ Liệu Đám Mây (100% Online, 0 Byte Local)...');
-    // 1. Tải dữ liệu từ Cloud về trước
     const pulled = await this.pullFromCloud();
-    // 2. Hấp thụ bất kỳ dữ liệu cục bộ nào còn sót lại vào RAM và xóa sạch thư mục ./data trên ổ cứng Local
     const absorbed = this.absorbAndPurgeLocalDisk();
-    // 3. Kích hoạt lớp ảo hóa CloudVFS chặn mọi lệnh ghi xuống đĩa Local
     this.installVirtualFsHooks();
 
-    // 4. Đồng bộ ngay lập tức lên Đám mây nếu vừa hấp thụ dữ liệu mới hoặc lần đầu khởi tạo
     if (!pulled || absorbed > 0) {
       const syncRes = await this.syncToCloudNow();
       console.log(`☁️ [Online Cloud DB] Đã đồng bộ ${syncRes.filesCount} bảng dữ liệu lên Cloud (SHA: ${syncRes.sha || 'init'}) — Đã xóa sạch thư mục ./data trên máy Local!`);
@@ -583,7 +580,6 @@ class OnlineCloudDatabase {
       console.log(`☁️ [Online Cloud DB] Đã tải ${this.vfs.size} bảng dữ liệu trực tiếp từ Cloud (SHA: ${this.lastCloudSha})!`);
     }
 
-    // Định kỳ 5 giây quét hấp thụ bất kỳ ảnh chụp màn hình nào do trình duyệt Chromium tạo ra rồi xóa ngay trên đĩa
     setInterval(() => {
       const count = this.absorbAndPurgeLocalDisk();
       if (count > 0) this.scheduleSync(1500);

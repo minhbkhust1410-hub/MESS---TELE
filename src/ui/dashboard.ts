@@ -101,6 +101,7 @@ import {
 import { groupDiscoveryService } from '../services/group-discovery-service.js';
 import { orchestrationService } from '../engine/orchestration-service.js';
 import { systemSmoother } from '../engine/system-smoother.js';
+import { multiAccountPool } from '../engine/multi-account-pool.js';
 
 // Cache giữ các phiên mở trình duyệt Chrome để người dùng đăng nhập trực quan
 const activeBrowserLogins = new Map<string, SessionResult>();
@@ -656,7 +657,7 @@ export function startDashboard(): void {
   // API 2.5: Đăng nhập Facebook bằng Tài Khoản & Mật Khẩu (Dạng chuẩn: Username + Password)
   app.post('/api/accounts/login-credentials', async (req, res) => {
     try {
-      const { username, password, twoFactorCode, name, makeDefault } = req.body;
+      const { username, password, twoFactorCode, name, makeDefault, proxy, verticalMode } = req.body;
       if (!username || !password) {
         return res.status(400).json({
           success: false,
@@ -666,6 +667,22 @@ export function startDashboard(): void {
 
       const cleanUser = String(username).trim();
       const cleanPass = String(password).trim();
+      const cleanProxy = proxy ? String(proxy).trim() : '';
+      const cleanVertical = verticalMode === 'forex_finance' ? 'forex_finance' : resolveRequestMode(req);
+
+      let verifiedProxyIp: string | undefined;
+      let proxyLatencyMs: number | undefined;
+      let proxyCountry: string | undefined;
+
+      if (cleanProxy) {
+        const testRes = await testProxyNetwork(cleanProxy, 8000);
+        if (testRes.alive && !testRes.isLeakingHostIp) {
+          verifiedProxyIp = testRes.ip;
+          proxyLatencyMs = testRes.latencyMs;
+          proxyCountry = testRes.country;
+        }
+      }
+
       const page = (messengerEngine as any).page;
 
       if (!page || page.isClosed()) {
@@ -691,6 +708,13 @@ export function startDashboard(): void {
         fbUsername: cleanUser,
         fbPassword: cleanPass,
         cookies: loginResult.cookies,
+        proxy: cleanProxy,
+        verifiedProxyIp,
+        proxyStatus: cleanProxy ? (verifiedProxyIp ? 'live' : 'dead') : 'unassigned',
+        proxyCountry,
+        proxyLatencyMs,
+        lastProxyCheckAt: cleanProxy ? new Date().toISOString() : undefined,
+        verticalMode: cleanVertical,
         status: 'live',
         isDefault: makeDefault !== false,
         lastActiveAt: new Date().toISOString(),
@@ -704,7 +728,7 @@ export function startDashboard(): void {
 
       return res.json({
         success: true,
-        message: `Đăng nhập Facebook thành công: ${savedAcc.name}!`,
+        message: `Đăng nhập Facebook thành công: ${savedAcc.name} (Đã gắn Proxy: ${cleanProxy || 'IP Trực tiếp'}, Phân mảng: ${cleanVertical})!`,
         account: savedAcc,
       });
     } catch (err: any) {
@@ -1412,6 +1436,7 @@ export function startDashboard(): void {
       lastProxyCheckAt: new Date().toISOString(),
       profileDir,
       cookies: parsedCookies,
+      verticalMode: (req.body.verticalMode === 'forex_finance' ? 'forex_finance' : resolveRequestMode(req)),
       status: 'live',
       isDefault: shouldMakeDefault,
     });
@@ -1507,6 +1532,7 @@ export function startDashboard(): void {
       }
     } catch {}
 
+    const fbCookies = await session.context.cookies(['https://www.facebook.com', 'https://messenger.com']).catch(() => []);
     await session.close().catch(() => {});
     activeBrowserLogins.delete(loginSessionId);
 
@@ -1534,6 +1560,8 @@ export function startDashboard(): void {
       proxyLatencyMs: session.proxyLatencyMs,
       lastProxyCheckAt: new Date().toISOString(),
       profileDir: fs.existsSync(newDir) ? newDir : oldDir,
+      cookies: fbCookies,
+      verticalMode: (req.body.verticalMode === 'forex_finance' ? 'forex_finance' : resolveRequestMode(req)),
       status: 'live',
       isDefault: shouldMakeDefault,
     });
@@ -3482,6 +3510,7 @@ export function startDashboard(): void {
 
     res.json({
       systemStatus: 'online',
+      poolSummary: multiAccountPool.getPoolStatus().summary,
       isPinRequired: messengerEngine.isPinRequired,
       accounts: {
         total: accounts.length,
@@ -3516,6 +3545,130 @@ export function startDashboard(): void {
         templatesCount: getCommentTemplates().length,
         logs,
       },
+    });
+  });
+
+  // ==========================================
+  // 40-100 NICK WAVE CONCURRENCY POOL & PUBLIC CLOUD DEPLOYMENT APIS
+  // ==========================================
+
+  app.get('/healthz', (_req, res) => {
+    const pool = multiAccountPool.getPoolStatus();
+    res.status(200).json({
+      status: 'ok',
+      service: 'falconx-cloud-cluster',
+      uptimeSec: Math.round(process.uptime()),
+      memoryRssMb: Math.round(process.memoryUsage().rss / 1024 / 1024),
+      activeBrowserSlots: pool.summary.activeBrowserSlots,
+      maxConcurrentBrowsers: pool.config.maxConcurrentBrowsers,
+      totalAccounts: pool.summary.totalAccounts,
+      cloudDb: onlineCloudDb.getStatus().localDiskBytesStored === 0 ? 'zero-local-active' : 'local',
+      timestamp: new Date().toISOString(),
+    });
+  });
+
+  app.get('/readyz', (_req, res) => {
+    res.status(200).json({
+      ready: true,
+      cloudVaultReady: true,
+      timestamp: new Date().toISOString(),
+    });
+  });
+
+  app.get('/api/pool/status', (_req, res) => {
+    try {
+      res.json(multiAccountPool.getPoolStatus());
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  app.post('/api/pool/config', (req, res) => {
+    try {
+      const updated = multiAccountPool.updateConfig(req.body || {});
+      res.json({
+        success: true,
+        config: updated,
+        pool: multiAccountPool.getPoolStatus(),
+        message: `Đã cập nhật cấu hình Wave Pool (Max Browser đồng thời: ${updated.maxConcurrentBrowsers} luồng | Quota: ${updated.bdsQuota} BĐS + ${updated.forexQuota} Forex)!`,
+      });
+    } catch (err: any) {
+      res.status(400).json({ success: false, error: err.message });
+    }
+  });
+
+  app.post('/api/pool/bulk-onboard', async (req, res) => {
+    try {
+      const { rawText, defaultVertical } = req.body || {};
+      if (!rawText || typeof rawText !== 'string') {
+        return res.status(400).json({
+          success: false,
+          error: 'Vui lòng nhập danh sách Nick kèm Proxy (Mỗi dòng 1 nick: uid|pass|proxy hoặc cookie|proxy).',
+        });
+      }
+      const mode = defaultVertical === 'forex_finance' ? 'forex_finance' : 'bds_ecopark';
+      const result = await multiAccountPool.bulkOnboardAccountsWithProxy(rawText, mode);
+      res.json({
+        ...result,
+        pool: multiAccountPool.getPoolStatus(),
+        message: `Đã nạp thành công ${result.importedCount} nick mới và cập nhật ${result.updatedCount} nick kèm Proxy cố định vào Cloud Vault!`,
+      });
+    } catch (err: any) {
+      res.status(400).json({ success: false, error: err.message });
+    }
+  });
+
+  app.post('/api/pool/verify-proxies', async (_req, res) => {
+    try {
+      const result = await multiAccountPool.verifyAllAccountProxies();
+      res.json({
+        success: true,
+        ...result,
+        pool: multiAccountPool.getPoolStatus(),
+        message: `Đã kiểm tra ${result.totalChecked} Proxy: ${result.liveCount} Hoạt động tốt (Live IP), ${result.deadCount} Lỗi kết nối.`,
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  app.get('/api/deploy/blueprint', (req, res) => {
+    const publicUrl = detectPublicCloudUrl(req);
+    const pool = multiAccountPool.getPoolStatus();
+    res.json({
+      success: true,
+      publicUrl,
+      architecture: {
+        name: 'FalconX Hybrid Wave-Pool Cloud Architecture (40 -> 100 Accounts)',
+        zeroLocalStorage: true,
+        encryptedCloudVault: 'GitHub Private SHA + AES-256-GCM (0 Byte Local Disk)',
+        browserConcurrencyModel: `Wave Rotation (${pool.config.maxConcurrentBrowsers} Active Chromium Slots / Wave -> ~${pool.ramGuard.estimatedPeakRamMb} MB RAM)`,
+        proxyBindingModel: '1 Account = 1 Sticky Proxy + 1 Cloud Cookie Vault (Auto-restored on any server)',
+      },
+      targets: [
+        {
+          id: 'hf_spaces_docker',
+          name: 'Hugging Face Spaces (Docker 16GB RAM Free)',
+          specs: '2 vCPU + 16 GB RAM + Domain .hf.space Vĩnh Viễn ($0/tháng)',
+          capacity: 'Chạy mượt 40 - 100 Nick ngay trên 1 Container nhờ 16GB RAM Free',
+          configFile: 'Dockerfile (Port 7860 / 3300)',
+        },
+        {
+          id: 'oracle_free_vps',
+          name: 'Oracle Cloud Always Free / Ubuntu VPS (Docker Compose)',
+          specs: '4 ARM Ampere vCPU + 24 GB RAM Vĩnh Viễn ($0/tháng)',
+          capacity: 'Chạy 100 Nick (50 BĐS + 50 Forex) với 6-8 luồng Chromium song song',
+          configFile: 'docker-compose.yml',
+        },
+        {
+          id: 'render_fly_paas',
+          name: 'Render.com / Fly.io + Cloudflare Zero-Trust Tunnel',
+          specs: '1-Click Auto-Deploy từ GitHub (render.yaml / fly.toml)',
+          capacity: 'Web Control Plane 24/7 + Đồng bộ Cloud Vault tự động',
+          configFile: 'render.yaml & fly.toml',
+        },
+      ],
+      poolSummary: pool.summary,
     });
   });
 

@@ -13,6 +13,8 @@ export interface AppConfig {
   authSecret: string;
   dashboardHost: string;
   sharedTeamMode: boolean;
+  maxConcurrentBrowsers: number;
+  publicUrl: string;
 }
 
 const DEFAULT_SETTINGS_FILE = path.resolve(process.cwd(), 'src/config/system-settings.json');
@@ -37,19 +39,30 @@ function loadMergedSettings(): Record<string, any> {
 }
 
 const initial = loadMergedSettings();
+const isLinuxCloudWithoutDisplay = process.platform === 'linux' && !process.env.DISPLAY;
 
 export const config: AppConfig = {
-  telegramBotToken: String(initial.telegramBotToken || '8866229116:AAGMh8nzO0I5M4GBaV4mv4AtdIg2Trp46OU'),
-  telegramGroupId: String(initial.telegramGroupId || '-1003998557681'),
-  fbProfileDir: path.resolve(String(initial.fbProfileDir || './.user-data/fb-profile')),
-  headless: Boolean(initial.headless ?? false),
-  dashboardPort: Number(initial.dashboardPort || 3300),
-  dbPath: path.resolve(String(initial.dbPath || './data/mappings.json')),
-  adminUsername: String(initial.adminUsername || 'admin'),
-  adminPassword: String(initial.adminPassword || 'ecotrang2026'),
-  authSecret: String(initial.authSecret || 'falconx_secret_key_bds_ecopark_2026'),
-  dashboardHost: String(initial.dashboardHost || '0.0.0.0'),
+  telegramBotToken: String(
+    process.env.TELEGRAM_BOT_TOKEN || initial.telegramBotToken || '8866229116:AAGMh8nzO0I5M4GBaV4mv4AtdIg2Trp46OU'
+  ),
+  telegramGroupId: String(process.env.TELEGRAM_GROUP_ID || initial.telegramGroupId || '-1003998557681'),
+  fbProfileDir: path.resolve(String(process.env.FB_PROFILE_DIR || initial.fbProfileDir || './.user-data/fb-profile')),
+  headless:
+    process.env.HEADLESS !== undefined
+      ? process.env.HEADLESS === 'true'
+      : Boolean(initial.headless ?? isLinuxCloudWithoutDisplay),
+  dashboardPort: Number(process.env.PORT || process.env.DASHBOARD_PORT || initial.dashboardPort || 3300),
+  dbPath: path.resolve(String(process.env.DB_PATH || initial.dbPath || './data/mappings.json')),
+  adminUsername: String(process.env.ADMIN_USERNAME || initial.adminUsername || 'admin'),
+  adminPassword: String(process.env.ADMIN_PASSWORD || initial.adminPassword || 'ecotrang2026'),
+  authSecret: String(process.env.AUTH_SECRET || initial.authSecret || 'falconx_secret_key_bds_ecopark_2026'),
+  dashboardHost: String(process.env.DASHBOARD_HOST || initial.dashboardHost || '0.0.0.0'),
   sharedTeamMode: initial.sharedTeamMode !== false,
+  maxConcurrentBrowsers: Math.max(
+    1,
+    Math.min(10, Number(process.env.MAX_CONCURRENT_BROWSERS || initial.maxConcurrentBrowsers || 3))
+  ),
+  publicUrl: String(process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || initial.publicUrl || ''),
 };
 
 export function updateSystemSettings(partial: Partial<AppConfig>): AppConfig {
@@ -59,6 +72,10 @@ export function updateSystemSettings(partial: Partial<AppConfig>): AppConfig {
   if (partial.adminUsername !== undefined && partial.adminUsername.trim()) config.adminUsername = partial.adminUsername.trim();
   if (partial.adminPassword !== undefined && partial.adminPassword.trim()) config.adminPassword = partial.adminPassword.trim();
   if (partial.sharedTeamMode !== undefined) config.sharedTeamMode = Boolean(partial.sharedTeamMode);
+  if (partial.maxConcurrentBrowsers !== undefined) {
+    config.maxConcurrentBrowsers = Math.max(1, Math.min(10, Number(partial.maxConcurrentBrowsers) || 3));
+  }
+  if (partial.publicUrl !== undefined) config.publicUrl = String(partial.publicUrl).trim();
 
   const persisted = {
     telegramBotToken: config.telegramBotToken,
@@ -72,6 +89,8 @@ export function updateSystemSettings(partial: Partial<AppConfig>): AppConfig {
     adminPassword: config.adminPassword,
     authSecret: config.authSecret,
     sharedTeamMode: config.sharedTeamMode,
+    maxConcurrentBrowsers: config.maxConcurrentBrowsers,
+    publicUrl: config.publicUrl,
     updatedAt: new Date().toISOString(),
   };
 

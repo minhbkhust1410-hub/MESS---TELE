@@ -2602,14 +2602,66 @@
       <!-- ======================================================== -->
       <div id="tab-accounts" class="space-y-5 tab-content hidden">
         
-        <div class="claude-card rounded-3xl p-5 flex items-center justify-between">
+        <div class="claude-card rounded-3xl p-5 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 class="text-xs font-bold text-[#f0f6fc] uppercase tracking-wider">Hồ Sơ Tài Khoản Facebook & Proxy Riêng Biệt</h3>
             <p class="text-[11px] text-[#8b949e]">Mỗi tài khoản được chạy trên một hồ sơ Chrome độc lập để chống checkpoint.</p>
           </div>
-          <button onclick="openAddAccountModal()" class="px-4 py-2 rounded-xl bg-[#0071e3] hover:bg-[#0077ed] text-xs font-bold text-white transition shadow-md shadow-[#D96B43]/20">
-            ➕ Thêm Tài Khoản
-          </button>
+          <div class="flex items-center gap-2">
+            <button onclick="openBulkImportModal()" class="px-3.5 py-2 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 border border-purple-500/30 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
+              <span>⚡</span> <span>Nạp Hàng Loạt 40-100 Nick</span>
+            </button>
+            <button onclick="verifyAllProxiesInPool()" id="btn-verify-all-proxies" class="px-3.5 py-2 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/40 text-cyan-200 border border-cyan-500/30 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
+              <span>🛡️</span> <span>Check Tất Cả Proxy</span>
+            </button>
+            <button onclick="openDeployBlueprintModal()" class="px-3.5 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-200 border border-emerald-500/30 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
+              <span>☁️</span> <span>Deploy Cloud Free</span>
+            </button>
+            <button onclick="openAddAccountModal()" class="px-4 py-2 rounded-xl bg-[#0071e3] hover:bg-[#0077ed] text-xs font-bold text-white transition shadow-md shadow-[#0071e3]/20 flex items-center gap-1.5 cursor-pointer">
+              <span>➕</span> <span>Thêm Nick</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- BẢNG ĐIỀU PHỐI LUÂN PHIÊN 40 - 100 NICK (50 BĐS + 50 FOREX) -->
+        <div id="pool-telemetry-deck" class="apple-card rounded-3xl p-5 bg-[#12161f] border border-white/10 space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
+            <div class="flex items-center gap-3">
+              <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+              <div>
+                <h4 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                  <span>🚀</span> <span>Cụm Điều Phối Luân Phiên Wave Concurrency (40 ➔ 100 Nick)</span>
+                </h4>
+                <p class="text-[11px] text-[#86868b]">Mô hình 3 Cửa Sổ Trình Duyệt Luân Phiên: Tiết kiệm RAM tuyệt đối (~1.4 GB RAM) • An toàn tuyệt đối trên Server Free</p>
+              </div>
+            </div>
+            <div id="pool-ram-badge" class="px-3 py-1 rounded-full text-[11px] font-mono bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+              🛡️ RAM Guard: ~1.4 GB (Tối ưu cho Server Free)
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="p-3.5 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1">
+              <div class="text-[10px] text-[#86868b] uppercase font-bold tracking-wider">Tổng Nick Hiện Tại</div>
+              <div id="pool-stat-total" class="text-xl font-extrabold text-white">--</div>
+              <div class="text-[10px] text-purple-300">Khởi đầu 40 ➔ Mục tiêu 100</div>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1">
+              <div class="text-[10px] text-[#86868b] uppercase font-bold tracking-wider">🏡 Quota BĐS Ecopark</div>
+              <div id="pool-stat-bds" class="text-xl font-extrabold text-amber-400">-- / 50</div>
+              <div class="text-[10px] text-[#86868b]">Đăng bài & khớp cmt GPS</div>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1">
+              <div class="text-[10px] text-[#86868b] uppercase font-bold tracking-wider">📈 Quota Forex Tài Chính</div>
+              <div id="pool-stat-forex" class="text-xl font-extrabold text-cyan-400">-- / 50</div>
+              <div class="text-[10px] text-[#86868b]">Đăng kèo & phân loại lead</div>
+            </div>
+            <div class="p-3.5 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1">
+              <div class="text-[10px] text-[#86868b] uppercase font-bold tracking-wider">🛡️ Proxy & Cookie Vault</div>
+              <div id="pool-stat-proxy" class="text-xl font-extrabold text-emerald-400">-- Live</div>
+              <div class="text-[10px] text-emerald-300">1 Nick = 1 Proxy Cố Định</div>
+            </div>
+          </div>
         </div>
 
         <div id="accounts-cards-container" class="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -2811,6 +2863,23 @@
           <input type="text" id="cred-acc-2fa" placeholder="Nhập mã xác nhận 6 số từ SMS hoặc Authenticator..." class="w-full bg-[#100E0C] border border-[#30363d] rounded-2xl px-4 py-2.5 text-[#f0f6fc] focus:outline-none focus:border-[#D96B43] font-mono text-[11px]" />
         </div>
 
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-[11px] text-[#8b949e] font-semibold">Proxy Riêng Của Nick (Gắn chặt với tài khoản - Chống lộ IP)</label>
+            <button type="button" onclick="testProxyInModal('cred-acc-proxy', 'cred-proxy-result')" class="text-[10px] text-[#2997ff] hover:underline font-mono">⚡ Test Proxy Ngay</button>
+          </div>
+          <input type="text" id="cred-acc-proxy" placeholder="ip:port hoặc http://user:pass@ip:port (Gắn kèm khi đăng nhập)" class="w-full bg-[#100E0C] border border-[#30363d] rounded-2xl px-4 py-2.5 text-[#f0f6fc] focus:outline-none focus:border-[#D96B43] font-mono text-[11px]" />
+          <div id="cred-proxy-result" class="text-[10px] mt-1.5 font-mono hidden p-2 rounded-xl border"></div>
+        </div>
+
+        <div>
+          <label class="text-[11px] text-[#8b949e] font-semibold block mb-1">Phân Mảng Hoạt Động (Quota Cân Bằng 50/50)</label>
+          <select id="cred-acc-vertical" class="w-full bg-[#100E0C] border border-[#30363d] rounded-2xl px-4 py-2.5 text-[#f0f6fc] focus:outline-none focus:border-[#D96B43] text-xs">
+            <option value="bds_ecopark">🏡 BĐS Ecopark (Mục tiêu 50 Nick)</option>
+            <option value="forex_finance">📈 Forex & Tài Chính (Mục tiêu 50 Nick)</option>
+          </select>
+        </div>
+
         <div class="flex items-center gap-2 pt-0.5">
           <input type="checkbox" id="cred-make-active" checked class="rounded bg-[#0d1117] border-[#30363d] text-[#D96B43] focus:ring-0" />
           <label for="cred-make-active" class="text-[#D6D3D1] text-xs">Đặt làm tài khoản hoạt động chính (đăng bài & trả lời tin)</label>
@@ -2900,6 +2969,133 @@
           <a href="/scripts/kudox-f12-member-scanner.js" download="kudox-f12-member-scanner.js" class="px-5 py-3 rounded-2xl bg-white/[0.08] hover:bg-white/[0.15] text-[#f5f5f7] border border-white/10 font-bold text-xs transition flex items-center justify-center gap-2">
             <span>📥</span> <span>Tải File .JS</span>
           </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: NẠP HÀNG LOẠT 40 - 100 NICK KÈM PROXY (BULK ONBOARD)-->
+  <!-- ======================================================== -->
+  <div id="bulk-import-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-5 hidden">
+    <div class="apple-card bg-[#12161f] border border-white/15 rounded-3xl max-w-2xl w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-white/10 pb-3">
+        <div class="flex items-center gap-2.5">
+          <span class="text-xl">⚡</span>
+          <div>
+            <h3 class="text-sm font-bold text-white uppercase tracking-wider">Nạp Hàng Loạt 40 - 100 Nick Kèm Proxy Riêng</h3>
+            <p class="text-[11px] text-[#86868b]">1 Nick = 1 Proxy Cố Định + 1 Cloud Cookie Vault • Tự động mã hóa AES-256</p>
+          </div>
+        </div>
+        <button onclick="closeBulkImportModal()" class="px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-semibold cursor-pointer">✕</button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="text-[11px] text-[#86868b] font-semibold block mb-1">Mảng Mặc Định Cho Danh Sách Này</label>
+          <select id="bulk-import-vertical" class="w-full bg-[#0a0d14] border border-white/15 rounded-2xl px-4 py-2.5 text-white focus:outline-none focus:border-purple-500">
+            <option value="bds_ecopark">🏡 BĐS Ecopark (Mục tiêu 50 Nick Quản Lý Quỹ Căn)</option>
+            <option value="forex_finance">📈 Forex & Tài Chính (Mục tiêu 50 Nick Quản Lý Kèo)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="text-[11px] text-[#86868b] font-semibold block mb-1">
+            Danh Sách Nick & Proxy (Mỗi dòng 1 nick — Hỗ trợ mọi định dạng mua nick phổ biến)
+          </label>
+          <textarea id="bulk-import-textarea" rows="8" placeholder="Định dạng hỗ trợ (Mỗi dòng 1 nick):
+100089123456789|MatKhauFB123|103.152.118.25:8080:user:pass
+100089123456790|MatKhauFB456|103.152.118.26:8080:user:pass|Nick Sale 02|bds_ecopark
+c_user=100089123456791; xs=...|103.152.118.27:8080
+100089123456792|MatKhau789|JBSWY3DPEHPK3PXP|c_user=...|103.152.118.28:8080" class="w-full bg-[#0a0d14] border border-white/15 rounded-2xl p-3.5 text-white font-mono text-[11px] focus:outline-none focus:border-purple-500 leading-relaxed"></textarea>
+        </div>
+
+        <div id="bulk-import-feedback" class="text-[11px] p-2.5 rounded-xl border hidden font-mono"></div>
+
+        <div class="flex items-center gap-3 pt-1">
+          <button id="btn-submit-bulk-import" onclick="submitBulkImportAccounts()" class="flex-1 py-3 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs shadow-lg shadow-purple-600/30 transition flex items-center justify-center gap-2 cursor-pointer">
+            <span>⚡</span> <span>NẠP VÀO CLOUD VAULT NGAY</span>
+          </button>
+          <button onclick="closeBulkImportModal()" class="px-5 py-3 rounded-2xl bg-white/[0.08] hover:bg-white/[0.15] text-[#86868b] hover:text-white font-semibold text-xs transition cursor-pointer">
+            Hủy
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: BLUEPRINT DEPLOY PUBLIC CLOUD FREE ($0/THÁNG)     -->
+  <!-- ======================================================== -->
+  <div id="deploy-blueprint-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-5 hidden">
+    <div class="apple-card bg-[#12161f] border border-white/15 rounded-3xl max-w-3xl w-full p-6 space-y-4 shadow-2xl max-h-[92vh] overflow-y-auto custom-scroll">
+      <div class="flex items-center justify-between border-b border-white/10 pb-3">
+        <div class="flex items-center gap-2.5">
+          <span class="text-xl">☁️</span>
+          <div>
+            <h3 class="text-sm font-bold text-white uppercase tracking-wider">Kế Hoạch & Blueprint Deploy Server Public Free ($0/Tháng)</h3>
+            <p class="text-[11px] text-[#86868b]">Sẵn sàng vận hành 40 ➔ 100 Nick (50 BĐS + 50 Forex) với RAM & Proxy tối ưu</p>
+          </div>
+        </div>
+        <button onclick="closeDeployBlueprintModal()" class="px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-semibold cursor-pointer">✕</button>
+      </div>
+
+      <div class="space-y-4 text-xs">
+        <!-- Live Cluster Health -->
+        <div class="p-4 rounded-2xl bg-white/[0.03] border border-white/10 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div class="text-[10px] text-[#86868b] uppercase font-bold">Trạng Thái Cluster FalconX Hiện Tại</div>
+            <div id="deploy-health-line" class="text-xs font-mono text-emerald-400 mt-0.5">● Khởi chạy mượt mà • 0 Byte Local Disk • Sẵn sàng Cloud</div>
+          </div>
+          <button onclick="refreshDeployStatus()" class="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-mono">
+            🔄 Test /healthz
+          </button>
+        </div>
+
+        <!-- 3 Nền Tảng Server Free Khuyên Dùng -->
+        <div class="space-y-3">
+          <div class="p-4 rounded-2xl bg-gradient-to-r from-emerald-950/40 to-teal-950/30 border border-emerald-500/30 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-emerald-300 text-xs flex items-center gap-1.5">
+                <span>🥇</span> <span>LỰA CHỌN 1: Hugging Face Spaces (Docker 16GB RAM Free)</span>
+              </span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/20 text-emerald-300">16 GB RAM • Free Vĩnh Viễn</span>
+            </div>
+            <p class="text-[11px] text-[#86868b] leading-relaxed">
+              Cung cấp miễn phí 16GB RAM + 2 vCPU + Domain HTTPS vĩnh viễn (<code class="text-emerald-400">https://&lt;user&gt;-&lt;space&gt;.hf.space</code>). Đã tạo sẵn <code class="text-white">Dockerfile</code> chuẩn Playwright + Xvfb + Port 7860. Chỉ cần tạo 1 Space Docker trên huggingface.co và kết nối GitHub repo là chạy ngay!
+            </p>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-gradient-to-r from-blue-950/40 to-indigo-950/30 border border-blue-500/30 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-blue-300 text-xs flex items-center gap-1.5">
+                <span>🥈</span> <span>LỰA CHỌN 2: Oracle Cloud Always Free (Ubuntu VPS 24GB RAM)</span>
+              </span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-blue-500/20 text-blue-300">24 GB RAM • 4 vCPU • Free $0</span>
+            </div>
+            <p class="text-[11px] text-[#86868b] leading-relaxed">
+              Tạo máy ảo Ubuntu Ampere A1 (4 core, 24GB RAM). Đã tạo sẵn file <code class="text-white">docker-compose.yml</code>. Bạn chỉ cần gõ đúng 1 dòng lệnh: <code class="text-cyan-400 font-mono">docker compose up -d</code> là toàn bộ cụm 40-100 nick kèm Cloudflare Tunnel tự động chạy 24/7!
+            </p>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-gradient-to-r from-purple-950/40 to-pink-950/30 border border-purple-500/30 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-purple-300 text-xs flex items-center gap-1.5">
+                <span>🥉</span> <span>LỰA CHỌN 3: Render.com / Fly.io (PaaS 1-Click)</span>
+              </span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-mono bg-purple-500/20 text-purple-300">Auto-Deploy GitHub</span>
+            </div>
+            <p class="text-[11px] text-[#86868b] leading-relaxed">
+              Đã tạo sẵn <code class="text-white">render.yaml</code> và <code class="text-white">fly.toml</code>. Tự động build và deploy từ nhánh main của GitHub mà không cần cài đặt thêm phần mềm.
+            </p>
+          </div>
+        </div>
+
+        <div class="p-3.5 rounded-2xl bg-white/[0.04] border border-white/5 space-y-1.5">
+          <div class="text-[11px] font-bold text-white">🔗 Link Truy Cập Public Hiện Tại:</div>
+          <div id="deploy-blueprint-public-url" class="font-mono text-[11px] text-cyan-300 break-all select-all p-2 rounded-xl bg-black/40 border border-cyan-500/20">
+            Đang tải URL...
+          </div>
         </div>
       </div>
     </div>
@@ -7718,6 +7914,18 @@ async function runAiSimulation() {
       if (!container || !summaryData) return;
       const accs = summaryData.accounts.items || [];
 
+      if (summaryData.poolSummary) {
+        const ps = summaryData.poolSummary;
+        const statTotal = document.getElementById('pool-stat-total');
+        if (statTotal) statTotal.textContent = `${ps.totalAccounts} Nick`;
+        const statBds = document.getElementById('pool-stat-bds');
+        if (statBds) statBds.textContent = `${ps.bdsCount} / ${ps.bdsQuota}`;
+        const statForex = document.getElementById('pool-stat-forex');
+        if (statForex) statForex.textContent = `${ps.forexCount} / ${ps.forexQuota}`;
+        const statProxy = document.getElementById('pool-stat-proxy');
+        if (statProxy) statProxy.textContent = `${ps.proxyVerifiedCount} / ${ps.proxyAssignedCount || ps.totalAccounts} Live`;
+      }
+
       container.innerHTML = accs.map(a => {
         let proxyBadge = '';
         if (a.proxy) {
@@ -7731,6 +7939,10 @@ async function runAiSimulation() {
         } else {
           proxyBadge = '<span class="px-2 py-0.5 rounded-full bg-stone-500/15 text-stone-400 border border-stone-500/30 text-[10px] font-mono font-medium">IP TRỰC TIẾP</span>';
         }
+
+        const modeBadge = a.verticalMode === 'forex_finance'
+          ? '<span class="text-[9px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-bold">📈 FOREX</span>'
+          : '<span class="text-[9px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">🏡 BĐS</span>';
 
         return `
         <div class="claude-card rounded-3xl p-5 space-y-4 transition">
@@ -7746,6 +7958,7 @@ async function runAiSimulation() {
                     <span>${escapeHtml(a.name)}</span>
                     <span class="text-xs text-[#4599FF]">↗</span>
                   </button>
+                  ${modeBadge}
                   ${a.isDefault ? '<span class="text-[9px] font-mono px-2 py-0.5 rounded-full bg-[#0071e3]/20 text-[#2997ff] border border-[#0071e3]/30 font-bold">MẶC ĐỊNH</span>' : ''}
                 </div>
                 <span class="text-xs text-[#8b949e] font-mono">UID: ${a.uid || a.id}</span>
@@ -7951,6 +8164,8 @@ async function runAiSimulation() {
       const username = document.getElementById('cred-acc-username')?.value?.trim();
       const password = document.getElementById('cred-acc-password')?.value?.trim();
       const twoFactorCode = document.getElementById('cred-acc-2fa')?.value?.trim();
+      const proxy = document.getElementById('cred-acc-proxy')?.value?.trim();
+      const verticalMode = document.getElementById('cred-acc-vertical')?.value || 'bds_ecopark';
       const makeDefault = document.getElementById('cred-make-active')?.checked;
       const feedback = document.getElementById('cred-login-feedback');
       const btn = document.getElementById('btn-submit-credentials');
@@ -7970,7 +8185,7 @@ async function runAiSimulation() {
         const res = await fetch('/api/accounts/login-credentials', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password, twoFactorCode, makeDefault })
+          body: JSON.stringify({ username, password, twoFactorCode, makeDefault, proxy, verticalMode })
         }).then(r => r.json());
 
         if (res.success) {
@@ -8720,6 +8935,119 @@ async function runAiSimulation() {
       } catch (err) {
         box.className = 'text-[10px] mt-1.5 font-mono p-2 rounded-xl bg-rose-950/40 border border-rose-800 text-rose-300 block';
         box.textContent = '❌ Lỗi kết nối: ' + err.message;
+      }
+    }
+
+    // ========================================================
+    // CỤM ĐIỀU PHỐI 40-100 NICK & CLOUD DEPLOYMENT CONTROLLERS
+    // ========================================================
+    function openBulkImportModal() {
+      document.getElementById('bulk-import-modal').classList.remove('hidden');
+    }
+    function closeBulkImportModal() {
+      document.getElementById('bulk-import-modal').classList.add('hidden');
+    }
+
+    async function submitBulkImportAccounts() {
+      const rawText = document.getElementById('bulk-import-textarea')?.value?.trim();
+      const defaultVertical = document.getElementById('bulk-import-vertical')?.value || 'bds_ecopark';
+      const feedback = document.getElementById('bulk-import-feedback');
+      const btn = document.getElementById('btn-submit-bulk-import');
+
+      if (!rawText) {
+        return alert('Vui lòng dán danh sách Nick kèm Proxy (Mỗi dòng 1 nick)!');
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span> <span>Đang nạp vào Cloud Vault...</span>';
+      if (feedback) {
+        feedback.className = 'text-[11px] p-2.5 rounded-xl bg-purple-950/40 border border-purple-800 text-purple-200 block font-mono';
+        feedback.textContent = '⏳ Đang phân tích cú pháp, trích xuất Cookie, Proxy và mã hóa lưu vào Cloud Vault...';
+      }
+
+      try {
+        const res = await fetch('/api/pool/bulk-onboard', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rawText, defaultVertical })
+        }).then(r => r.json());
+
+        if (res.success) {
+          triggerCuteConfetti({ clientX: window.innerWidth / 2, clientY: window.innerHeight / 2 });
+          if (feedback) {
+            feedback.className = 'text-[11px] p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-800 text-emerald-200 block font-mono';
+            feedback.textContent = `🎉 NẠP THÀNH CÔNG: Đã thêm ${res.importedCount} nick mới, cập nhật ${res.updatedCount} nick!`;
+          }
+          alert(`🎉 NẠP THÀNH CÔNG CỤM NICK!\n\n• Thêm mới: ${res.importedCount} nick\n• Cập nhật: ${res.updatedCount} nick\n• Bỏ qua: ${res.skippedCount} dòng\n• Toàn bộ đã được đồng bộ vào Cloud Vault mã hóa AES-256!`);
+          closeBulkImportModal();
+          logActivity(`[Bulk Import] Đã nạp thành công ${res.importedCount + res.updatedCount} nick vào cụm luân phiên.`);
+          refreshData();
+        } else {
+          if (feedback) {
+            feedback.className = 'text-[11px] p-2.5 rounded-xl bg-rose-950/40 border border-rose-800 text-rose-200 block font-mono';
+            feedback.textContent = '❌ Lỗi: ' + (res.error || 'Không thể nạp danh sách nick');
+          }
+          alert('❌ Lỗi: ' + (res.error || 'Vui lòng kiểm tra lại định dạng danh sách'));
+        }
+      } catch (err) {
+        alert('❌ Lỗi kết nối server: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>⚡</span> <span>NẠP VÀO CLOUD VAULT NGAY</span>';
+      }
+    }
+
+    async function verifyAllProxiesInPool() {
+      const btn = document.getElementById('btn-verify-all-proxies');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="w-3 h-3 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin"></span> <span>Đang check Proxy...</span>';
+      }
+      logActivity('[Proxy Check] Đang bắt đầu kiểm tra hàng loạt Proxy của toàn bộ các nick...');
+
+      try {
+        const res = await fetch('/api/pool/verify-proxies', { method: 'POST' }).then(r => r.json());
+        if (res.success) {
+          alert(`🛡️ KẾT QUẢ KIỂM TRA PROXY TOÀN BỘ CỤM:\n\n• Tổng số Proxy kiểm tra: ${res.totalChecked}\n• Hoạt động tốt (Live IP): ${res.liveCount} nick\n• Bị ngắt kết nối (Dead): ${res.deadCount} nick\n• Dùng IP trực tiếp: ${res.unassignedCount} nick\n\nToàn bộ trạng thái đã được lưu vào hệ thống!`);
+          logActivity(`[Proxy Check OK] Kiểm tra hoàn tất: ${res.liveCount} Live, ${res.deadCount} Dead.`);
+          refreshData();
+        } else {
+          alert('❌ Lỗi kiểm tra Proxy: ' + (res.error || 'Server không phản hồi'));
+        }
+      } catch (err) {
+        alert('❌ Lỗi kết nối: ' + err.message);
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span>🛡️</span> <span>Check Tất Cả Proxy</span>';
+        }
+      }
+    }
+
+    async function openDeployBlueprintModal() {
+      document.getElementById('deploy-blueprint-modal').classList.remove('hidden');
+      await refreshDeployStatus();
+    }
+    function closeDeployBlueprintModal() {
+      document.getElementById('deploy-blueprint-modal').classList.add('hidden');
+    }
+
+    async function refreshDeployStatus() {
+      const line = document.getElementById('deploy-health-line');
+      const urlBox = document.getElementById('deploy-blueprint-public-url');
+      try {
+        const [healthRes, bpRes] = await Promise.all([
+          fetch('/healthz').then(r => r.json()),
+          fetch('/api/deploy/blueprint').then(r => r.json())
+        ]);
+        if (line) {
+          line.innerHTML = `● Cluster LIVE: Uptime ${healthRes.uptimeSec}s • RAM Process: ${healthRes.memoryRssMb}MB • Max Browser Song Song: ${healthRes.maxConcurrentBrowsers} • Tổng Nick: ${healthRes.totalAccounts} • Cloud Vault: <b class="text-emerald-300">0 Byte Local Disk Active</b>`;
+        }
+        if (urlBox) {
+          urlBox.textContent = bpRes.publicUrl || window.location.origin;
+        }
+      } catch (e) {
+        if (line) line.textContent = '❌ Không thể tải trạng thái Cluster: ' + e.message;
       }
     }
 

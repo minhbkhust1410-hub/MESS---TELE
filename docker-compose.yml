@@ -1,0 +1,48 @@
+# ==============================================================================
+# FALCONX ENTERPRISE DOCKER COMPOSE ORCHESTRATION
+# Run 40 to 100 accounts (50 BDS + 50 Forex) on any Ubuntu/Debian Cloud Server ($0)
+# ==============================================================================
+
+version: '3.8'
+
+services:
+  falconx-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghcr.io/minhbkhust1410-hub/mess---tele:latest
+    container_name: falconx-cluster
+    restart: unless-stopped
+    ports:
+      - "3300:7860"
+    environment:
+      - PORT=7860
+      - DASHBOARD_HOST=0.0.0.0
+      - HEADLESS=true
+      - MAX_CONCURRENT_BROWSERS=3
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-8866229116:AAGMh8nzO0I5M4GBaV4mv4AtdIg2Trp46OU}
+      - TELEGRAM_GROUP_ID=${TELEGRAM_GROUP_ID:--1003998557681}
+      - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-ecotrang2026}
+      - AUTH_SECRET=${AUTH_SECRET:-falconx_secret_key_bds_ecopark_2026}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:7860/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 4096M
+        reservations:
+          memory: 1024M
+
+  # Optional Cloudflare Tunnel Sidecar (Zero Open Ports Required)
+  cloudflared-tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: falconx-tunnel
+    restart: unless-stopped
+    command: tunnel --url http://falconx-app:7860
+    depends_on:
+      - falconx-app

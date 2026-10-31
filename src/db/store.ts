@@ -25,7 +25,7 @@ export interface FacebookAccount {
   uid: string;
   name: string;
   avatar?: string;
-  proxy?: string; // e.g. "103.152.112.5:8080" or "http://user:pass@ip:port"
+  proxy?: string; // e.g. "103.152.112.5:8080" or "http://user:pass@ip:port" or "ip:port:user:pass"
   verifiedProxyIp?: string;
   proxyStatus?: 'live' | 'dead' | 'unassigned' | 'checking';
   proxyCountry?: string;
@@ -39,9 +39,11 @@ export interface FacebookAccount {
   ownerId?: string; // ID của User quản lý nick này
   fbUsername?: string; // Tài khoản (email/SĐT/UID) để tự động đăng nhập lại
   fbPassword?: string; // Mật khẩu để tự động đăng nhập lại
+  twoFactorSecret?: string; // Mã 2FA / TOTP nếu có
   role?: 'master' | 'satellite' | 'warmup'; // Phân vai Nick Chính / Nick Vệ Tinh / Làm Ấm 48h
   warmupMode?: boolean; // Chế độ làm ấm tự động giảm 70% tốc độ tác vụ
   verticalMode?: 'bds_ecopark' | 'forex_finance' | 'both'; // Phân mảng độc lập: BĐS Ecopark / Forex Tài Chính / Cả 2
+  waveGroup?: number; // Nhóm luân phiên (Wave 1..34) khi chạy 40-100 nick
   createdAt: string;
   lastActiveAt: string;
 }
@@ -63,6 +65,8 @@ const defaultAccounts: FacebookAccount[] = [
     profileDir: './.user-data/fb-profile',
     status: 'active',
     isDefault: true,
+    role: 'master',
+    verticalMode: 'bds_ecopark',
     createdAt: new Date().toISOString(),
     lastActiveAt: new Date().toISOString(),
   },
@@ -284,6 +288,53 @@ export function getDefaultAccount(): FacebookAccount {
   );
 }
 
+export function parseFacebookCookieInput(
+  rawInput?: string | Array<{ name: string; value: string; domain?: string; path?: string; expires?: number }>
+): Array<{ name: string; value: string; domain: string; path: string; expires?: number }> | undefined {
+  if (!rawInput) return undefined;
+  if (Array.isArray(rawInput)) {
+    return rawInput
+      .filter((c) => c && c.name && c.value)
+      .map((c) => ({
+        name: String(c.name).trim(),
+        value: String(c.value).trim(),
+        domain: c.domain || '.facebook.com',
+        path: c.path || '/',
+        ...(c.expires ? { expires: c.expires } : {}),
+      }));
+  }
+
+  const trimmed = String(rawInput).trim();
+  if (!trimmed) return undefined;
+
+  if (trimmed.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) return parseFacebookCookieInput(parsed);
+    } catch {}
+  }
+
+  // Raw semicolon cookie string: c_user=1000...; xs=...; datr=...
+  const pairs = trimmed.split(';').map((s) => s.trim()).filter(Boolean);
+  const cookies: Array<{ name: string; value: string; domain: string; path: string }> = [];
+  for (const pair of pairs) {
+    const eqIdx = pair.indexOf('=');
+    if (eqIdx > 0) {
+      const name = pair.slice(0, eqIdx).trim();
+      const value = pair.slice(eqIdx + 1).trim();
+      if (name && value) {
+        cookies.push({
+          name,
+          value,
+          domain: '.facebook.com',
+          path: '/',
+        });
+      }
+    }
+  }
+  return cookies.length > 0 ? cookies : undefined;
+}
+
 export function saveAccount(acc: Partial<FacebookAccount> & { id: string }): FacebookAccount {
   const db = loadDatabase();
   if (!db.accounts) db.accounts = [];
@@ -303,12 +354,26 @@ export function saveAccount(acc: Partial<FacebookAccount> & { id: string }): Fac
       id: acc.id,
       uid: acc.uid || '',
       name: acc.name || 'Tài khoản Facebook mới',
-      avatar: acc.avatar || '',
-      proxy: acc.proxy || '',
+      avatar: acc.avatar || (acc.uid ? `https://graph.facebook.com/${acc.uid}/picture?type=large` : ''),
+      proxy: acc.proxy ? acc.proxy.trim() : '',
+      verifiedProxyIp: acc.verifiedProxyIp,
+      proxyStatus: acc.proxyStatus || (acc.proxy ? 'checking' : 'unassigned'),
+      proxyCountry: acc.proxyCountry,
+      proxyCity: acc.proxyCity,
+      proxyLatencyMs: acc.proxyLatencyMs,
+      lastProxyCheckAt: acc.lastProxyCheckAt,
       ownerId: acc.ownerId || '',
       profileDir: acc.profileDir || `./.user-data/profiles/${acc.id}`,
       status: acc.status || 'live',
       isDefault: acc.isDefault !== undefined ? acc.isDefault : db.accounts.length === 0,
+      cookies: acc.cookies,
+      fbUsername: acc.fbUsername,
+      fbPassword: acc.fbPassword,
+      twoFactorSecret: acc.twoFactorSecret,
+      role: acc.role || 'satellite',
+      warmupMode: acc.warmupMode ?? false,
+      verticalMode: acc.verticalMode || 'bds_ecopark',
+      waveGroup: acc.waveGroup,
       createdAt: now,
       lastActiveAt: now,
     };
@@ -390,4 +455,3 @@ export function deleteAccount(id: string): boolean {
   }
   return false;
 }
-
