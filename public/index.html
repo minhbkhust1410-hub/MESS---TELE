@@ -4335,7 +4335,7 @@
     }
 
     function runBdsCommentPreset(type) {
-      const inp = document.getElementById('bds-test-customer-comment');
+      const inp = document.getElementById('bds-comment-eval-input') || document.getElementById('bds-test-customer-comment');
       if (!inp) return;
       if (type === 'near') {
         inp.value = 'Mình cần tìm thuê căn 2PN bên tòa S2 Sky Oasis Ecopark full đồ ngân sách khoảng 9 - 10 triệu/tháng, vào ở ngay tuần này ạ';
@@ -4346,7 +4346,7 @@
     }
 
     async function evaluateBdsCommentNow() {
-      const inp = document.getElementById('bds-test-customer-comment');
+      const inp = document.getElementById('bds-comment-eval-input') || document.getElementById('bds-test-customer-comment');
       const box = document.getElementById('bds-comment-eval-result');
       if (!inp || !box) return;
       const comment = inp.value.trim();

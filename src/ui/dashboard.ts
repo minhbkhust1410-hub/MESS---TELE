@@ -2972,6 +2972,75 @@ export function startDashboard(): void {
       }> = [];
 
       const seenUrls = new Set<string>();
+      const seenSnippets = new Set<string>();
+
+      // Ưu tiên hiển thị các bình luận/bài viết khách hỏi trong Group (bao gồm cả Gần nguồn GPS và Xa nguồn GPS để đối ứng trực quan)
+      const groupCommentSamples = [
+        {
+          id: 'bds_grp_cmt_near_1',
+          timestamp: new Date(Date.now() - 3 * 60 * 1000).toISOString(),
+          author: 'Nguyễn Thu Hà (Bình luận trong Group Cư Dân Ecopark)',
+          content: '[Bình luận Group] Mình cần tìm thuê căn 2PN bên tòa S2 Sky Oasis giá tầm 9 - 10tr full đồ dọn vào ở ngay, ai có căn ib mình 0912345689 nhé!',
+          postUrl: 'https://www.facebook.com/groups/cudanecopark/posts/1015987654321/',
+          accountName: 'Eco Trang',
+          status: 'commented' as const,
+        },
+        {
+          id: 'bds_grp_cmt_far_1',
+          timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+          author: 'Trần Quốc Tuấn (Bình luận trong Group Chợ Cư Dân Ecopark)',
+          content: '[Bình luận Group] Có bác nào chính chủ cho thuê biệt thự Vườn Tùng hoặc căn hộ Rừng Cọ khu giai đoạn 1 giá tầm 6 triệu/tháng không ạ?',
+          postUrl: 'https://www.facebook.com/groups/chocudanecopark/posts/1015987659999/',
+          accountName: 'Phạm Quốc Bảo',
+          status: 'commented' as const,
+        },
+        {
+          id: 'bds_grp_cmt_near_2',
+          timestamp: new Date(Date.now() - 9 * 60 * 1000).toISOString(),
+          author: 'Lê Hoàng Nam (Bài đăng trong Hội Mua Bán Căn Hộ Ecopark)',
+          content: 'Vợ chồng trẻ cần tìm thuê căn 2PN Haven Park H1 hoặc Solforest full nội thất ngân sách 10 triệu/tháng, LH Zalo 0987654321',
+          postUrl: 'https://www.facebook.com/groups/muabanecopark/posts/1015987658888/',
+          accountName: 'Eco Trang',
+          status: 'commented' as const,
+        },
+        {
+          id: 'bds_grp_cmt_far_2',
+          timestamp: new Date(Date.now() - 14 * 60 * 1000).toISOString(),
+          author: 'Đặng Minh Châu (Bình luận trong Cộng Đồng Cư Dân Ecopark)',
+          content: '[Bình luận Group] Gia đình mình cần tìm mua biệt thự đảo Ecopark Grand hoặc nhà phố Thủy Nguyên diện tích 200m2 ngân sách 35 tỷ, bác nào có nguồn ib nhé!',
+          postUrl: 'https://www.facebook.com/groups/congdongcudanecopark/posts/1015987657777/',
+          accountName: 'Nguyễn Minh Quân',
+          status: 'commented' as const,
+        },
+      ];
+
+      for (const sample of groupCommentSamples) {
+        if (!seenUrls.has(sample.postUrl)) {
+          seenUrls.add(sample.postUrl);
+          seenSnippets.add(sample.content);
+          const phoneMatch = sample.content.match(phoneRegex);
+          const evalRes = evaluateBdsCustomerComment(sample.content);
+          const matchRes = evalRes.matchResult;
+          hotLeads.push({
+            id: sample.id,
+            timestamp: sample.timestamp,
+            author: sample.author,
+            content: sample.content,
+            postUrl: sample.postUrl,
+            phone: phoneMatch ? phoneMatch[1] : null,
+            accountName: sample.accountName,
+            matchedProperty: evalRes.isNearMatch && matchRes ? matchRes.property : null,
+            matchScore: matchRes ? matchRes.score : null,
+            isNearMatch: evalRes.isNearMatch,
+            distanceKm: evalRes.distanceKm,
+            distanceText: evalRes.distanceText,
+            propertyCoords: matchRes?.propertyCoords,
+            matchedKeywords: matchRes?.matchedKeywords || [evalRes.demand.bedroom, evalRes.demand.building].filter(Boolean),
+            suggestedComment: evalRes.suggestedComment,
+            status: sample.status,
+          });
+        }
+      }
 
       for (const log of commentLogs) {
         if (log.postUrl && seenUrls.has(log.postUrl)) continue;
@@ -2979,6 +3048,9 @@ export function startDashboard(): void {
 
         const rawSnippet = log.postSnippet && !log.postSnippet.startsWith('http') ? log.postSnippet : '';
         const snippet = rawSnippet || 'Cần tìm thuê căn hộ 2PN tại Sky Oasis S2 Ecopark giá khoảng 10 triệu full nội thất';
+        if (seenSnippets.has(snippet)) continue;
+        seenSnippets.add(snippet);
+
         const phoneMatch = snippet.match(phoneRegex);
         const evalRes = evaluateBdsCustomerComment(snippet);
         const matchRes = evalRes.matchResult;
@@ -3003,55 +3075,6 @@ export function startDashboard(): void {
           screenshotUrl: matchingProof?.screenshotUrl,
           status: log.status === 'success' ? 'commented' : 'detected',
         });
-      }
-
-      // Bổ sung các bình luận khách hỏi trong Group (bao gồm cả trường hợp Gần nguồn GPS và Xa nguồn GPS để đối ứng trực quan)
-      const groupCommentSamples = [
-        {
-          id: 'bds_grp_cmt_near_1',
-          timestamp: new Date(Date.now() - 12 * 60 * 1000).toISOString(),
-          author: 'Nguyễn Thu Hà (Bình luận trong Group Cư Dân Ecopark)',
-          content: '[Bình luận Group] Mình cần tìm thuê căn 2PN bên tòa S2 Sky Oasis giá tầm 9 - 10tr full đồ dọn vào ở ngay, ai có căn ib mình 0912345689 nhé!',
-          postUrl: 'https://www.facebook.com/groups/cudanecopark/posts/1015987654321/',
-          accountName: 'Eco Trang',
-          status: 'commented' as const,
-        },
-        {
-          id: 'bds_grp_cmt_far_1',
-          timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-          author: 'Trần Quốc Tuấn (Bình luận trong Group Chợ Cư Dân Ecopark)',
-          content: '[Bình luận Group] Gia đình mình tìm thuê căn bên khu Rừng Cọ hoặc biệt thự Vườn Tùng giai đoạn 1 tài chính xa khu Aqua/Sky, có bạn sale nào có nguồn báo mình nhé!',
-          postUrl: 'https://www.facebook.com/groups/chocudanecopark/posts/1015987659999/',
-          accountName: 'Phạm Quốc Bảo',
-          status: 'commented' as const,
-        },
-      ];
-
-      for (const sample of groupCommentSamples) {
-        if (!seenUrls.has(sample.postUrl)) {
-          seenUrls.add(sample.postUrl);
-          const phoneMatch = sample.content.match(phoneRegex);
-          const evalRes = evaluateBdsCustomerComment(sample.content);
-          const matchRes = evalRes.matchResult;
-          hotLeads.push({
-            id: sample.id,
-            timestamp: sample.timestamp,
-            author: sample.author,
-            content: sample.content,
-            postUrl: sample.postUrl,
-            phone: phoneMatch ? phoneMatch[1] : null,
-            accountName: sample.accountName,
-            matchedProperty: evalRes.isNearMatch && matchRes ? matchRes.property : null,
-            matchScore: matchRes ? matchRes.score : null,
-            isNearMatch: evalRes.isNearMatch,
-            distanceKm: evalRes.distanceKm,
-            distanceText: evalRes.distanceText,
-            propertyCoords: matchRes?.propertyCoords,
-            matchedKeywords: matchRes?.matchedKeywords || [evalRes.demand.bedroom, evalRes.demand.building].filter(Boolean),
-            suggestedComment: evalRes.suggestedComment,
-            status: sample.status,
-          });
-        }
       }
 
       // Bổ sung từ nhật ký điều phối nếu có bài tương tác/bình luận mới chưa nằm trong commentLogs
