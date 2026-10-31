@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import { chromium, type BrowserContext } from 'playwright';
-import { config } from '../config/env.js';
+import { config, updateSystemSettings } from '../config/env.js';
 import {
   getAllUsers,
   getUserById,
@@ -374,9 +374,9 @@ export function startDashboard(): void {
       return res.status(401).json({ success: false, error: 'Chưa đăng nhập hoặc phiên đã hết hạn' });
     }
 
-    // Đếm số lượng nick người này quản lý
+    // Đếm số lượng nick người này quản lý (Nếu bật chế độ Dùng Chung Đội Nhóm thì thấy toàn bộ nick của team)
     const allAccs = getAllAccounts();
-    const userAccs = payload.role === 'admin' 
+    const userAccs = payload.role === 'admin' || config.sharedTeamMode
       ? allAccs 
       : allAccs.filter((a) => a.ownerId === payload.uid);
 
@@ -449,7 +449,7 @@ export function startDashboard(): void {
     const currentUser = (req as any).currentUser as TokenPayload;
     const all = getAllAccounts();
 
-    if (!currentUser || currentUser.role === 'admin') {
+    if (!currentUser || currentUser.role === 'admin' || config.sharedTeamMode) {
       return res.json(all);
     }
 
@@ -3013,6 +3013,137 @@ export function startDashboard(): void {
       buildAndSendDailyTelegramDigest().catch((e) => console.warn('[DailyDigest] Lỗi gửi tự động:', e.message));
     }
   }, 45_000);
+
+  // ========================================================
+  // GÓI NÂNG CẤP 4: CẤU HÌNH ĐÁM MÂY ZERO-.ENV & CHIA SẺ 1-CHẠM CHO BẠN BÈ DÙNG CHUNG QUA WEB
+  // ========================================================
+  function detectPublicCloudUrl(req: express.Request): string {
+    const host = String(req.headers['x-forwarded-host'] || req.headers.host || '');
+    if (host && !host.includes('localhost') && !host.includes('127.0.0.1')) {
+      const proto = req.headers['x-forwarded-proto'] || 'https';
+      return `${proto}://${host}`;
+    }
+    const candidateLogs = [
+      'C:/Users/ADMIN/.gemini/antigravity/brain/2812de1c-1f5b-4c70-9e8d-9c0e55e700f4/cloudflared_latest.log',
+      path.resolve(process.cwd(), 'cloudflared.log'),
+    ];
+    for (const logFile of candidateLogs) {
+      try {
+        if (fs.existsSync(logFile)) {
+          const content = fs.readFileSync(logFile, 'utf8');
+          const matches = content.match(/https:\/\/[a-zA-Z0-9-]+\.trycloudflare\.com/g);
+          if (matches && matches.length > 0) {
+            return matches[matches.length - 1];
+          }
+        }
+      } catch {}
+    }
+    return `http://localhost:${config.dashboardPort}`;
+  }
+
+  app.get('/api/system/cloud-config', (req, res) => {
+    try {
+      const publicUrl = detectPublicCloudUrl(req);
+      const partnerToken = generateAuthToken({
+        id: 'usr_partner_shared',
+        username: 'dong_doi',
+        name: 'Đồng Đội Cùng Team',
+        role: 'admin',
+      });
+      const magicInviteUrl = `${publicUrl}/?inviteToken=${encodeURIComponent(partnerToken)}`;
+      const users = getAllUsers().map((u) => ({
+        id: u.id,
+        username: u.username,
+        name: u.name,
+        role: u.role,
+        createdAt: u.createdAt,
+        lastLoginAt: u.lastLoginAt,
+        magicLink: `${publicUrl}/?inviteToken=${encodeURIComponent(generateAuthToken(u))}`,
+      }));
+
+      res.json({
+        success: true,
+        zeroEnvActive: true,
+        configStorage: 'src/config/system-settings.json (Cloud JSON — Đã loại bỏ hoàn toàn .env)',
+        publicUrl,
+        magicInviteUrl,
+        settings: {
+          telegramBotToken: config.telegramBotToken,
+          telegramGroupId: config.telegramGroupId,
+          headless: config.headless,
+          sharedTeamMode: config.sharedTeamMode,
+          adminUsername: config.adminUsername,
+          dashboardPort: config.dashboardPort,
+        },
+        users,
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  app.post('/api/system/cloud-config', (req, res) => {
+    try {
+      const { telegramBotToken, telegramGroupId, headless, sharedTeamMode, adminUsername, adminPassword } = req.body || {};
+      const updated = updateSystemSettings({
+        telegramBotToken,
+        telegramGroupId,
+        headless,
+        sharedTeamMode,
+        adminUsername,
+        adminPassword,
+      });
+      res.json({
+        success: true,
+        message: 'Đã lưu cấu hình trực tiếp lên hệ thống Cloud JSON (Không cần file .env)!',
+        settings: {
+          telegramBotToken: updated.telegramBotToken,
+          telegramGroupId: updated.telegramGroupId,
+          headless: updated.headless,
+          sharedTeamMode: updated.sharedTeamMode,
+          adminUsername: updated.adminUsername,
+        },
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  app.post('/api/system/create-friend-invite', (req, res) => {
+    try {
+      const { name, username, password } = req.body || {};
+      const cleanUser = String(username || `ban_${Math.floor(1000 + Math.random() * 9000)}`).trim().toLowerCase();
+      const cleanPass = String(password || 'ecopark2026').trim();
+      const cleanName = String(name || `Bạn Cùng Team (${cleanUser})`).trim();
+
+      let user = getUserByUsername(cleanUser);
+      if (!user) {
+        user = createUser(cleanUser, cleanPass, cleanName, 'admin');
+      }
+      const publicUrl = detectPublicCloudUrl(req);
+      const token = generateAuthToken(user);
+      const magicLink = `${publicUrl}/?inviteToken=${encodeURIComponent(token)}`;
+
+      res.json({
+        success: true,
+        user: {
+          id: user.id,
+          username: user.username,
+          name: user.name,
+          role: user.role,
+        },
+        credentials: {
+          username: cleanUser,
+          password: cleanPass,
+        },
+        publicUrl,
+        magicLink,
+        message: `Đã tạo tài khoản & Link vào thẳng 1-chạm cho "${cleanName}"! Gửi link này cho bạn của bạn là dùng được ngay trên trình duyệt mà không cần cài đặt code.`,
+      });
+    } catch (err: any) {
+      res.status(400).json({ success: false, error: err.message });
+    }
+  });
 
   app.get('/api/executive-summary', (req, res) => {
     const accounts = getAllAccounts();

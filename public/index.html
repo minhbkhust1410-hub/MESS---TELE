@@ -798,6 +798,11 @@
           <span>Thêm Nick</span>
         </button>
 
+        <button onclick="openCloudShareModal()" class="px-3.5 py-1.5 rounded-full bg-emerald-500 hover:bg-emerald-600 text-xs font-bold text-white transition flex items-center gap-1.5 shadow-md shadow-emerald-500/25 cursor-pointer" title="Mời bạn bè dùng chung qua Web không cần cài đặt code & Cấu hình Cloud không cần file .env">
+          <span>🤝</span>
+          <span class="hidden sm:inline">Mời Bạn Bè & Cloud</span>
+        </button>
+
         <!-- Nút Tắt Nuôi Tương Tác KudoX 2 Nổi Bật -->
         <button onclick="switchTab('growth'); setTimeout(() => document.getElementById('kudox2-auto-friend-block')?.scrollIntoView({ behavior: 'smooth' }), 200);"
           class="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-amber-500 to-[#D96B43] hover:from-amber-400 hover:to-[#E87A5D] text-black font-extrabold text-xs transition shadow-md shadow-amber-500/25 flex items-center gap-1.5" title="Mở trung tâm Nuôi Tương Tác KudoX 2">
@@ -835,6 +840,34 @@
         <!-- ACTION HUB: CÁC NÚT CHỨC NĂNG LỚN (MỖI NÚT MỘT MÀU)    -->
         <!-- ======================================================== -->
         <div class="space-y-6">
+
+          <!-- BANNER CHIA SẺ CHO BẠN BÈ DÙNG CHUNG QUA WEB & CẤU HÌNH CLOUD ZERO-.ENV -->
+          <div class="apple-card rounded-3xl p-4 sm:p-5 border border-emerald-500/35 bg-gradient-to-r from-emerald-500/15 via-[#0071e3]/10 to-transparent flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-lg">
+            <div class="flex items-center gap-3.5">
+              <div class="w-11 h-11 rounded-2xl bg-emerald-500 text-white flex items-center justify-center text-xl shadow-md shadow-emerald-500/30 flex-shrink-0">
+                ☁️
+              </div>
+              <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <h3 class="text-sm sm:text-base font-bold text-white">Chế Độ Đám Mây Dùng Chung Đội Nhóm (Đã Xóa Bỏ File .env Local)</h3>
+                  <span class="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">ZERO-.ENV CLOUD</span>
+                </div>
+                <p class="text-xs text-[#86868b] mt-0.5">
+                  Bạn của bạn chỉ cần bấm vào <b>Link Mời 1-Chạm</b> dưới đây trên điện thoại hoặc máy tính là vào thẳng hệ thống dùng chung ngay — <b>không cần cài đặt code, không cần file .env</b>!
+                </p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap self-start lg:self-center flex-shrink-0">
+              <button onclick="copyMagicInviteLink()" class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-emerald-500/25 cursor-pointer">
+                <span>🔗</span>
+                <span>Copy Link Mời Bạn Bè Vào Thẳng</span>
+              </button>
+              <button onclick="openCloudShareModal()" class="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-semibold border border-white/15 transition flex items-center gap-1.5 cursor-pointer">
+                <span>⚙️</span>
+                <span>Tạo Nick Bạn Bè & Cấu Hình Cloud</span>
+              </button>
+            </div>
+          </div>
 
           <!-- ======================================================== -->
           <!-- KHỐI 0: TÁC VỤ DUY NHẤT HÀNG NGÀY: SOẠN BÀI & NẠP CĂN AI -->
@@ -4551,6 +4584,20 @@
     }
 
     async function checkAuthSession() {
+      // Hỗ trợ Link Mời 1-Chạm (?inviteToken=...) cho bạn bè vào thẳng không cần đăng nhập thủ công
+      try {
+        const urlParams = new URLSearchParams(window.location.search);
+        const inviteToken = urlParams.get('inviteToken');
+        if (inviteToken) {
+          localStorage.setItem(AUTH_TOKEN_KEY, inviteToken);
+          window.history.replaceState({}, document.title, window.location.pathname);
+          hideLoginModal();
+          fetchCurrentUserProfile();
+          refreshData();
+          return;
+        }
+      } catch {}
+
       const token = localStorage.getItem(AUTH_TOKEN_KEY);
       if (!token) {
         showLoginModal();
@@ -9118,5 +9165,208 @@ async function runAiSimulation() {
 
     </div>
   </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL MỜI BẠN BÈ DÙNG CHUNG QUA WEB & CẤU HÌNH CLOUD ZERO-.ENV -->
+  <!-- ======================================================== -->
+  <div id="cloud-share-config-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-2xl transition-opacity duration-300 hidden">
+    <div class="w-full max-w-3xl max-h-[90vh] flex flex-col apple-card rounded-3xl border border-white/15 bg-gradient-to-b from-[#1c1c1e]/98 to-[#121214]/99 shadow-2xl relative overflow-hidden text-white">
+      <div class="p-6 pb-4 border-b border-white/10 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-xl">
+            🤝
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base font-bold text-white">Chia Sẻ Cho Bạn Bè Dùng Chung Qua Web & Cấu Hình Cloud</h3>
+              <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">ĐÃ XÓA FILE .ENV</span>
+            </div>
+            <p class="text-xs text-[#86868b] mt-0.5">Bạn bè mở link trên máy tính hoặc điện thoại của họ là dùng chung ngay lập tức — không cần cài đặt code!</p>
+          </div>
+        </div>
+        <button onclick="closeCloudShareModal()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-[#86868b] hover:text-white flex items-center justify-center text-sm transition">✕</button>
+      </div>
+
+      <div class="p-6 overflow-y-auto space-y-5 flex-1 custom-scrollbar">
+        <!-- 1. LINK VÀO THẲNG 1-CHẠM CHO BẠN BÈ -->
+        <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 space-y-3">
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <h4 class="text-xs font-bold uppercase tracking-wider text-emerald-300 flex items-center gap-1.5">
+                <span>🔗</span> 1. Link Mời Bạn Bè Vào Thẳng 1-Chạm (Auto-Login Không Cần Mật Khẩu)
+              </h4>
+              <p class="text-[11px] text-emerald-200/80 mt-0.5">Gửi link này qua Zalo / Messenger / Telegram: bạn của bạn bấm vào là tự động đăng nhập thẳng vào hệ thống!</p>
+            </div>
+            <button onclick="copyMagicInviteLink()" class="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs transition cursor-pointer shadow">
+              📋 Copy Link Mời Ngay
+            </button>
+          </div>
+          <input type="text" id="cloud-magic-invite-input" readonly
+            class="w-full px-3.5 py-2 rounded-xl bg-black/50 border border-emerald-500/30 text-emerald-300 font-mono text-xs focus:outline-none"
+            value="Đang tạo link..." />
+        </div>
+
+        <!-- 2. TẠO TÀI KHOẢN RIÊNG CHO BẠN BÈ CÙNG TEAM -->
+        <div class="p-4 rounded-2xl bg-white/[0.04] border border-white/10 space-y-3">
+          <h4 class="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5">
+            <span>👥</span> 2. Tạo Nhanh Tài Khoản & Link Riêng Cho Từng Người Bạn
+          </h4>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <input type="text" id="friend-invite-name" placeholder="Tên người bạn (VD: Tuấn BĐS)"
+              class="px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-white text-xs focus:border-[#0071e3] focus:outline-none" />
+            <input type="text" id="friend-invite-username" placeholder="Username (VD: tuanbds)"
+              class="px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-white text-xs focus:border-[#0071e3] focus:outline-none" />
+            <input type="text" id="friend-invite-password" placeholder="Mật khẩu (VD: ecopark2026)" value="ecopark2026"
+              class="px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-white text-xs focus:border-[#0071e3] focus:outline-none" />
+          </div>
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <span class="text-[11px] text-[#86868b]">Tài khoản bạn bè được cấp quyền dùng chung Kho Căn, Khách Nóng và tự thêm Nick FB của họ trên Web.</span>
+            <button onclick="createFriendInviteNow()" id="btn-create-friend-invite"
+              class="px-4 py-2 rounded-xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold transition cursor-pointer shadow">
+              ➕ Tạo Tài Khoản & Copy Link Cho Bạn
+            </button>
+          </div>
+          <div id="friend-invite-result-box" class="hidden p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-xs text-emerald-300 space-y-1 font-mono"></div>
+        </div>
+
+        <!-- 3. CẤU HÌNH HỆ THỐNG ĐÁM MÂY (THAY THẾ HOÀN TOÀN FILE .ENV) -->
+        <div class="p-4 rounded-2xl bg-white/[0.04] border border-white/10 space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5">
+              <span>⚙️</span> 3. Cấu Hình Cloud Trực Tiếp Trên Web (Thay Thế Hoàn Toàn File .env)
+            </h4>
+            <span class="text-[10px] font-mono text-amber-300">Lưu tại: src/config/system-settings.json</span>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div>
+              <label class="block text-[11px] text-[#86868b] mb-1">Telegram Bot Token:</label>
+              <input type="text" id="cloud-cfg-bot-token"
+                class="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-white font-mono text-xs focus:border-amber-500 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-[11px] text-[#86868b] mb-1">Telegram Group ID:</label>
+              <input type="text" id="cloud-cfg-group-id"
+                class="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-white font-mono text-xs focus:border-amber-500 focus:outline-none" />
+            </div>
+          </div>
+          <div class="flex items-center justify-between pt-1 flex-wrap gap-2">
+            <label class="inline-flex items-center gap-2 text-xs text-white cursor-pointer">
+              <input type="checkbox" id="cloud-cfg-shared-team" checked class="w-4 h-4 rounded text-emerald-500" />
+              <span>Bật chế độ <b>Dùng Chung Đội Nhóm (Shared Team Workspace)</b> cho tất cả bạn bè</span>
+            </label>
+            <button onclick="saveCloudSettingsNow()" id="btn-save-cloud-cfg"
+              class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs transition cursor-pointer shadow">
+              💾 Lưu Cấu Hình Cloud
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-4 border-t border-white/10 bg-white/[0.02] flex items-center justify-between">
+        <span class="text-[11px] text-[#86868b]">✅ Đã loại bỏ hoàn toàn sự phụ thuộc vào file .env trên máy cá nhân</span>
+        <button onclick="closeCloudShareModal()" class="px-4 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-xs font-semibold text-white transition">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let cachedMagicInviteUrl = '';
+
+    async function loadCloudShareConfig() {
+      try {
+        const res = await fetch('/api/system/cloud-config').then(r => r.json());
+        if (!res || !res.success) return;
+        cachedMagicInviteUrl = res.magicInviteUrl || res.publicUrl || window.location.origin;
+        const inp = document.getElementById('cloud-magic-invite-input');
+        if (inp) inp.value = cachedMagicInviteUrl;
+        const tokInp = document.getElementById('cloud-cfg-bot-token');
+        if (tokInp && res.settings) tokInp.value = res.settings.telegramBotToken || '';
+        const grpInp = document.getElementById('cloud-cfg-group-id');
+        if (grpInp && res.settings) grpInp.value = res.settings.telegramGroupId || '';
+        const sharedChk = document.getElementById('cloud-cfg-shared-team');
+        if (sharedChk && res.settings) sharedChk.checked = res.settings.sharedTeamMode !== false;
+      } catch (e) {
+        console.warn('Lỗi loadCloudShareConfig:', e);
+      }
+    }
+
+    function openCloudShareModal() {
+      const modal = document.getElementById('cloud-share-config-modal');
+      if (modal) modal.classList.remove('hidden');
+      loadCloudShareConfig();
+    }
+
+    function closeCloudShareModal() {
+      const modal = document.getElementById('cloud-share-config-modal');
+      if (modal) modal.classList.add('hidden');
+    }
+
+    async function copyMagicInviteLink() {
+      if (!cachedMagicInviteUrl) {
+        await loadCloudShareConfig();
+      }
+      const link = cachedMagicInviteUrl || window.location.origin;
+      navigator.clipboard?.writeText(link);
+      alert('🔗 ĐÃ COPY LINK MỜI BẠN BÈ VÀO THẲNG 1-CHẠM:\n\n' + link + '\n\n👉 Hãy gửi link này qua Zalo/Telegram cho bạn của bạn. Khi họ bấm vào trên điện thoại hoặc máy tính, họ sẽ vào thẳng giao diện Web dùng chung ngay lập tức mà không cần chạy code!');
+    }
+
+    async function createFriendInviteNow() {
+      const name = document.getElementById('friend-invite-name')?.value?.trim();
+      const username = document.getElementById('friend-invite-username')?.value?.trim();
+      const password = document.getElementById('friend-invite-password')?.value?.trim() || 'ecopark2026';
+      const box = document.getElementById('friend-invite-result-box');
+
+      try {
+        const res = await fetch('/api/system/create-friend-invite', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name, username, password })
+        }).then(r => r.json());
+
+        if (res && res.success) {
+          navigator.clipboard?.writeText(res.magicLink);
+          if (box) {
+            box.classList.remove('hidden');
+            box.innerHTML = `
+              <div>🎉 <b>${escapeHtml(res.message)}</b></div>
+              <div>• Tài khoản: <b>${escapeHtml(res.credentials.username)}</b> | Mật khẩu: <b>${escapeHtml(res.credentials.password)}</b></div>
+              <div class="truncate">• Link vào thẳng (đã copy): <code>${escapeHtml(res.magicLink)}</code></div>
+            `;
+          }
+        } else {
+          alert('Lỗi tạo tài khoản bạn bè: ' + (res?.error || 'Không xác định'));
+        }
+      } catch (e) {
+        alert('Lỗi kết nối: ' + e.message);
+      }
+    }
+
+    async function saveCloudSettingsNow() {
+      const telegramBotToken = document.getElementById('cloud-cfg-bot-token')?.value?.trim();
+      const telegramGroupId = document.getElementById('cloud-cfg-group-id')?.value?.trim();
+      const sharedTeamMode = document.getElementById('cloud-cfg-shared-team')?.checked ?? true;
+
+      try {
+        const res = await fetch('/api/system/cloud-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ telegramBotToken, telegramGroupId, sharedTeamMode })
+        }).then(r => r.json());
+
+        if (res && res.success) {
+          alert('✅ ' + res.message);
+          loadCloudShareConfig();
+        } else {
+          alert('Lỗi lưu cấu hình: ' + (res?.error || 'Không xác định'));
+        }
+      } catch (e) {
+        alert('Lỗi kết nối: ' + e.message);
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      setTimeout(loadCloudShareConfig, 1500);
+    });
+  </script>
 </body>
 </html>

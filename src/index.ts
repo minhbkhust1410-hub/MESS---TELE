@@ -31,9 +31,7 @@ async function bootstrap() {
 
   const check = validateConfig();
   if (!check.valid) {
-    console.error('❌ Thiếu biến môi trường trong file .env:');
-    check.missing.forEach((m) => console.error(`  - ${m}`));
-    process.exit(1);
+    console.warn('⚠️ Một số cấu hình Telegram đang trống, bạn có thể cập nhật trực tiếp trên Web Dashboard:', check.missing.join(', '));
   }
 
   // 1. Kết nối Inbound Message (FB -> Telegram) hỗ trợ Text, Ảnh, Video, Icon
