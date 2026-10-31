@@ -1,3 +1,13 @@
+---
+title: FalconX 40-100 Nick Cluster
+emoji: 🚀
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # FALCONX MESS x TELE PRO — ENTERPRISE AUTOMATION SYSTEM 🚀
 
 > **Hệ thống điều phối đa kênh Facebook Messenger $\leftrightarrow$ Telegram Forum Topics kết hợp Tự Động Hóa Nuôi Khách, Quét Thành Viên Group & Đăng Bài Thông Minh (100% Cloud Database Vault — 0 Byte Lưu Local).**
