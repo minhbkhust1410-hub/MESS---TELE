@@ -81,7 +81,7 @@ class OrchestrationService {
   private loadState() {
     try {
       if (fs.existsSync(proofsFilePath)) {
-        const parsed = JSON.parse(fs.readFileSync(proofsFilePath, 'utf8'));
+        const parsed = JSON.parse(fs.readFileSync(proofsFilePath, 'utf8').replace(/^\uFEFF/, ''));
         // Loại bỏ mọi bản ghi mẫu cũ (không có dữ liệu thật phía sau)
         this.proofs = (Array.isArray(parsed) ? parsed : []).filter(
           (p: any) => !/^prf_/.test(p?.id) || p?.__real === true
@@ -93,7 +93,7 @@ class OrchestrationService {
 
     try {
       if (fs.existsSync(countersFilePath)) {
-        const parsed = JSON.parse(fs.readFileSync(countersFilePath, 'utf8')) as CounterFile;
+        const parsed = JSON.parse(fs.readFileSync(countersFilePath, 'utf8').replace(/^\uFEFF/, '')) as CounterFile;
         if (parsed?.date && parsed.counters) {
           this.counterFile = { date: parsed.date, counters: { ...emptyCounters(), ...parsed.counters } };
         }
@@ -102,7 +102,7 @@ class OrchestrationService {
 
     try {
       if (fs.existsSync(orchestrationStateFile)) {
-        const data = JSON.parse(fs.readFileSync(orchestrationStateFile, 'utf8'));
+        const data = JSON.parse(fs.readFileSync(orchestrationStateFile, 'utf8').replace(/^\uFEFF/, ''));
         if (typeof data.autopilotEnabled === 'boolean') this.autopilotEnabled = data.autopilotEnabled;
       }
     } catch {}
