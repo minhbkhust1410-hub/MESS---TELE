@@ -1,7 +1,7 @@
 import type { BrowserContext, Page } from 'playwright';
 import { createBrowserSession } from '../core/browser-session.js';
 import { facebookComposer } from '../core/facebook-composer.js';
-import { getAllAccounts, FacebookAccount } from '../db/store.js';
+import { getAllAccounts, getDefaultAccount, FacebookAccount } from '../db/store.js';
 import { messengerEngine } from './messenger-engine.js';
 import {
   spinText,

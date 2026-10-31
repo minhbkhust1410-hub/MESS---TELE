@@ -1,33 +1,27 @@
-import fs from 'fs';
+import { onlineCloudDb } from './db/online-cloud-db.js';
 
-// Ghi nhận sự cố và nhật ký thoát tiến trình ra tệp độc lập
+// Bảo vệ tiến trình không bao giờ bị dừng đột ngột bởi lỗi ngoại lệ và không ghi rác ra ổ đĩa Local
 process.on('uncaughtException', (err) => {
-  const msg = `[${new Date().toISOString()}] UNCAUGHT EXCEPTION: ${err?.stack || err}\n`;
-  console.error(msg);
-  try { fs.appendFileSync('./daemon_crash.log', msg); } catch {}
+  console.error('🚨 [Process UncaughtException]', err?.message || err);
 });
 process.on('unhandledRejection', (reason: any) => {
-  const msg = `[${new Date().toISOString()}] UNHANDLED REJECTION: ${reason?.stack || reason}\n`;
-  console.error(msg);
-  try { fs.appendFileSync('./daemon_crash.log', msg); } catch {}
+  console.error('🚨 [Process UnhandledRejection]', reason?.message || reason);
 });
-process.on('exit', (code) => {
-  const msg = `[${new Date().toISOString()}] PROCESS EXIT WITH CODE: ${code}\n`;
-  console.log(msg);
-  try { fs.appendFileSync('./daemon_crash.log', msg); } catch {}
-});
-
-import { config, validateConfig } from './config/env.js';
-import { getBot, forwardFbMessageToTelegram, notifyCustomerTyping, ensureControlTopics } from './telegram/bot.js';
-import { messengerEngine } from './engine/messenger-engine.js';
-import { autoCommentEngine } from './engine/auto-comment-engine.js';
-import { startDashboard } from './ui/dashboard.js';
-import { systemDiagnosticService } from './services/system-diagnostic-service.js';
 
 async function bootstrap() {
   console.log('===========================================================');
-  console.log('🚀 KHỞI ĐỘNG HỆ THỐNG FALCONX MESS x TELE REALTIME INSTANT');
+  console.log('🚀 KHỞI ĐỘNG HỆ THỐNG FALCONX MESS x TELE (100% CLOUD DB)');
   console.log('===========================================================\n');
+
+  // 0. Khởi tạo Online Cloud Database trước khi nạp bất kỳ dịch vụ nào (0 Byte lưu Local)
+  await onlineCloudDb.init();
+
+  const { validateConfig } = await import('./config/env.js');
+  const { getBot, forwardFbMessageToTelegram, notifyCustomerTyping, ensureControlTopics } = await import('./telegram/bot.js');
+  const { messengerEngine } = await import('./engine/messenger-engine.js');
+  const { autoCommentEngine } = await import('./engine/auto-comment-engine.js');
+  const { startDashboard } = await import('./ui/dashboard.js');
+  const { systemDiagnosticService } = await import('./services/system-diagnostic-service.js');
 
   const check = validateConfig();
   if (!check.valid) {
@@ -44,36 +38,35 @@ async function bootstrap() {
     await notifyCustomerTyping(threadId);
   });
 
-  // 2. Khởi chạy Telegram Bot
+  // 3. Khởi chạy Telegram Bot
   const bot = getBot();
   bot.start({
     onStart: async (info) => {
       console.log(`✅ Telegram Bot [@${info.username}] đang trực tuyến!`);
-      // Tự động tạo 3 Topics quản lý chuyên nghiệp cho doanh nghiệp (nếu chưa có)
       await ensureControlTopics(bot).catch((e) => console.warn('[Telegram Topics] Lỗi khởi tạo:', e.message));
-      // Khởi chạy nền AutoComment Engine
       autoCommentEngine.startWatcher(10);
     },
   }).catch((err) => {
     console.error('🚨 [Telegram Bot Polling Error]:', err.message);
   });
 
-  // 3. Khởi chạy FalconX Web Dashboard
+  // 4. Khởi chạy FalconX Web Dashboard
   startDashboard();
 
-  // 3.1. Khởi chạy Trình Kiểm Định Toàn Bộ Chức Năng App Hàng Ngày (Facebook Compat Engine)
+  // 4.1. Khởi chạy Trình Kiểm Định Toàn Bộ Chức Năng App Hàng Ngày (Facebook Compat Engine)
   systemDiagnosticService.initDailyDiagnosticScheduler();
 
-  // 4. Khởi chạy FalconX Messenger Engine với MutationObserver Realtime
+  // 5. Khởi chạy FalconX Messenger Engine với MutationObserver Realtime
   try {
     await messengerEngine.start();
-    console.log('\n🎉 TOÀN BỘ HỆ THỐNG FALCONX MESS x TELE ĐÃ SẴN SÀNG ĐỒNG BỘ TỨC THÌ!\n');
+    console.log('\n🎉 TOÀN BỘ HỆ THỐNG FALCONX MESS x TELE (100% CLOUD DB) ĐÃ SẴN SÀNG!\n');
   } catch (err: any) {
     console.error('⚠️ Lỗi khởi chạy Messenger Engine:', err.message);
   }
 
   const shutdown = async () => {
-    console.log('\n🛑 Đang dừng hệ thống FalconX an toàn...');
+    console.log('\n🛑 Đang đồng bộ dữ liệu lên Cloud DB và dừng hệ thống an toàn...');
+    await onlineCloudDb.syncToCloudNow().catch(() => {});
     autoCommentEngine.stopWatcher();
     await messengerEngine.stop();
     bot.stop();
@@ -82,14 +75,6 @@ async function bootstrap() {
 
   process.on('SIGINT', shutdown);
   process.on('SIGTERM', shutdown);
-
-  // Bảo vệ tiến trình không bao giờ bị dừng đột ngột bởi lỗi ngoại lệ
-  process.on('uncaughtException', (err) => {
-    console.error('🚨 [Process UncaughtException]', err.message);
-  });
-  process.on('unhandledRejection', (reason: any) => {
-    console.error('🚨 [Process UnhandledRejection]', reason?.message || reason);
-  });
 }
 
 bootstrap().catch(console.error);

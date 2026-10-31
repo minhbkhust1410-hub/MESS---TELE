@@ -4,6 +4,7 @@ import fs from 'fs';
 import crypto from 'crypto';
 import { chromium, type BrowserContext } from 'playwright';
 import { config, updateSystemSettings } from '../config/env.js';
+import { onlineCloudDb } from '../db/online-cloud-db.js';
 import {
   getAllUsers,
   getUserById,
@@ -280,11 +281,18 @@ export function startDashboard(): void {
     next(err);
   });
 
-  // Phục vụ thư mục giao diện tĩnh
+  // Phục vụ thư mục giao diện tĩnh & ảnh bằng chứng trực tiếp từ Cloud VFS RAM
   const publicDir = path.resolve('./public');
+  app.get('/proofs/:file', (req, res, next) => {
+    const buf = onlineCloudDb.getProofBuffer(req.params.file);
+    if (buf) {
+      const ext = path.extname(req.params.file).toLowerCase();
+      res.setHeader('Content-Type', ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'image/png');
+      return res.send(buf);
+    }
+    next();
+  });
   app.use(express.static(publicDir));
-  app.use('/proofs', express.static(path.resolve('./.tmp_media')));
-  app.use('/proofs', express.static(path.resolve('./data/proofs')));
 
   // ==========================================
   // API AUTHENTICATION & MULTI-USER SYSTEM
@@ -935,26 +943,6 @@ export function startDashboard(): void {
 
   // API 4.13: Thực thi Nuôi Tương Tác đơn lẻ 1 UID/Profile (Kết Bạn + Xem Story/Thả Tym + Like 3 Bài Viết)
   app.post('/api/autofriend/nurture-single', async (req, res) => {
-    try {
-      const { leadId, url, name, mode } = req.body || {};
-      const currentAcc = getDefaultAccount();
-      const leadItem = {
-        id: leadId || 'test_lead',
-        name: name || 'Người Dùng Test KudoX 2',
-        url: url || `https://www.facebook.com/${leadId || 'profile.php'}`,
-        mode: (mode as 'bds_ecopark' | 'forex') || 'bds_ecopark',
-        firstSeenAt: new Date().toISOString(),
-        status: 'unassigned' as const,
-      };
-      const result = await autoFriendService.executeSocialNurtureRoutine(leadItem, currentAcc);
-      res.json({ success: true, result });
-    } catch (err: any) {
-      res.status(500).json({ success: false, error: err.message });
-    }
-  });
-
-  // API 4.13b: Test kết bạn sinh học đơn lẻ (Tương thích ngược)
-  app.post('/api/autofriend/test-single', async (req, res) => {
     try {
       const { leadId, url, name, mode } = req.body || {};
       const currentAcc = getDefaultAccount();
@@ -2736,23 +2724,19 @@ export function startDashboard(): void {
       if (imageDataUrl && typeof imageDataUrl === 'string' && imageDataUrl.startsWith('data:image/')) {
         const base64Match = imageDataUrl.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
         if (base64Match) {
-          const ext = base64Match[1] === 'jpeg' ? 'jpg' : base64Match[1];
-          const tmpDir = path.resolve(process.cwd(), '.tmp_media');
-          if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
-          const imgPath = path.join(tmpDir, `smart_inbox_${Date.now()}.${ext}`);
-          fs.writeFileSync(imgPath, Buffer.from(base64Match[2], 'base64'));
-          const imgRes = await ingestPropertiesFromImageWithAI(imgPath, 'web_image');
-          addedProperties.push(...(imgRes.added || []));
-          if (imgRes.ocrText) {
-            extractedRawText = extractedRawText ? `${extractedRawText}\n${imgRes.ocrText}` : imgRes.ocrText;
+          const imgBuf = Buffer.from(base64Match[2], 'base64');
+          const imgRes = await ingestPropertiesFromImageWithAI(imgBuf, 'web_image');
+          addedProperties.push(...(imgRes.properties || []));
+          if (imgRes.textExtracted) {
+            extractedRawText = extractedRawText ? `${extractedRawText}\n${imgRes.textExtracted}` : imgRes.textExtracted;
           }
         }
       }
 
       if (text && String(text).trim()) {
         const txtRes = await ingestPropertiesFromTextWithAI(String(text).trim(), 'web_manual');
-        if (txtRes.added && txtRes.added.length > 0) {
-          addedProperties.push(...txtRes.added);
+        if (Array.isArray(txtRes) && txtRes.length > 0) {
+          addedProperties.push(...txtRes);
         } else {
           const fallbackAdded = ingestPropertiesFromText(String(text).trim(), 'web_manual');
           addedProperties.push(...fallbackAdded);
@@ -2779,7 +2763,6 @@ export function startDashboard(): void {
             type: 'both',
             targetType: 'both',
             content: salesContent,
-            status: 'confirmed',
             scheduledTime: 'now',
             targetAccounts: masterAcc ? [masterAcc.id] : [],
             firstComment: addedProperties[0] ? generateTargetedComment(addedProperties[0]) : 'Dạ anh/chị quan tâm căn nào nhắn em gửi video thực tế nhé ạ! 🌸',
@@ -3064,7 +3047,8 @@ export function startDashboard(): void {
       res.json({
         success: true,
         zeroEnvActive: true,
-        configStorage: 'src/config/system-settings.json (Cloud JSON — Đã loại bỏ hoàn toàn .env)',
+        configStorage: '100% Online Cloud DB (GitHub Encrypted Vault — 0 Byte lưu Local)',
+        cloudDb: onlineCloudDb.getStatus(),
         publicUrl,
         magicInviteUrl,
         settings: {
@@ -3076,6 +3060,28 @@ export function startDashboard(): void {
           dashboardPort: config.dashboardPort,
         },
         users,
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  app.get('/api/system/cloud-db/status', (_req, res) => {
+    res.json({
+      success: true,
+      cloudDb: onlineCloudDb.getStatus(),
+    });
+  });
+
+  app.post('/api/system/cloud-db/sync', async (_req, res) => {
+    try {
+      const result = await onlineCloudDb.syncToCloudNow();
+      res.json({
+        ...result,
+        cloudDb: onlineCloudDb.getStatus(),
+        message: result.success
+          ? `Đã đồng bộ thành công ${result.filesCount} bảng dữ liệu lên Đám Mây Online (SHA: ${result.sha}) — 0 Byte lưu ở máy Local!`
+          : `Lỗi đồng bộ Cloud DB: ${result.error}`,
       });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });
