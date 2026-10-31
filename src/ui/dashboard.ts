@@ -264,12 +264,21 @@ export function startDashboard(): void {
   app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Operating-Mode');
     if (req.method === 'OPTIONS') {
       return res.sendStatus(200);
     }
     next();
   });
+
+  function resolveRequestMode(req: express.Request): OperatingMode {
+    const qMode = req.query.mode as string | undefined;
+    const hMode = req.headers['x-operating-mode'] as string | undefined;
+    const bMode = req.body?.mode as string | undefined;
+    const explicit = qMode || hMode || bMode;
+    const currentUser = (req as any).currentUser as TokenPayload | undefined;
+    return dataModeService.getCurrentMode(currentUser?.uid, explicit);
+  }
 
   app.use(express.json({ limit: '50mb' }));
 
@@ -1502,64 +1511,102 @@ export function startDashboard(): void {
   // CÁC API HỆ THỐNG & ĐỒNG BỘ TIN NHẮN
   // ==========================================
 
-  // API 9: Lấy thông tin trạng thái toàn hệ thống
+  // API 9: Lấy thông tin trạng thái toàn hệ thống (tự động chọn Nick FB chuyên trách theo Mảng BĐS / Forex của User)
   app.get('/api/status', (req, res) => {
-    const currentAcc = getDefaultAccount();
+    const activeMode = resolveRequestMode(req);
+    const allAccs = getAllAccounts();
+    const modeAcc =
+      allAccs.find((a) => a.verticalMode === activeMode && (a.status === 'live' || a.status === 'active')) ||
+      allAccs.find((a) => a.verticalMode === activeMode) ||
+      getDefaultAccount();
     const mappings = getAllMappings();
     res.json({
       status: 'running',
-      accountId: currentAcc.id,
-      fbUid: currentAcc.uid,
-      fbName: currentAcc.name,
-      fbAvatar: currentAcc.avatar,
-      fbProxy: currentAcc.proxy,
-      fbStatus: currentAcc.status,
+      accountId: modeAcc.id,
+      fbUid: modeAcc.uid,
+      fbName: modeAcc.name,
+      fbAvatar: modeAcc.avatar,
+      fbProxy: modeAcc.proxy,
+      fbStatus: modeAcc.status,
       telegramBot: getBotUsername() ? `@${getBotUsername()}` : 'Đang kết nối Telegram…',
       telegramGroupId: config.telegramGroupId,
       headless: config.headless,
       customerCount: mappings.length,
       isPinRequired: messengerEngine.isPinRequired,
       uptime: process.uptime(),
-      currentMode: dataModeService.getCurrentMode(),
-      modeInfo: dataModeService.getModeMetadata(),
+      currentMode: activeMode,
+      modeInfo: dataModeService.getModeMetadata(activeMode),
     });
   });
 
   // ==========================================
-  // OPERATING MODE APIS (BĐS ECOPARK vs FOREX TÀI CHÍNH)
+  // OPERATING MODE APIS (BĐS ECOPARK vs FOREX TÀI CHÍNH - ĐỘC LẬP ĐA NGƯỜI DÙNG)
   // ==========================================
 
-  // Lấy trạng thái mode hiện tại & metadata
+  // Lấy trạng thái mode hiện tại & metadata theo từng User độc lập
   app.get('/api/mode/current', (req, res) => {
-    const currentMode = dataModeService.getCurrentMode();
+    const currentMode = resolveRequestMode(req);
+    const currentUser = (req as any).currentUser as TokenPayload | undefined;
     res.json({
       success: true,
       currentMode,
+      userId: currentUser?.uid || 'guest',
+      userModes: dataModeService.getUserModesMap(),
       metadata: dataModeService.getModeMetadata(currentMode),
       allModes: MODE_METADATA,
-      stats: dataModeService.getModeStats(),
+      stats: dataModeService.getModeStats(currentMode),
+      forexOffers: dataModeService.getForexOffers(),
     });
   });
 
-  // Chuyển đổi mode vận hành
+  // Chuyển đổi mode vận hành độc lập cho User hiện tại (không làm đổi giao diện của người dùng khác)
   app.post('/api/mode/switch', (req, res) => {
     const { mode } = req.body;
     if (mode !== 'bds_ecopark' && mode !== 'forex_finance') {
       return res.status(400).json({ success: false, error: 'Chế độ không hợp lệ. Chọn bds_ecopark hoặc forex_finance' });
     }
-    const metadata = dataModeService.setMode(mode as OperatingMode);
+    const currentUser = (req as any).currentUser as TokenPayload | undefined;
+    const metadata = dataModeService.setMode(mode as OperatingMode, currentUser?.uid);
     res.json({
       success: true,
       currentMode: mode,
+      userId: currentUser?.uid || 'guest',
       metadata,
-      stats: dataModeService.getModeStats(),
-      message: `Đã kích hoạt chế độ: ${metadata.name}`,
+      stats: dataModeService.getModeStats(mode as OperatingMode),
+      forexOffers: dataModeService.getForexOffers(),
+      message: `Đã kích hoạt chế độ độc lập: ${metadata.name}`,
+    });
+  });
+
+  // Lấy danh sách Kho Kèo Tín Hiệu & Gói Sản Phẩm Forex (tương đương Quỹ Căn bên BĐS)
+  app.get('/api/forex/offers', (_req, res) => {
+    const offers = dataModeService.getForexOffers();
+    res.json({
+      success: true,
+      offers,
+      availableCount: offers.filter((o) => o.status === 'available').length,
+      total: offers.length,
+    });
+  });
+
+  // Gạt 1-Chạm trạng thái Kèo / Gói Sản Phẩm Forex (Đang Mở / Tạm Đóng)
+  app.post('/api/forex/offers/:id/toggle', (req, res) => {
+    const updated = dataModeService.toggleForexOfferStatus(req.params.id);
+    if (!updated) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy gói/kèo Forex' });
+    }
+    const offers = dataModeService.getForexOffers();
+    res.json({
+      success: true,
+      offer: updated,
+      offers,
+      availableCount: offers.filter((o) => o.status === 'available').length,
     });
   });
 
   // Lấy danh sách groups theo mode
   app.get('/api/mode/groups', (req, res) => {
-    const requestedMode = (req.query.mode as OperatingMode) || dataModeService.getCurrentMode();
+    const requestedMode = resolveRequestMode(req);
     const groups = dataModeService.getGroupsForMode(requestedMode);
     res.json({
       success: true,
@@ -1572,7 +1619,7 @@ export function startDashboard(): void {
 
   // Lấy danh sách members / leads phân loại theo mode
   app.get('/api/mode/leads', (req, res) => {
-    const requestedMode = (req.query.mode as OperatingMode) || dataModeService.getCurrentMode();
+    const requestedMode = resolveRequestMode(req);
     const leads = dataModeService.getLeadsForMode(requestedMode);
     res.json({
       success: true,
@@ -2325,10 +2372,16 @@ export function startDashboard(): void {
   app.post('/api/posts/one-click-daily', async (req, res) => {
     try {
       const { content, photoDataUrls, groupUrls, firstComment, targetType } = req.body;
+      const activeMode = resolveRequestMode(req);
       const uploadedPaths = saveBase64PhotosToDisk(photoDataUrls);
 
       if ((!content || !String(content).trim()) && uploadedPaths.length === 0) {
-        return res.status(400).json({ success: false, error: 'Vui lòng nhập nội dung bài viết hoặc đính kèm ảnh căn hộ.' });
+        return res.status(400).json({
+          success: false,
+          error: activeMode === 'forex_finance'
+            ? 'Vui lòng nhập nội dung kèo tín hiệu XAU/USD / ưu đãi sàn hoặc đính kèm ảnh chart.'
+            : 'Vui lòng nhập nội dung bài viết hoặc đính kèm ảnh căn hộ.',
+        });
       }
 
       // Xác định nơi đăng theo lựa chọn thật của người dùng (both | group_post | personal_post)
@@ -2336,19 +2389,26 @@ export function startDashboard(): void {
         targetType === 'group_post' || targetType === 'personal_post' ? targetType : 'both';
       let resolvedGroupUrls: string[] = Array.isArray(groupUrls) ? groupUrls : [];
       if (dest !== 'personal_post' && resolvedGroupUrls.length === 0) {
-        resolvedGroupUrls = getTargetGroups()
-          .filter((g: any) => g.status === 'active')
+        const modeGroups = dataModeService.getGroupsForMode(activeMode);
+        const sourceGroups = modeGroups.length > 0 ? modeGroups : getTargetGroups();
+        resolvedGroupUrls = sourceGroups
+          .filter((g: any) => g.status === 'active' || !g.status)
           .map((g: any) => g.url);
       }
       if (dest === 'group_post' && resolvedGroupUrls.length === 0) {
         return res.status(400).json({ success: false, error: 'Chưa có nhóm nào trong danh sách nhóm đăng bài. Hãy thêm nhóm hoặc chọn "Chỉ Trang Cá Nhân".' });
       }
 
-      // 1. Tự động bóc tách lưu ngay vào kho căn hộ (Quỹ Căn BDS)
+      // 1. Tự động bóc tách lưu ngay vào Kho Căn BĐS hoặc Kho Kèo / Sản Phẩm Forex tùy theo Mode của người dùng
       let extractedProperties: any[] = [];
       if (content && String(content).trim().length > 5) {
         try {
-          extractedProperties = await ingestPropertiesFromTextWithAI(String(content).trim(), 'web_manual');
+          if (activeMode === 'forex_finance') {
+            const addedForexOffer = dataModeService.ingestForexOfferFromText(String(content).trim());
+            extractedProperties = [addedForexOffer];
+          } else {
+            extractedProperties = await ingestPropertiesFromTextWithAI(String(content).trim(), 'web_manual');
+          }
         } catch (e: any) {
           console.warn('[OneClickDaily] Lỗi bóc tách AI:', e.message);
         }
@@ -2785,9 +2845,55 @@ export function startDashboard(): void {
     }
   });
 
-  // API lấy danh sách Khách Nóng Vừa Phát Hiện (Hot Intent Feed) kèm gợi ý căn phù hợp & SĐT
-  app.get('/api/hot-leads/today', (_req, res) => {
+  // API lấy danh sách Khách Nóng Vừa Phát Hiện (Hot Intent Feed) theo đúng Mode (BĐS Ecopark hoặc Forex Tài Chính)
+  app.get('/api/hot-leads/today', (req, res) => {
     try {
+      const activeMode = resolveRequestMode(req);
+
+      if (activeMode === 'forex_finance') {
+        const forexLeads = dataModeService.getLeadsForMode('forex_finance');
+        const items = forexLeads.map((fl) => {
+          const matched = dataModeService.matchBestForexOffer(fl.lead);
+          const phoneOrTele = fl.lead.contact?.phone || fl.lead.contact?.zalo || fl.lead.contact?.telegram || null;
+          return {
+            id: fl.id,
+            mode: 'forex_finance',
+            timestamp: fl.scannedAt,
+            author: fl.name,
+            sourceGroup: fl.sourceGroup,
+            content: fl.lead.rawText,
+            postUrl: fl.profileUrl,
+            phone: phoneOrTele,
+            accountName: 'Anh Minh Trading',
+            intentLabel: fl.lead.intentLabel,
+            intentColor: fl.lead.intentColor,
+            symbols: fl.lead.symbols,
+            brokers: fl.lead.brokers,
+            matchedProperty: matched.offer
+              ? {
+                  id: matched.offer.id,
+                  building: matched.offer.title,
+                  project: matched.offer.categoryLabel,
+                  bedroom: matched.offer.symbolOrBroker,
+                  priceText: matched.offer.highlightText,
+                }
+              : null,
+            matchScore: matched.score,
+            suggestedComment: generateForexTargetedComment(fl.lead),
+            status: fl.status === 'vip' ? 'commented' : 'detected',
+          };
+        });
+
+        return res.json({
+          success: true,
+          mode: 'forex_finance',
+          total: items.length,
+          withPhoneCount: items.filter((l) => !!l.phone).length,
+          matchedCount: items.filter((l) => !!l.matchedProperty).length,
+          items,
+        });
+      }
+
       const commentLogs = getCommentLogs(60);
       const proofs = orchestrationService.getProofs();
       const phoneRegex = /(0[35789][0-9]{8})\b/;
@@ -2870,12 +2976,12 @@ export function startDashboard(): void {
   });
 
   // ========================================================
-  // GÓI NÂNG CẤP 2: PHÂN VAI TÀI KHOẢN (NICK CHÍNH / VỆ TINH / LÀM ẤM 48H)
+  // GÓI NÂNG CẤP 2: PHÂN VAI TÀI KHOẢN & PHÂN MẢNG ĐỘC LẬP (BĐS / FOREX)
   // ========================================================
   app.post('/api/accounts/:id/role', (req, res) => {
     try {
       const accId = req.params.id;
-      const { role, warmupMode } = req.body || {};
+      const { role, warmupMode, verticalMode } = req.body || {};
       const acc = getAccountById(accId);
       if (!acc) {
         return res.status(404).json({ success: false, error: 'Không tìm thấy tài khoản Facebook' });
@@ -2886,13 +2992,18 @@ export function startDashboard(): void {
       } else if (typeof warmupMode === 'boolean') {
         acc.warmupMode = warmupMode;
       }
+      if (verticalMode && ['bds_ecopark', 'forex_finance', 'both'].includes(verticalMode)) {
+        acc.verticalMode = verticalMode as 'bds_ecopark' | 'forex_finance' | 'both';
+      }
       saveAccount(acc);
       res.json({
         success: true,
         account: acc,
         accounts: getAllAccounts(),
-        message: `Đã cập nhật vai trò cho nick "${acc.name}": ${
-          acc.role === 'master' ? '👑 Nick Chính (Chốt Khách)' : acc.role === 'warmup' ? '🌱 Làm Ấm 48h (An Toàn)' : '🛰️ Nick Vệ Tinh (Săn Khách)'
+        message: `Đã cập nhật nick "${acc.name}": ${
+          acc.role === 'master' ? '👑 Nick Chính' : acc.role === 'warmup' ? '🌱 Làm Ấm 48h' : '🛰️ Nick Vệ Tinh'
+        } · Mảng: ${
+          acc.verticalMode === 'forex_finance' ? '📈 Forex Tài Chính' : acc.verticalMode === 'both' ? '🌐 Cả 2 Mảng' : '🏡 BĐS Ecopark'
         }`,
       });
     } catch (err: any) {
@@ -3027,22 +3138,39 @@ export function startDashboard(): void {
   app.get('/api/system/cloud-config', (req, res) => {
     try {
       const publicUrl = detectPublicCloudUrl(req);
-      const partnerToken = generateAuthToken({
-        id: 'usr_partner_shared',
-        username: 'dong_doi',
-        name: 'Đồng Đội Cùng Team',
+      const bdsPartnerToken = generateAuthToken({
+        id: 'usr_bds_specialist',
+        username: 'chuyenvien_bds',
+        name: 'Chuyên Viên BĐS Ecopark',
         role: 'admin',
       });
-      const magicInviteUrl = `${publicUrl}/?inviteToken=${encodeURIComponent(partnerToken)}`;
-      const users = getAllUsers().map((u) => ({
-        id: u.id,
-        username: u.username,
-        name: u.name,
-        role: u.role,
-        createdAt: u.createdAt,
-        lastLoginAt: u.lastLoginAt,
-        magicLink: `${publicUrl}/?inviteToken=${encodeURIComponent(generateAuthToken(u))}`,
-      }));
+      const forexPartnerToken = generateAuthToken({
+        id: 'usr_forex_specialist',
+        username: 'chuyenvien_forex',
+        name: 'Chuyên Viên Forex & XAU/USD',
+        role: 'admin',
+      });
+      dataModeService.setMode('bds_ecopark', 'usr_bds_specialist');
+      dataModeService.setMode('forex_finance', 'usr_forex_specialist');
+
+      const magicInviteUrl = `${publicUrl}/?inviteToken=${encodeURIComponent(bdsPartnerToken)}&mode=bds_ecopark`;
+      const magicInviteBdsUrl = `${publicUrl}/?inviteToken=${encodeURIComponent(bdsPartnerToken)}&mode=bds_ecopark`;
+      const magicInviteForexUrl = `${publicUrl}/?inviteToken=${encodeURIComponent(forexPartnerToken)}&mode=forex_finance`;
+      const userModes = dataModeService.getUserModesMap();
+
+      const users = getAllUsers().map((u) => {
+        const uMode = userModes[u.id] || 'bds_ecopark';
+        return {
+          id: u.id,
+          username: u.username,
+          name: u.name,
+          role: u.role,
+          operatingMode: uMode,
+          createdAt: u.createdAt,
+          lastLoginAt: u.lastLoginAt,
+          magicLink: `${publicUrl}/?inviteToken=${encodeURIComponent(generateAuthToken(u))}&mode=${uMode}`,
+        };
+      });
 
       res.json({
         success: true,
@@ -3051,6 +3179,8 @@ export function startDashboard(): void {
         cloudDb: onlineCloudDb.getStatus(),
         publicUrl,
         magicInviteUrl,
+        magicInviteBdsUrl,
+        magicInviteForexUrl,
         settings: {
           telegramBotToken: config.telegramBotToken,
           telegramGroupId: config.telegramGroupId,
@@ -3117,7 +3247,8 @@ export function startDashboard(): void {
 
   app.post('/api/system/create-friend-invite', (req, res) => {
     try {
-      const { name, username, password } = req.body || {};
+      const { name, username, password, operatingMode } = req.body || {};
+      const targetMode: OperatingMode = operatingMode === 'forex_finance' ? 'forex_finance' : 'bds_ecopark';
       const cleanUser = String(username || `ban_${Math.floor(1000 + Math.random() * 9000)}`).trim().toLowerCase();
       const cleanPass = String(password || 'ecopark2026').trim();
       const cleanName = String(name || `Bạn Cùng Team (${cleanUser})`).trim();
@@ -3126,9 +3257,11 @@ export function startDashboard(): void {
       if (!user) {
         user = createUser(cleanUser, cleanPass, cleanName, 'admin');
       }
+      dataModeService.setMode(targetMode, user.id);
+
       const publicUrl = detectPublicCloudUrl(req);
       const token = generateAuthToken(user);
-      const magicLink = `${publicUrl}/?inviteToken=${encodeURIComponent(token)}`;
+      const magicLink = `${publicUrl}/?inviteToken=${encodeURIComponent(token)}&mode=${targetMode}`;
 
       res.json({
         success: true,
@@ -3137,14 +3270,16 @@ export function startDashboard(): void {
           username: user.username,
           name: user.name,
           role: user.role,
+          operatingMode: targetMode,
         },
         credentials: {
           username: cleanUser,
           password: cleanPass,
         },
+        operatingMode: targetMode,
         publicUrl,
         magicLink,
-        message: `Đã tạo tài khoản & Link vào thẳng 1-chạm cho "${cleanName}"! Gửi link này cho bạn của bạn là dùng được ngay trên trình duyệt mà không cần cài đặt code.`,
+        message: `Đã tạo tài khoản & Link vào thẳng 1-chạm mảng [${targetMode === 'forex_finance' ? '📈 Forex Tài Chính' : '🏡 BĐS Ecopark'}] cho "${cleanName}"!`,
       });
     } catch (err: any) {
       res.status(400).json({ success: false, error: err.message });

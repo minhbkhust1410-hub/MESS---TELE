@@ -662,7 +662,7 @@
         <button onclick="switchTab('posts')" id="nav-btn-posts" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition text-[#86868b] hover:text-white hover:bg-white/[0.05]">
           <div class="flex items-center gap-2.5">
             <span class="text-sm">📝</span>
-            <span>Đăng Bài Lên Group</span>
+            <span id="nav-label-posts">Đăng Bài Lên Group</span>
           </div>
           <span id="sidebar-badge-posts" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-[#86868b] font-medium">0</span>
         </button>
@@ -670,14 +670,14 @@
         <button onclick="switchTab('autocmt')" id="nav-btn-autocmt" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition text-[#86868b] hover:text-white hover:bg-white/[0.05]">
           <div class="flex items-center gap-2.5">
             <span class="text-sm">🤖</span>
-            <span>Săn Khách & Quỹ Căn</span>
+            <span id="nav-label-autocmt">Săn Khách & Quỹ Căn</span>
           </div>
         </button>
 
         <button onclick="switchTab('growth')" id="nav-btn-growth" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition text-[#86868b] hover:text-white hover:bg-white/[0.05]">
           <div class="flex items-center gap-2.5">
             <span class="text-sm">👥</span>
-            <span>Tương Tác & Kết Bạn</span>
+            <span id="nav-label-growth">Tương Tác & Kết Bạn</span>
           </div>
         </button>
 
@@ -759,21 +759,21 @@
         <span class="text-xs text-[#86868b] hidden md:inline truncate max-w-md" id="section-desc">Theo dõi tài khoản, tin nhắn và trạng thái tự động hóa</span>
         
         <!-- Live User Badge -->
-        <div id="header-user-pill" class="hidden sm:inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.06] border border-white/15 text-xs text-[#f5f5f7]">
+        <div id="header-user-pill" class="hidden sm:inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.06] border border-white/15 text-xs text-[#f5f5f7] flex-shrink-0">
           <span class="text-sm">👤</span>
-          <span id="header-user-name" class="font-semibold text-white">Admin</span>
-          <span id="header-user-badge" class="text-[10px] font-mono px-2 py-0.2 rounded-full bg-[#2997ff]/20 text-[#2997ff] border border-[#2997ff]/30">Quản lý</span>
+          <span id="header-user-name" class="font-semibold text-white whitespace-nowrap truncate max-w-[150px]">Admin</span>
+          <span id="header-user-badge" class="text-[10px] font-mono px-2 py-0.2 rounded-full bg-[#2997ff]/20 text-[#2997ff] border border-[#2997ff]/30 whitespace-nowrap">Quản lý</span>
         </div>
 
-        <!-- Topbar Mode Switcher Toggle Pill (Hiển thị trên màn hình rộng 2xl để tránh chen lấn nút action) -->
-        <div class="hidden 2xl:inline-flex items-center p-0.5 rounded-full bg-white/[0.06] border border-white/15">
+        <!-- Topbar Mode Switcher Toggle Pill (Hiển thị trên 2xl, dưới 2xl dùng Thanh Chuyển Mảng ngay bên dưới Header) -->
+        <div class="hidden 2xl:inline-flex items-center p-0.5 rounded-full bg-white/[0.06] border border-white/15 flex-shrink-0">
           <button id="topbar-btn-mode-bds" onclick="switchOperatingMode('bds_ecopark')" 
-                  class="px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition bg-emerald-500 text-white shadow-sm border border-emerald-400">
+                  class="px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition bg-emerald-500 text-white shadow-sm border border-emerald-400 cursor-pointer whitespace-nowrap">
             <span>🏡</span>
             <span>BĐS Ecopark</span>
           </button>
           <button id="topbar-btn-mode-forex" onclick="switchOperatingMode('forex_finance')" 
-                  class="px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition text-[#86868b] hover:text-white border border-transparent">
+                  class="px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition text-[#86868b] hover:text-white border border-transparent cursor-pointer whitespace-nowrap">
             <span>📈</span>
             <span>Forex Tài Chính</span>
           </button>
@@ -827,23 +827,75 @@
         <div class="space-y-6">
 
           <!-- ======================================================== -->
-          <!-- KHỐI 0: TÁC VỤ DUY NHẤT HÀNG NGÀY: SOẠN BÀI & NẠP CĂN AI -->
+          <!-- THANH CHUYỂN ĐỔI MẢNG ĐỘC LẬP (2 NGƯỜI LÀM 2 MẢNG SONG SONG: BĐS ⇄ FOREX) -->
           <!-- ======================================================== -->
-          <div class="apple-card rounded-3xl p-6 border-2 border-amber-500/40 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent shadow-xl relative overflow-hidden space-y-4">
+          <div id="overview-mode-banner-card" class="apple-card rounded-3xl p-4 sm:p-5 border-2 border-emerald-500/40 bg-gradient-to-r from-emerald-500/15 via-white/[0.03] to-amber-500/10 shadow-xl flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div class="flex items-start sm:items-center gap-3.5 min-w-0">
+              <div id="overview-mode-banner-icon" class="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center text-2xl shadow-lg shadow-emerald-500/30 flex-shrink-0">
+                🏡
+              </div>
+              <div class="min-w-0 space-y-0.5">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span id="overview-mode-banner-badge" class="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 uppercase">
+                    🌿 ĐANG Ở CHẾ ĐỘ: BĐS ECOPARK
+                  </span>
+                  <span class="text-[10px] font-mono font-semibold px-2.5 py-0.5 rounded-full bg-white/10 text-white border border-white/15">
+                    👥 2 Người Dùng Độc Lập 2 Mảng Song Song
+                  </span>
+                </div>
+                <h3 id="overview-mode-banner-title" class="text-sm sm:text-base font-bold text-white truncate">
+                  Không Gian Làm Việc Chuyên Biệt: Bất Động Sản Ecopark (Quỹ Căn, Khách Tìm Mua/Thuê & Rải Nhóm BĐS)
+                </h3>
+                <p id="overview-mode-banner-desc" class="text-xs text-[#86868b]">
+                  Mỗi người mở 1 trình duyệt/thiết bị có thể chọn 1 mảng riêng (Người 1 làm BĐS — Người 2 làm Forex) hoàn toàn độc lập, không ảnh hưởng màn hình của nhau!
+                </p>
+              </div>
+            </div>
+
+            <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-shrink-0">
+              <div class="grid grid-cols-2 gap-1.5 p-1 rounded-2xl bg-black/60 border border-white/15">
+                <button id="overview-btn-mode-bds" onclick="switchOperatingMode('bds_ecopark')"
+                        class="px-3.5 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 border border-emerald-400 cursor-pointer">
+                  <span>🏡</span>
+                  <span>Mảng BĐS Ecopark</span>
+                </button>
+                <button id="overview-btn-mode-forex" onclick="switchOperatingMode('forex_finance')"
+                        class="px-3.5 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition text-[#86868b] hover:text-white hover:bg-white/5 border border-transparent cursor-pointer">
+                  <span>📈</span>
+                  <span>Mảng Forex & XAU/USD</span>
+                </button>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <button onclick="copyModeSpecificLink('bds_ecopark')" title="Copy Link vào thẳng giao diện BĐS Ecopark cho Người 1"
+                        class="px-3 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-[11px] font-bold transition cursor-pointer whitespace-nowrap">
+                  🔗 Link Người 1 (BĐS)
+                </button>
+                <button onclick="copyModeSpecificLink('forex_finance')" title="Copy Link vào thẳng giao diện Forex Tài Chính cho Người 2"
+                        class="px-3 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-[11px] font-bold transition cursor-pointer whitespace-nowrap">
+                  🔗 Link Người 2 (Forex)
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ======================================================== -->
+          <!-- KHỐI 0: TÁC VỤ DUY NHẤT HÀNG NGÀY: SOẠN BÀI & NẠP CĂN / NẠP KÈO FOREX AI -->
+          <!-- ======================================================== -->
+          <div id="overview-oneclick-card" class="apple-card rounded-3xl p-6 border-2 border-amber-500/40 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent shadow-xl relative overflow-hidden space-y-4">
             
             <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-white/10 pb-4">
               <div class="flex items-center gap-3">
-                <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-[#d97706] text-white flex items-center justify-center text-2xl shadow-lg shadow-amber-500/30 flex-shrink-0">
+                <div id="oneclick-hero-icon" class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500 to-[#d97706] text-white flex items-center justify-center text-2xl shadow-lg shadow-amber-500/30 flex-shrink-0">
                   ⚡
                 </div>
                 <div>
                   <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-bold uppercase tracking-wider mb-0.5">
-                    <span>🔥</span> TÁC VỤ DUY NHẤT HÀNG NGÀY CỦA BẠN
+                    <span>🔥</span> <span id="oneclick-badge-text">TÁC VỤ DUY NHẤT HÀNG NGÀY CỦA BẠN (MẢNG BĐS ECOPARK)</span>
                   </div>
-                  <h2 class="text-base sm:text-lg font-bold text-white">
+                  <h2 id="oneclick-title" class="text-base sm:text-lg font-bold text-white">
                     Đăng Bài & AI Tự Động Bóc Tách Lưu Note Vào Kho Căn
                   </h2>
-                  <p class="text-xs text-[#86868b]">
+                  <p id="oneclick-desc" class="text-xs text-[#86868b]">
                     Dán nội dung hoặc tải ảnh bảng hàng ➔ AI & OCR bóc tách lưu thẻ căn hộ lên Cloud DB ➔ hệ thống đăng bài và bình luận mồi.
                   </p>
                 </div>
@@ -857,12 +909,12 @@
               </div>
             </div>
 
-            <!-- Form Soạn & Nạp Căn -->
+            <!-- Form Soạn & Nạp Căn / Kèo Forex -->
             <div class="space-y-4">
               <div>
                 <label class="block text-xs font-semibold text-white mb-1.5 flex items-center justify-between">
-                  <span>1. Nội Dung Bài Viết / Rao Căn / Bảng Hàng:</span>
-                  <span class="text-[11px] text-amber-400 font-normal">AI tự nhận diện: Mã căn, Giá, Phân khu, Số phòng, Diện tích</span>
+                  <span id="oneclick-label-1">1. Nội Dung Bài Viết / Rao Căn / Bảng Hàng:</span>
+                  <span id="oneclick-hint-1" class="text-[11px] text-amber-400 font-normal">AI tự nhận diện: Mã căn, Giá, Phân khu, Số phòng, Diện tích</span>
                 </label>
                 <textarea id="daily-oneclick-content" rows="4" 
                   class="w-full px-4 py-3 rounded-2xl bg-black/40 border border-white/15 text-white placeholder-stone-400 text-xs sm:text-sm focus:border-amber-500 focus:outline-none transition leading-relaxed font-medium"
@@ -873,8 +925,8 @@
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label class="block text-xs font-semibold text-white mb-1 flex items-center justify-between">
-                    <span>2. Ảnh Căn Hộ Hoặc Ảnh Bảng Hàng (Tùy chọn):</span>
-                    <span class="text-[10px] text-[#86868b]">OCR tự đọc ảnh bảng hàng</span>
+                    <span id="oneclick-label-2">2. Ảnh Căn Hộ Hoặc Ảnh Bảng Hàng (Tùy chọn):</span>
+                    <span id="oneclick-hint-2" class="text-[10px] text-[#86868b]">OCR tự đọc ảnh bảng hàng</span>
                   </label>
                   <input type="file" id="daily-oneclick-file" multiple accept="image/*" onchange="handleDailyPhotoUpload(event)"
                     class="block w-full text-xs text-[#86868b] file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-white/10 file:text-white hover:file:bg-white/20 cursor-pointer" />
@@ -883,7 +935,7 @@
 
                 <div>
                   <label class="block text-xs font-semibold text-white mb-1 flex items-center justify-between">
-                    <span>3. Bình Luận Mồi Tự Động (First Comment):</span>
+                    <span id="oneclick-label-3">3. Bình Luận Mồi Tự Động (First Comment):</span>
                     <span class="text-[10px] text-emerald-400 font-semibold">Đã tắt GPS 100%</span>
                   </label>
                   <input type="text" id="daily-oneclick-first-comment" 
@@ -914,7 +966,7 @@
                   <button onclick="submitDailyOneClickPost()" id="btn-submit-daily-oneclick"
                     class="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-[#d97706] hover:from-amber-400 hover:to-[#b45309] text-white text-xs sm:text-sm font-bold shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2 transition transform active:scale-95 cursor-pointer">
                     <span>🚀</span>
-                    <span>ĐĂNG BÀI & TỰ ĐỘNG LƯU VÀO KHO CĂN (1-CHẠM)</span>
+                    <span id="btn-submit-daily-oneclick-text">ĐĂNG BÀI & TỰ ĐỘNG LƯU VÀO KHO CĂN (1-CHẠM)</span>
                   </button>
                 </div>
               </div>
@@ -922,18 +974,18 @@
               <!-- Alert kết quả tức thì -->
               <div id="daily-oneclick-status" class="hidden p-3.5 rounded-2xl text-xs font-medium border transition-all"></div>
 
-              <!-- QUỸ CĂN HÔM NAY (GẠT 1-CHẠM CÒN CĂN / ĐÃ CHỐT NGAY TẠI TRANG CHỦ) -->
+              <!-- QUỸ CĂN HÔM NAY / KHO KÈO FOREX HÔM NAY (GẠT 1-CHẠM NGAY TẠI TRANG CHỦ) -->
               <div class="pt-3 border-t border-white/10 space-y-2.5">
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-2">
-                    <span class="text-sm">🏡</span>
-                    <span class="text-xs font-bold text-white uppercase tracking-wider">Quỹ Căn Đang Mở Bán / Cho Thuê (Gạt 1-Chạm Còn Căn / Đã Chốt)</span>
+                    <span id="overview-strip-icon" class="text-sm">🏡</span>
+                    <span id="overview-strip-title" class="text-xs font-bold text-white uppercase tracking-wider">Quỹ Căn Đang Mở Bán / Cho Thuê (Gạt 1-Chạm Còn Căn / Đã Chốt)</span>
                     <span id="overview-today-props-badge" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">0 căn</span>
                   </div>
-                  <button onclick="switchTab('autocmt')" class="text-[11px] text-[#2997ff] hover:underline font-medium">Mở toàn bộ kho căn ➔</button>
+                  <button id="overview-strip-link-btn" onclick="switchTab('autocmt')" class="text-[11px] text-[#2997ff] hover:underline font-medium">Mở toàn bộ kho căn ➔</button>
                 </div>
                 <div id="overview-today-props-strip" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-                  <div class="col-span-full text-xs text-[#86868b] py-2">Đang tải danh sách quỹ căn...</div>
+                  <div class="col-span-full text-xs text-[#86868b] py-2">Đang tải danh sách...</div>
                 </div>
               </div>
             </div>
@@ -941,31 +993,31 @@
           </div>
 
           <!-- ======================================================== -->
-          <!-- GÓI NÂNG CẤP 1B: TRUNG TÂM KHÁCH NÓNG VỪA PHÁT HIỆN (HOT INTENT FEED) -->
+          <!-- GÓI NÂNG CẤP 1B: TRUNG TÂM KHÁCH NÓNG / TRADER NÓNG VỪA PHÁT HIỆN (HOT INTENT FEED) -->
           <!-- ======================================================== -->
           <div class="apple-card rounded-3xl p-6 border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-white/[0.03] to-transparent shadow-xl space-y-4">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3.5">
               <div class="flex items-center gap-3">
-                <div class="w-11 h-11 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-xl shadow-lg shadow-amber-500/30 flex-shrink-0">
+                <div id="hot-leads-icon" class="w-11 h-11 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-xl shadow-lg shadow-amber-500/30 flex-shrink-0">
                   🔥
                 </div>
                 <div>
                   <div class="flex items-center gap-2 flex-wrap">
-                    <h3 class="text-base sm:text-lg font-bold text-white tracking-tight">
+                    <h3 id="hot-leads-title" class="text-base sm:text-lg font-bold text-white tracking-tight">
                       Trung Tâm Khách Nóng & Gợi Ý Chốt Đơn (Hot Intent Feed)
                     </h3>
                     <span id="hot-leads-count-badge" class="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
                       0 KHÁCH NÓNG
                     </span>
                   </div>
-                  <p class="text-xs text-[#86868b]">
+                  <p id="hot-leads-desc" class="text-xs text-[#86868b]">
                     Tự động lọc bài khách hỏi thuê/mua nhà trong nhóm, bóc tách SĐT/Zalo và ghép sẵn căn phù hợp nhất trong kho để bạn chốt đơn 1-chạm.
                   </p>
                 </div>
               </div>
               <div class="flex items-center gap-2 self-start sm:self-center">
-                <button onclick="loadHotLeadsToday()" class="px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-xs font-semibold text-white transition flex items-center gap-1.5">
-                  <span>🔄</span> <span>Làm mới khách nóng</span>
+                <button onclick="loadHotLeadsToday()" class="px-3.5 py-1.5 rounded-full bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-xs font-bold text-amber-300 transition flex items-center gap-1.5 cursor-pointer">
+                  <span>🔄</span> <span id="hot-leads-refresh-label">Làm mới khách nóng</span>
                 </button>
               </div>
             </div>
@@ -3122,17 +3174,30 @@
     }
 
     // ==========================================
-    // DUAL OPERATING MODE: BĐS ECOPARK vs FOREX TÀI CHÍNH
+    // DUAL OPERATING MODE: BĐS ECOPARK vs FOREX TÀI CHÍNH (ĐỘC LẬP TỪNG NGƯỜI DÙNG)
     // ==========================================
-    let currentOperatingMode = 'bds_ecopark';
+    const OPERATING_MODE_STORAGE_KEY = 'falconx_operating_mode';
+    let currentOperatingMode = (function() {
+      try {
+        const q = new URLSearchParams(window.location.search).get('mode');
+        if (q === 'bds_ecopark' || q === 'forex_finance') {
+          localStorage.setItem(OPERATING_MODE_STORAGE_KEY, q);
+          return q;
+        }
+        const saved = localStorage.getItem(OPERATING_MODE_STORAGE_KEY);
+        if (saved === 'bds_ecopark' || saved === 'forex_finance') return saved;
+      } catch {}
+      return 'bds_ecopark';
+    })();
     let allForexLeads = [];
     let currentForexFilter = 'all';
 
     async function initOperatingMode() {
       try {
-        const res = await fetch('/api/mode/current').then(r => r.json());
+        const res = await fetch('/api/mode/current?mode=' + encodeURIComponent(currentOperatingMode)).then(r => r.json());
         if (res && res.success) {
-          currentOperatingMode = res.currentMode || 'bds_ecopark';
+          currentOperatingMode = res.currentMode || currentOperatingMode || 'bds_ecopark';
+          localStorage.setItem(OPERATING_MODE_STORAGE_KEY, currentOperatingMode);
           applyOperatingModeUI(currentOperatingMode, res.metadata, res.stats);
         }
       } catch (e) {
@@ -3143,6 +3208,8 @@
     async function switchOperatingMode(mode) {
       if (mode !== 'bds_ecopark' && mode !== 'forex_finance') return;
       try {
+        currentOperatingMode = mode;
+        localStorage.setItem(OPERATING_MODE_STORAGE_KEY, mode);
         const res = await fetch('/api/mode/switch', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -3150,18 +3217,21 @@
         }).then(r => r.json());
 
         if (res && res.success) {
-          currentOperatingMode = mode;
           applyOperatingModeUI(mode, res.metadata, res.stats);
           if (typeof logActivity === 'function') {
             logActivity(`[Chế Độ Hoạt Động] Đã chuyển đổi sang: ${res.metadata.name}`);
           }
-          // Tải lại các thành phần phụ thuộc Mode
-          renderAutoCommentSection();
+          // Tải lại toàn bộ các thành phần phụ thuộc Mode ngay lập tức
+          if (typeof refreshData === 'function') refreshData();
+          if (typeof renderAutoCommentSection === 'function') renderAutoCommentSection();
           if (typeof loadAllPostTargetGroups === 'function') loadAllPostTargetGroups();
           if (typeof loadDiscoveredGroups === 'function') loadDiscoveredGroups();
+          if (typeof loadHotLeadsToday === 'function') loadHotLeadsToday();
           if (mode === 'forex_finance') {
+            loadForexOffersStrip();
             loadForexLeadsTable();
           } else {
+            if (typeof loadInventoryProperties === 'function') loadInventoryProperties();
             if (typeof loadScannedMembersFromState === 'function') loadScannedMembersFromState();
           }
         }
@@ -3172,6 +3242,10 @@
 
     function applyOperatingModeUI(mode, metadata, stats) {
       const isForex = mode === 'forex_finance';
+      const setTxt = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+      };
 
       // 1. Sidebar Buttons
       const sideBds = document.getElementById('sidebar-btn-mode-bds');
@@ -3179,40 +3253,99 @@
       const sidePill = document.getElementById('sidebar-mode-pill');
       const sideTag = document.getElementById('mode-sidebar-tag');
 
-      // 2. Topbar Buttons
+      // 2. Topbar & Overview Banner Buttons
       const topBds = document.getElementById('topbar-btn-mode-bds');
       const topForex = document.getElementById('topbar-btn-mode-forex');
+      const ovBds = document.getElementById('overview-btn-mode-bds');
+      const ovForex = document.getElementById('overview-btn-mode-forex');
+      const ovBannerCard = document.getElementById('overview-mode-banner-card');
+      const ovBannerIcon = document.getElementById('overview-mode-banner-icon');
+      const ovBannerBadge = document.getElementById('overview-mode-banner-badge');
 
-      // 3. Header description
+      // 3. Header description & One-click composer elements
       const headerDesc = document.getElementById('section-desc');
+      const contentTa = document.getElementById('daily-oneclick-content');
+      const firstCmtInp = document.getElementById('daily-oneclick-first-comment');
 
       if (isForex) {
         if (sideBds) {
-          sideBds.className = 'py-2 px-1.5 rounded-lg text-[10px] font-bold flex flex-col items-center justify-center gap-1 transition text-[#86868b] hover:text-white hover:bg-white/5 border border-transparent';
+          sideBds.className = 'py-2 px-1.5 rounded-lg text-[10px] font-bold flex flex-col items-center justify-center gap-1 transition text-[#86868b] hover:text-white hover:bg-white/5 border border-transparent cursor-pointer';
         }
         if (sideForex) {
-          sideForex.className = 'py-2 px-1.5 rounded-lg text-[10px] font-bold flex flex-col items-center justify-center gap-1 transition bg-amber-500 text-black font-extrabold shadow-lg shadow-amber-500/30 border border-amber-400';
+          sideForex.className = 'py-2 px-1.5 rounded-lg text-[10px] font-bold flex flex-col items-center justify-center gap-1 transition bg-amber-500 text-black font-extrabold shadow-lg shadow-amber-500/30 border border-amber-400 cursor-pointer';
         }
         if (topBds) {
-          topBds.className = 'px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition text-[#86868b] hover:text-white border border-transparent';
+          topBds.className = 'px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition text-[#86868b] hover:text-white border border-transparent cursor-pointer';
         }
         if (topForex) {
-          topForex.className = 'px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition bg-amber-500 text-black font-extrabold shadow-sm border border-amber-400';
+          topForex.className = 'px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition bg-amber-500 text-black font-extrabold shadow-sm border border-amber-400 cursor-pointer';
         }
+        if (ovBds) {
+          ovBds.className = 'px-3.5 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition text-[#86868b] hover:text-white hover:bg-white/5 border border-transparent cursor-pointer';
+        }
+        if (ovForex) {
+          ovForex.className = 'px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 transition bg-amber-500 text-black shadow-lg shadow-amber-500/30 border border-amber-400 cursor-pointer';
+        }
+        if (ovBannerCard) {
+          ovBannerCard.className = 'apple-card rounded-3xl p-4 sm:p-5 border-2 border-amber-500/50 bg-gradient-to-r from-amber-500/15 via-white/[0.03] to-emerald-500/10 shadow-xl flex flex-col lg:flex-row lg:items-center justify-between gap-4';
+        }
+        if (ovBannerIcon) {
+          ovBannerIcon.className = 'w-12 h-12 rounded-2xl bg-amber-500 text-black flex items-center justify-center text-2xl shadow-lg shadow-amber-500/30 flex-shrink-0 font-bold';
+          ovBannerIcon.textContent = '📈';
+        }
+        if (ovBannerBadge) {
+          ovBannerBadge.className = 'text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-amber-500/25 text-amber-300 border border-amber-500/40 uppercase';
+          ovBannerBadge.textContent = '📈 ĐANG Ở CHẾ ĐỘ: FOREX TÀI CHÍNH & XAU/USD';
+        }
+        setTxt('overview-mode-banner-title', 'Không Gian Làm Việc Chuyên Biệt: Forex Tài Chính (Tín Hiệu Vàng XAU/USD, IB Sàn Exness/IC Markets, Copytrade EA & Quỹ FTMO)');
+        setTxt('overview-mode-banner-desc', 'Toàn bộ Kho Kèo Forex, Trung Tâm Trader Nóng và Nhóm Facebook mục tiêu đã chuyển sang mảng Forex — độc lập hoàn toàn với người đang làm BĐS!');
+
         if (sidePill) {
           sidePill.className = 'text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30';
           sidePill.innerHTML = '📈 FOREX';
         }
         if (sideTag) sideTag.textContent = 'Forex & Trader Automation';
-        if (headerDesc) headerDesc.textContent = 'Quét trader, nhóm Forex, tín hiệu kèo vàng XAU/USD & thi quỹ FTMO';
+        if (headerDesc) headerDesc.textContent = 'Quét trader, nhóm Forex, tín hiệu kèo vàng XAU/USD, IB Exness/IC Markets & thi quỹ FTMO';
 
-        // Cards visibility
+        // Sidebar Nav Labels
+        setTxt('nav-label-posts', 'Đăng Kèo & Tín Hiệu FX');
+        setTxt('nav-label-autocmt', 'Săn Trader & Kho Kèo FX');
+        setTxt('nav-label-growth', 'Kết Bạn & Nuôi Trader');
+
+        // Khối 0: One-Click Composer (Forex Mode)
+        setTxt('oneclick-badge-text', 'TÁC VỤ HÀNG NGÀY (MẢNG FOREX TÀI CHÍNH & XAU/USD)');
+        setTxt('oneclick-title', 'Đăng Kèo XAU/USD & AI Tự Động Lưu Vào Kho Gói Tín Hiệu / IB Sàn');
+        setTxt('oneclick-desc', 'Dán nhận định kèo Vàng XAU/USD, chương trình hoàn phí Backcom IB Exness/IC Markets hoặc ảnh Chart MT4/MT5 ➔ AI tự lưu vào Kho Gói Forex & rải nhóm Trader.');
+        setTxt('oneclick-label-1', '1. Nội Dung Nhận Định Kèo XAU/USD / Chương Trình IB Sàn / Bot EA:');
+        setTxt('oneclick-hint-1', 'AI tự nhận diện: Cặp tiền (XAU/USD, BTC), Sàn (Exness, IC Markets), Tín hiệu, Backcom, Quỹ FTMO');
+        setTxt('oneclick-label-2', '2. Ảnh Chart TradingView / Lịch Sử Lệnh MT4-MT5 (Tùy chọn):');
+        setTxt('oneclick-hint-2', 'Đính kèm ảnh phân tích kỹ thuật hoặc kết quả lệnh');
+        setTxt('btn-submit-daily-oneclick-text', 'ĐĂNG KÈO FOREX & LƯU VÀO KHO GÓI TÍN HIỆU / IB (1-CHẠM)');
+
+        if (contentTa) {
+          contentTa.placeholder = 'Ví dụ: [KÈO VÀNG XAU/USD PHIÊN MỸ] Canh Buy vùng 2642 - 2645, SL 2637, TP1 2655, TP2 2668. Anh em mở tài khoản Exness / IC Markets dưới link IB team nhận ngay Backcom 95% tự động + vào nhóm VIP tín hiệu thực chiến!';
+        }
+        if (firstCmtInp && (firstCmtInp.value.includes('xem nhà') || firstCmtInp.value.includes('căn đẹp'))) {
+          firstCmtInp.value = 'Anh em Trader cần vào nhóm VIP Tín Hiệu Vàng XAU/USD, nhận Backcom 95% Exness/IC Markets hoặc hỗ trợ gỡ lệnh âm nhắn trực tiếp mình hỗ trợ 1-1 nhé!';
+        }
+
+        // Strip dưới Khối 0: Kho Gói Forex
+        setTxt('overview-strip-icon', '📈');
+        setTxt('overview-strip-title', 'Kho Gói Tín Hiệu XAU/USD, IB Sàn & Copytrade EA Đang Mở (Gạt 1-Chạm Bật / Tạm Dừng)');
+        setTxt('overview-strip-link-btn', 'Mở radar săn Trader ➔');
+        loadForexOffersStrip();
+
+        // Trung Tâm Trader Nóng (Hot Intent Feed)
+        setTxt('hot-leads-title', 'Trung Tâm Trader Nóng Tìm Sàn / Xin Kèo XAU/USD & Gợi Ý Chốt IB (Forex Hot Feed)');
+        setTxt('hot-leads-desc', 'Tự động phát hiện bài Trader hỏi sàn uy tín, xin kèo Vàng XAU/USD, tìm Bot EA, thi quỹ FTMO hoặc cần gỡ lệnh âm kèm SĐT/Zalo/Telegram để chốt ngay.');
+        setTxt('hot-leads-refresh-label', 'Làm mới Trader nóng');
+
+        // Cards visibility in Tab 2 & Tab 3
         const bdsCard = document.getElementById('bds-inventory-card');
         const forexCard = document.getElementById('forex-radar-card');
         if (bdsCard) bdsCard.classList.add('hidden');
         if (forexCard) forexCard.classList.remove('hidden');
 
-        // Member Blocks
         const bdsMemBlock = document.getElementById('bds-member-block');
         const forexMemBlock = document.getElementById('forex-member-block');
         if (bdsMemBlock) bdsMemBlock.classList.add('hidden');
@@ -3222,23 +3355,76 @@
         }
       } else {
         if (sideBds) {
-          sideBds.className = 'py-2 px-1.5 rounded-lg text-[10px] font-bold flex flex-col items-center justify-center gap-1 transition bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 border border-emerald-400';
+          sideBds.className = 'py-2 px-1.5 rounded-lg text-[10px] font-bold flex flex-col items-center justify-center gap-1 transition bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 border border-emerald-400 cursor-pointer';
         }
         if (sideForex) {
-          sideForex.className = 'py-2 px-1.5 rounded-lg text-[10px] font-bold flex flex-col items-center justify-center gap-1 transition text-[#86868b] hover:text-white hover:bg-white/5 border border-transparent';
+          sideForex.className = 'py-2 px-1.5 rounded-lg text-[10px] font-bold flex flex-col items-center justify-center gap-1 transition text-[#86868b] hover:text-white hover:bg-white/5 border border-transparent cursor-pointer';
         }
         if (topBds) {
-          topBds.className = 'px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition bg-emerald-500 text-white shadow-sm border border-emerald-400';
+          topBds.className = 'px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition bg-emerald-500 text-white shadow-sm border border-emerald-400 cursor-pointer';
         }
         if (topForex) {
-          topForex.className = 'px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition text-[#86868b] hover:text-white border border-transparent';
+          topForex.className = 'px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition text-[#86868b] hover:text-white border border-transparent cursor-pointer';
         }
+        if (ovBds) {
+          ovBds.className = 'px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 transition bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 border border-emerald-400 cursor-pointer';
+        }
+        if (ovForex) {
+          ovForex.className = 'px-3.5 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition text-[#86868b] hover:text-white hover:bg-white/5 border border-transparent cursor-pointer';
+        }
+        if (ovBannerCard) {
+          ovBannerCard.className = 'apple-card rounded-3xl p-4 sm:p-5 border-2 border-emerald-500/40 bg-gradient-to-r from-emerald-500/15 via-white/[0.03] to-amber-500/10 shadow-xl flex flex-col lg:flex-row lg:items-center justify-between gap-4';
+        }
+        if (ovBannerIcon) {
+          ovBannerIcon.className = 'w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center text-2xl shadow-lg shadow-emerald-500/30 flex-shrink-0';
+          ovBannerIcon.textContent = '🏡';
+        }
+        if (ovBannerBadge) {
+          ovBannerBadge.className = 'text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 uppercase';
+          ovBannerBadge.textContent = '🌿 ĐANG Ở CHẾ ĐỘ: BĐS ECOPARK';
+        }
+        setTxt('overview-mode-banner-title', 'Không Gian Làm Việc Chuyên Biệt: Bất Động Sản Ecopark (Quỹ Căn, Khách Tìm Mua/Thuê & Rải Nhóm BĐS)');
+        setTxt('overview-mode-banner-desc', 'Mỗi người mở 1 trình duyệt/thiết bị có thể chọn 1 mảng riêng (Người 1 làm BĐS — Người 2 làm Forex) hoàn toàn độc lập, không ảnh hưởng màn hình của nhau!');
+
         if (sidePill) {
           sidePill.className = 'text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30';
           sidePill.innerHTML = '🌿 BĐS';
         }
         if (sideTag) sideTag.textContent = 'BĐS Automation';
-        if (headerDesc) headerDesc.textContent = 'Theo dõi tài khoản, tin nhắn và trạng thái tự động hóa';
+        if (headerDesc) headerDesc.textContent = 'Theo dõi tài khoản, quỹ căn Ecopark, khách nóng tìm mua/thuê và trạng thái tự động hóa';
+
+        // Sidebar Nav Labels
+        setTxt('nav-label-posts', 'Đăng Bài Lên Group');
+        setTxt('nav-label-autocmt', 'Săn Khách & Quỹ Căn');
+        setTxt('nav-label-growth', 'Tương Tác & Kết Bạn');
+
+        // Khối 0: One-Click Composer (BĐS Mode)
+        setTxt('oneclick-badge-text', 'TÁC VỤ HÀNG NGÀY (MẢNG BĐS ECOPARK)');
+        setTxt('oneclick-title', 'Đăng Bài & AI Tự Động Bóc Tách Lưu Note Vào Kho Căn');
+        setTxt('oneclick-desc', 'Dán nội dung hoặc tải ảnh bảng hàng ➔ AI & OCR bóc tách lưu thẻ căn hộ lên Cloud DB ➔ hệ thống đăng bài và bình luận mồi.');
+        setTxt('oneclick-label-1', '1. Nội Dung Bài Viết / Rao Căn / Bảng Hàng:');
+        setTxt('oneclick-hint-1', 'AI tự nhận diện: Mã căn, Giá, Phân khu, Số phòng, Diện tích');
+        setTxt('oneclick-label-2', '2. Ảnh Căn Hộ Hoặc Ảnh Bảng Hàng (Tùy chọn):');
+        setTxt('oneclick-hint-2', 'OCR tự đọc ảnh bảng hàng');
+        setTxt('btn-submit-daily-oneclick-text', 'ĐĂNG BÀI & TỰ ĐỘNG LƯU VÀO KHO CĂN (1-CHẠM)');
+
+        if (contentTa) {
+          contentTa.placeholder = 'Ví dụ: Cần bán gấp căn Solforest 2PN 2WC tầng 18 view trọn biệt thự đảo, diện tích 72m2, full đồ cao cấp, giá 3.4 tỷ bao phí. Liên hệ chính chủ: 098...';
+        }
+        if (firstCmtInp && (firstCmtInp.value.includes('XAU/USD') || firstCmtInp.value.includes('Backcom'))) {
+          firstCmtInp.value = 'Quý anh chị quan tâm căn đẹp giá tốt vui lòng nhắn tin trực tiếp hoặc gọi Hotline/Zalo chính chủ để xem nhà 24/7 ạ!';
+        }
+
+        // Strip dưới Khối 0: Quỹ Căn BĐS
+        setTxt('overview-strip-icon', '🏡');
+        setTxt('overview-strip-title', 'Quỹ Căn Đang Mở Bán / Cho Thuê (Gạt 1-Chạm Còn Căn / Đã Chốt)');
+        setTxt('overview-strip-link-btn', 'Mở toàn bộ kho căn ➔');
+        if (typeof loadInventoryProperties === 'function') loadInventoryProperties();
+
+        // Trung Tâm Khách Nóng BĐS
+        setTxt('hot-leads-title', 'Trung Tâm Khách Nóng & Gợi Ý Chốt Đơn (Hot Intent Feed)');
+        setTxt('hot-leads-desc', 'Tự động lọc bài khách hỏi thuê/mua nhà trong nhóm, bóc tách SĐT/Zalo và ghép sẵn căn phù hợp nhất trong kho để bạn chốt đơn 1-chạm.');
+        setTxt('hot-leads-refresh-label', 'Làm mới khách nóng');
 
         const bdsCard = document.getElementById('bds-inventory-card');
         const forexCard = document.getElementById('forex-radar-card');
@@ -3249,6 +3435,73 @@
         const forexMemBlock = document.getElementById('forex-member-block');
         if (bdsMemBlock) bdsMemBlock.classList.remove('hidden');
         if (forexMemBlock) forexMemBlock.classList.add('hidden');
+      }
+    }
+
+    async function loadForexOffersStrip() {
+      const strip = document.getElementById('overview-today-props-strip');
+      const badge = document.getElementById('overview-today-props-badge');
+      if (!strip || currentOperatingMode !== 'forex_finance') return;
+
+      try {
+        const res = await fetch('/api/forex/offers').then(r => r.json());
+        if (!res || !res.success) return;
+        const offers = Array.isArray(res.offers) ? res.offers : (Array.isArray(res.items) ? res.items : []);
+        const activeCount = offers.filter(o => o.status === 'available' || o.status === 'active').length;
+        if (badge) badge.textContent = `${activeCount} gói đang mở / ${offers.length} tổng`;
+
+        if (offers.length === 0) {
+          strip.innerHTML = '<div class="col-span-full text-xs text-[#86868b] py-2">Chưa có gói tín hiệu/IB nào. Hãy dán nội dung kèo XAU/USD vào ô phía trên và bấm Đăng Kèo 1-Chạm!</div>';
+          return;
+        }
+
+        strip.innerHTML = offers.slice(0, 6).map(o => {
+          const isAct = o.status === 'available' || o.status === 'active';
+          const toggleBtn = isAct
+            ? `<button onclick="quickToggleForexOfferStatus('${escapeHtml(o.id)}')" class="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10px] font-bold transition cursor-pointer">🟢 Đang Mở (Tạm dừng)</button>`
+            : `<button onclick="quickToggleForexOfferStatus('${escapeHtml(o.id)}')" class="px-2.5 py-1 rounded-lg bg-stone-700/60 hover:bg-stone-600 text-stone-300 border border-stone-600 text-[10px] font-bold transition cursor-pointer">⏸️ Đã Dừng (Mở lại)</button>`;
+          return `
+            <div class="p-3 rounded-2xl bg-white/[0.04] border ${isAct ? 'border-amber-500/35' : 'border-white/10 opacity-70'} flex items-center justify-between gap-2">
+              <div class="min-w-0">
+                <div class="text-xs font-bold text-white truncate">
+                  [${escapeHtml(o.categoryLabel || o.broker || 'Forex')}] ${escapeHtml(o.title)}
+                </div>
+                <div class="text-[11px] text-amber-300 font-mono font-semibold truncate">
+                  📊 ${escapeHtml(o.symbolOrBroker || o.symbol || 'XAU/USD')} · 🎯 ${escapeHtml(o.highlightText || o.winrateOrRebate || '')}
+                </div>
+              </div>
+              <div class="flex-shrink-0">${toggleBtn}</div>
+            </div>
+          `;
+        }).join('');
+      } catch (e) {
+        console.warn('Lỗi loadForexOffersStrip:', e);
+      }
+    }
+
+    async function quickToggleForexOfferStatus(offerId) {
+      try {
+        const res = await fetch(`/api/forex/offers/${encodeURIComponent(offerId)}/toggle`, { method: 'POST' }).then(r => r.json());
+        if (res && res.success) {
+          await loadForexOffersStrip();
+          await loadHotLeadsToday();
+        }
+      } catch (e) {
+        alert('Lỗi đổi trạng thái gói Forex: ' + e.message);
+      }
+    }
+
+    async function copyModeSpecificLink(targetMode) {
+      try {
+        const res = await fetch('/api/system/cloud-config').then(r => r.json());
+        const link = targetMode === 'forex_finance'
+          ? (res?.magicInviteForexUrl || (window.location.origin + '/?mode=forex_finance'))
+          : (res?.magicInviteBdsUrl || (window.location.origin + '/?mode=bds_ecopark'));
+        navigator.clipboard?.writeText(link);
+        const label = targetMode === 'forex_finance' ? 'NGƯỜI 2 — CHUYÊN MẢNG 📈 FOREX TÀI CHÍNH & XAU/USD' : 'NGƯỜI 1 — CHUYÊN MẢNG 🏡 BĐS ECOPARK';
+        alert(`🔗 ĐÃ COPY LINK ĐỘC LẬP CHO [${label}]:\n\n${link}\n\n👉 Gửi link này cho người phụ trách mảng tương ứng. Khi mở link trên trình duyệt hoặc điện thoại của họ, hệ thống sẽ tự động đăng nhập và khóa đúng mảng đó mà không làm thay đổi màn hình của người kia!`);
+      } catch (e) {
+        alert('Lỗi copy link: ' + e.message);
       }
     }
 
@@ -3855,6 +4108,10 @@
     }
 
     function renderOverviewTodayPropsStrip(propsList) {
+      if (currentOperatingMode === 'forex_finance') {
+        loadForexOffersStrip();
+        return;
+      }
       const strip = document.getElementById('overview-today-props-strip');
       const badge = document.getElementById('overview-today-props-badge');
       if (!strip) return;
@@ -3907,13 +4164,23 @@
       if (!grid) return;
 
       try {
-        const res = await fetch('/api/hot-leads/today').then(r => r.json());
+        const res = await fetch('/api/hot-leads/today?mode=' + encodeURIComponent(currentOperatingMode)).then(r => r.json());
         if (!res || !res.success) return;
         const items = res.items || [];
-        if (badge) badge.textContent = `${items.length} KHÁCH NÓNG · ${res.matchedCount || 0} KHỚP CĂN`;
+        const isForex = (res.mode || currentOperatingMode) === 'forex_finance';
+
+        if (badge) {
+          badge.textContent = isForex
+            ? `${items.length} TRADER NÓNG · ${res.matchedCount || 0} KHỚP GÓI FX`
+            : `${items.length} KHÁCH NÓNG · ${res.matchedCount || 0} KHỚP CĂN`;
+        }
 
         if (items.length === 0) {
-          grid.innerHTML = '<div class="col-span-full p-4 rounded-2xl bg-white/[0.03] border border-white/10 text-center text-xs text-[#86868b]">Hệ thống đang quét các nhóm mục tiêu. Khi phát hiện bài khách tìm thuê/mua nhà, khách nóng sẽ hiện ngay tại đây kèm SĐT và căn gợi ý.</div>';
+          grid.innerHTML = `<div class="col-span-full p-4 rounded-2xl bg-white/[0.03] border border-white/10 text-center text-xs text-[#86868b]">${
+            isForex
+              ? 'Hệ thống đang quét các nhóm Cộng đồng Trader / Vàng XAU/USD. Khi phát hiện Trader tìm sàn, xin kèo hoặc hỏi Bot EA sẽ hiện ngay tại đây.'
+              : 'Hệ thống đang quét các nhóm mục tiêu. Khi phát hiện bài khách tìm thuê/mua nhà, khách nóng sẽ hiện ngay tại đây kèm SĐT và căn gợi ý.'
+          }</div>`;
           return;
         }
 
@@ -3921,17 +4188,47 @@
           const t = new Date(item.timestamp);
           const timeStr = !isNaN(t.getTime()) ? t.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'Vừa xong';
           const mp = item.matchedProperty;
-          const matchHtml = mp
-            ? `<div class="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-[11px] text-emerald-300 flex items-center justify-between gap-2">
+          const mfx = item.matchedForexOffer;
+
+          let matchHtml = '';
+          if (isForex && (mfx || mp)) {
+            const fxTitle = mfx ? mfx.title : mp.building;
+            const fxCat = mfx ? mfx.broker : mp.project;
+            const fxHighlight = mfx ? mfx.winrateOrRebate : mp.priceText;
+            const symTags = Array.isArray(item.symbols) && item.symbols.length ? item.symbols.join(', ') : (mp?.bedroom || 'XAU/USD');
+            const brkTags = Array.isArray(item.brokers) && item.brokers.length ? item.brokers.join(', ') : 'Exness / IC Markets';
+            matchHtml = `
+              <div class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/35 text-[11px] text-amber-300 space-y-1">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="truncate">🎯 <b>Khớp ${item.matchScore || 95}%:</b> [${escapeHtml(fxCat)}] ${escapeHtml(fxTitle)}</span>
+                  <span class="px-2 py-0.5 rounded bg-amber-500/20 text-[10px] font-mono flex-shrink-0">${escapeHtml(fxHighlight)}</span>
+                </div>
+                <div class="text-[10px] text-[#86868b] font-mono flex items-center gap-2">
+                  <span>📊 Cặp: <b class="text-white">${escapeHtml(symTags)}</b></span>
+                  <span>·</span>
+                  <span>🏦 Sàn: <b class="text-emerald-300">${escapeHtml(brkTags)}</b></span>
+                  ${item.sourceGroup ? `<span class="truncate">· Nhóm: ${escapeHtml(item.sourceGroup)}</span>` : ''}
+                </div>
+              </div>`;
+          } else if (mp) {
+            matchHtml = `<div class="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-[11px] text-emerald-300 flex items-center justify-between gap-2">
                  <span class="truncate">🎯 <b>Khớp ${item.matchScore || 92}%:</b> ${escapeHtml(mp.building || mp.project)} (${escapeHtml(mp.bedroom)}) — <b>${escapeHtml(mp.priceText)}</b></span>
                  <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-[10px] font-mono flex-shrink-0">Còn căn</span>
-               </div>`
-            : `<div class="p-2 rounded-xl bg-white/[0.03] border border-white/10 text-[11px] text-[#86868b]">ℹ️ Đang chờ khớp căn phù hợp trong kho</div>`;
+               </div>`;
+          } else {
+            matchHtml = `<div class="p-2 rounded-xl bg-white/[0.03] border border-white/10 text-[11px] text-[#86868b]">ℹ️ Đang chờ khớp sản phẩm phù hợp trong kho</div>`;
+          }
 
           const phoneBtns = item.phone
-            ? `<a href="https://zalo.me/${escapeHtml(item.phone)}" target="_blank" class="px-2.5 py-1 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 text-[11px] font-bold transition">💬 Chat Zalo (${escapeHtml(item.phone)})</a>
+            ? `<a href="https://zalo.me/${escapeHtml(item.phone)}" target="_blank" class="px-2.5 py-1 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 text-[11px] font-bold transition">💬 Zalo (${escapeHtml(item.phone)})</a>
                <a href="tel:${escapeHtml(item.phone)}" class="px-2.5 py-1 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 text-[11px] font-bold transition">📞 Gọi Ngay</a>`
             : '';
+          const teleBtn = item.telegram
+            ? `<span class="px-2.5 py-1 rounded-xl bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[11px] font-mono font-bold">✈️ Tele: ${escapeHtml(item.telegram)}</span>`
+            : '';
+          const intentPill = item.intentLabel
+            ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold border" style="background-color: ${(item.intentColor || '#f59e0b')}20; color: ${item.intentColor || '#f59e0b'}; border-color: ${(item.intentColor || '#f59e0b')}40;">${escapeHtml(item.intentLabel)}</span>`
+            : `<span class="text-[10px] font-mono px-2 py-0.5 rounded-full ${item.status === 'commented' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/15 text-amber-300'}">${item.status === 'commented' ? '✅ Đã bình luận' : '👀 Vừa phát hiện'}</span>`;
 
           return `
             <div class="p-4 rounded-2xl bg-white/[0.04] border border-white/10 hover:border-amber-500/40 transition space-y-2.5">
@@ -3940,16 +4237,15 @@
                   <span class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-mono font-bold">🔥 ${timeStr}</span>
                   <span class="text-xs font-bold text-white truncate">${escapeHtml(item.author)}</span>
                 </div>
-                <span class="text-[10px] font-mono px-2 py-0.5 rounded-full ${item.status === 'commented' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/15 text-amber-300'}">
-                  ${item.status === 'commented' ? '✅ Đã bình luận' : '👀 Vừa phát hiện'}
-                </span>
+                ${intentPill}
               </div>
               <p class="text-xs text-[#f5f5f7] line-clamp-2 leading-relaxed">${escapeHtml(item.content)}</p>
               ${matchHtml}
               <div class="flex items-center justify-between gap-2 pt-1 flex-wrap">
                 <div class="flex items-center gap-1.5 flex-wrap">
                   ${phoneBtns}
-                  ${item.postUrl ? `<a href="${escapeHtml(item.postUrl)}" target="_blank" class="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-white text-[11px] font-medium transition">↗ Mở Bài FB</a>` : ''}
+                  ${teleBtn}
+                  ${item.postUrl ? `<a href="${escapeHtml(item.postUrl)}" target="_blank" class="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-white text-[11px] font-medium transition">↗ Mở FB</a>` : ''}
                 </div>
                 <button onclick="copyHotLeadReply('${escapeHtml(item.suggestedComment || '')}')" class="px-2.5 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-[11px] font-semibold transition cursor-pointer">
                   📋 Copy Câu Chốt
@@ -3980,33 +4276,70 @@
 
       bar.innerHTML = accs.map(a => {
         const role = a.role || (a.isDefault ? 'master' : 'satellite');
+        const vMode = a.verticalMode || (/trading|forex|minh/i.test(a.name || '') ? 'forex_finance' : 'bds_ecopark');
         const isLive = a.status === 'live' || a.status === 'active';
         return `
-          <div class="p-3 rounded-xl bg-black/30 border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div class="p-3 rounded-xl bg-black/30 border border-white/10 flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
             <div class="flex items-center gap-2.5 min-w-0">
               <span class="w-2.5 h-2.5 rounded-full ${isLive ? 'bg-emerald-400' : 'bg-amber-400'} flex-shrink-0"></span>
               <div class="min-w-0">
-                <div class="text-xs font-bold text-white truncate">${escapeHtml(a.name)}</div>
+                <div class="text-xs font-bold text-white truncate flex items-center gap-1.5">
+                  <span>${escapeHtml(a.name)}</span>
+                  <span class="px-2 py-0.5 rounded-full text-[9px] font-mono ${vMode === 'forex_finance' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : (vMode === 'both' ? 'bg-sky-500/20 text-sky-300 border border-sky-500/30' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30')}">
+                    ${vMode === 'forex_finance' ? '📈 Chuyên Forex' : (vMode === 'both' ? '🌐 Cả 2 Mảng' : '🏡 Chuyên BĐS')}
+                  </span>
+                </div>
                 <div class="text-[10px] text-[#86868b] font-mono">${isLive ? 'Đang kết nối sẵn sàng' : 'Cần kiểm tra phiên'} · UID: ${escapeHtml(a.uid || a.id)}</div>
               </div>
             </div>
-            <div class="flex items-center gap-1 flex-wrap">
-              <button onclick="updateAccountRole('${escapeHtml(a.id)}', 'master')"
-                class="px-2.5 py-1 rounded-lg text-[10px] font-bold transition cursor-pointer ${role === 'master' ? 'bg-amber-500 text-black shadow' : 'bg-white/5 text-[#86868b] hover:text-white border border-white/10'}">
-                👑 Nick Chính
-              </button>
-              <button onclick="updateAccountRole('${escapeHtml(a.id)}', 'satellite')"
-                class="px-2.5 py-1 rounded-lg text-[10px] font-bold transition cursor-pointer ${role === 'satellite' ? 'bg-[#0071e3] text-white shadow' : 'bg-white/5 text-[#86868b] hover:text-white border border-white/10'}">
-                🛰️ Vệ Tinh
-              </button>
-              <button onclick="updateAccountRole('${escapeHtml(a.id)}', 'warmup')"
-                class="px-2.5 py-1 rounded-lg text-[10px] font-bold transition cursor-pointer ${role === 'warmup' ? 'bg-emerald-500 text-black shadow' : 'bg-white/5 text-[#86868b] hover:text-white border border-white/10'}">
-                🌱 Làm Ấm 48h
-              </button>
+            <div class="flex items-center gap-2 flex-wrap">
+              <div class="flex items-center gap-1 p-0.5 rounded-lg bg-white/[0.04] border border-white/10">
+                <button onclick="updateAccountVertical('${escapeHtml(a.id)}', 'bds_ecopark')" title="Gán nick này cho Người 1 (Mảng BĐS Ecopark)"
+                  class="px-2 py-1 rounded-md text-[10px] font-bold transition cursor-pointer ${vMode === 'bds_ecopark' ? 'bg-emerald-500 text-white shadow' : 'text-[#86868b] hover:text-white'}">
+                  🏡 Mảng BĐS
+                </button>
+                <button onclick="updateAccountVertical('${escapeHtml(a.id)}', 'forex_finance')" title="Gán nick này cho Người 2 (Mảng Forex Tài Chính)"
+                  class="px-2 py-1 rounded-md text-[10px] font-bold transition cursor-pointer ${vMode === 'forex_finance' ? 'bg-amber-500 text-black shadow' : 'text-[#86868b] hover:text-white'}">
+                  📈 Mảng Forex
+                </button>
+              </div>
+              <div class="flex items-center gap-1">
+                <button onclick="updateAccountRole('${escapeHtml(a.id)}', 'master')"
+                  class="px-2.5 py-1 rounded-lg text-[10px] font-bold transition cursor-pointer ${role === 'master' ? 'bg-amber-500 text-black shadow' : 'bg-white/5 text-[#86868b] hover:text-white border border-white/10'}">
+                  👑 Nick Chính
+                </button>
+                <button onclick="updateAccountRole('${escapeHtml(a.id)}', 'satellite')"
+                  class="px-2.5 py-1 rounded-lg text-[10px] font-bold transition cursor-pointer ${role === 'satellite' ? 'bg-[#0071e3] text-white shadow' : 'bg-white/5 text-[#86868b] hover:text-white border border-white/10'}">
+                  🛰️ Vệ Tinh
+                </button>
+                <button onclick="updateAccountRole('${escapeHtml(a.id)}', 'warmup')"
+                  class="px-2.5 py-1 rounded-lg text-[10px] font-bold transition cursor-pointer ${role === 'warmup' ? 'bg-emerald-500 text-black shadow' : 'bg-white/5 text-[#86868b] hover:text-white border border-white/10'}">
+                  🌱 Làm Ấm
+                </button>
+              </div>
             </div>
           </div>
         `;
       }).join('');
+    }
+
+    async function updateAccountVertical(accId, verticalMode) {
+      try {
+        const res = await fetch(`/api/accounts/${encodeURIComponent(accId)}/role`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ verticalMode })
+        }).then(r => r.json());
+
+        if (res && res.success) {
+          logActivity(`[Phân Mảng Nick] ${res.message}`);
+          await refreshData();
+        } else {
+          alert('Lỗi phân mảng: ' + (res?.error || 'Không xác định'));
+        }
+      } catch (e) {
+        alert('Lỗi kết nối khi phân mảng: ' + e.message);
+      }
     }
 
     async function updateAccountRole(accId, role) {
@@ -4054,22 +4387,26 @@
 
     
     // ==========================================
-    // FALCONX TOKEN INTERCEPTOR & WEB AUTH
+    // FALCONX TOKEN INTERCEPTOR & WEB AUTH (KÈM HEADER X-OPERATING-MODE ĐỘC LẬP TỪNG TAB/USER)
     // ==========================================
     const AUTH_TOKEN_KEY = 'falconx_auth_token';
 
-    // Monkey-patch window.fetch để tự động truyền token vào mọi request API
+    // Monkey-patch window.fetch để tự động truyền token và X-Operating-Mode vào mọi request API
     const _originalFetch = window.fetch;
     window.fetch = async function(url, options = {}) {
       const token = localStorage.getItem(AUTH_TOKEN_KEY);
-      if (token && typeof url === 'string' && url.startsWith('/api/') && !url.startsWith('/api/auth/login')) {
+      if (typeof url === 'string' && url.startsWith('/api/')) {
         options.headers = options.headers || {};
+        const activeMode = currentOperatingMode || localStorage.getItem(OPERATING_MODE_STORAGE_KEY) || 'bds_ecopark';
         if (options.headers instanceof Headers) {
-          options.headers.set('Authorization', 'Bearer ' + token);
+          if (token && !url.startsWith('/api/auth/login')) options.headers.set('Authorization', 'Bearer ' + token);
+          options.headers.set('X-Operating-Mode', activeMode);
         } else if (Array.isArray(options.headers)) {
-          options.headers.push(['Authorization', 'Bearer ' + token]);
+          if (token && !url.startsWith('/api/auth/login')) options.headers.push(['Authorization', 'Bearer ' + token]);
+          options.headers.push(['X-Operating-Mode', activeMode]);
         } else {
-          options.headers['Authorization'] = 'Bearer ' + token;
+          if (token && !url.startsWith('/api/auth/login')) options.headers['Authorization'] = 'Bearer ' + token;
+          options.headers['X-Operating-Mode'] = activeMode;
         }
       }
       
@@ -4261,15 +4598,22 @@
     }
 
     async function checkAuthSession() {
-      // Hỗ trợ Link Mời 1-Chạm (?inviteToken=...) cho bạn bè vào thẳng không cần đăng nhập thủ công
+      // Hỗ trợ Link Mời 1-Chạm (?inviteToken=...&mode=...) cho 2 người dùng độc lập 2 mảng (BĐS vs Forex)
       try {
         const urlParams = new URLSearchParams(window.location.search);
         const inviteToken = urlParams.get('inviteToken');
+        const urlMode = urlParams.get('mode');
+        if (urlMode === 'bds_ecopark' || urlMode === 'forex_finance') {
+          currentOperatingMode = urlMode;
+          localStorage.setItem(OPERATING_MODE_STORAGE_KEY, urlMode);
+        }
         if (inviteToken) {
           localStorage.setItem(AUTH_TOKEN_KEY, inviteToken);
-          window.history.replaceState({}, document.title, window.location.pathname);
+          const cleanQuery = (urlMode === 'bds_ecopark' || urlMode === 'forex_finance') ? ('?mode=' + urlMode) : '';
+          window.history.replaceState({}, document.title, window.location.pathname + cleanQuery);
           hideLoginModal();
           fetchCurrentUserProfile();
+          if (typeof initOperatingMode === 'function') initOperatingMode();
           refreshData();
           return;
         }
@@ -8864,42 +9208,64 @@ async function runAiSimulation() {
       </div>
 
       <div class="p-6 overflow-y-auto space-y-5 flex-1 custom-scrollbar">
-        <!-- 1. LINK VÀO THẲNG 1-CHẠM CHO BẠN BÈ -->
+        <!-- 1. HAI LINK ĐỘC LẬP CHO 2 NGƯỜI LÀM 2 MẢNG SONG SONG (BĐS vs FOREX) -->
         <div class="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 space-y-3">
           <div class="flex items-center justify-between flex-wrap gap-2">
             <div>
               <h4 class="text-xs font-bold uppercase tracking-wider text-emerald-300 flex items-center gap-1.5">
-                <span>🔗</span> 1. Link Mời Bạn Bè Vào Thẳng 1-Chạm (Auto-Login Không Cần Mật Khẩu)
+                <span>🔗</span> 1. Hai Link 1-Chạm Cho 2 Người Dùng Độc Lập 2 Mảng (Auto-Login Không Cần Mật Khẩu)
               </h4>
-              <p class="text-[11px] text-emerald-200/80 mt-0.5">Gửi link này qua Zalo / Messenger / Telegram: bạn của bạn bấm vào là tự động đăng nhập thẳng vào hệ thống!</p>
+              <p class="text-[11px] text-emerald-200/80 mt-0.5">Mỗi người mở link của mảng mình trên máy tính/điện thoại riêng sẽ hoạt động độc lập 100%, không làm đổi màn hình của người kia!</p>
             </div>
-            <button onclick="copyMagicInviteLink()" class="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs transition cursor-pointer shadow">
-              📋 Copy Link Mời Ngay
-            </button>
           </div>
-          <input type="text" id="cloud-magic-invite-input" readonly
-            class="w-full px-3.5 py-2 rounded-xl bg-black/50 border border-emerald-500/30 text-emerald-300 font-mono text-xs focus:outline-none"
-            value="Đang tạo link..." />
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="p-3 rounded-xl bg-black/50 border border-emerald-500/30 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-emerald-300">🏡 Link Người 1 (Chuyên BĐS Ecopark)</span>
+                <button onclick="copyModeSpecificLink('bds_ecopark')" class="px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-[11px] transition cursor-pointer">
+                  📋 Copy Link BĐS
+                </button>
+              </div>
+              <input type="text" id="cloud-magic-invite-input" readonly
+                class="w-full px-2.5 py-1.5 rounded-lg bg-black/60 border border-white/10 text-emerald-300 font-mono text-[11px] focus:outline-none"
+                value="Đang tạo link BĐS..." />
+            </div>
+            <div class="p-3 rounded-xl bg-black/50 border border-amber-500/30 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold text-amber-300">📈 Link Người 2 (Chuyên Forex & XAU/USD)</span>
+                <button onclick="copyModeSpecificLink('forex_finance')" class="px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-black font-bold text-[11px] transition cursor-pointer">
+                  📋 Copy Link Forex
+                </button>
+              </div>
+              <input type="text" id="cloud-magic-invite-forex-input" readonly
+                class="w-full px-2.5 py-1.5 rounded-lg bg-black/60 border border-white/10 text-amber-300 font-mono text-[11px] focus:outline-none"
+                value="Đang tạo link Forex..." />
+            </div>
+          </div>
         </div>
 
         <!-- 2. TẠO TÀI KHOẢN RIÊNG CHO BẠN BÈ CÙNG TEAM -->
         <div class="p-4 rounded-2xl bg-white/[0.04] border border-white/10 space-y-3">
           <h4 class="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5">
-            <span>👥</span> 2. Tạo Nhanh Tài Khoản & Link Riêng Cho Từng Người Bạn
+            <span>👥</span> 2. Tạo Nhanh Tài Khoản & Gán Mảng Chuyên Biệt Cho Từng Người Bạn
           </h4>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-            <input type="text" id="friend-invite-name" placeholder="Tên người bạn (VD: Tuấn BĐS)"
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
+            <input type="text" id="friend-invite-name" placeholder="Tên (VD: Minh Forex)"
               class="px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-white text-xs focus:border-[#0071e3] focus:outline-none" />
-            <input type="text" id="friend-invite-username" placeholder="Username (VD: tuanbds)"
+            <input type="text" id="friend-invite-username" placeholder="Username (VD: minhfx)"
               class="px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-white text-xs focus:border-[#0071e3] focus:outline-none" />
-            <input type="text" id="friend-invite-password" placeholder="Mật khẩu (VD: ecopark2026)" value="ecopark2026"
+            <input type="text" id="friend-invite-password" placeholder="Mật khẩu" value="ecopark2026"
               class="px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-white text-xs focus:border-[#0071e3] focus:outline-none" />
+            <select id="friend-invite-mode" class="px-3 py-2 rounded-xl bg-black/60 border border-white/15 text-white text-xs focus:border-[#0071e3] focus:outline-none">
+              <option value="bds_ecopark">🏡 Chuyên BĐS Ecopark</option>
+              <option value="forex_finance">📈 Chuyên Forex & XAU/USD</option>
+            </select>
           </div>
           <div class="flex items-center justify-between flex-wrap gap-2">
-            <span class="text-[11px] text-[#86868b]">Tài khoản bạn bè được cấp quyền dùng chung Kho Căn, Khách Nóng và tự thêm Nick FB của họ trên Web.</span>
+            <span class="text-[11px] text-[#86868b]">Tài khoản bạn bè được khóa sẵn mảng đã chọn (BĐS hoặc Forex) và có thể tự thêm Nick FB của họ.</span>
             <button onclick="createFriendInviteNow()" id="btn-create-friend-invite"
               class="px-4 py-2 rounded-xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold transition cursor-pointer shadow">
-              ➕ Tạo Tài Khoản & Copy Link Cho Bạn
+              ➕ Tạo Tài Khoản & Copy Link Độc Lập
             </button>
           </div>
           <div id="friend-invite-result-box" class="hidden p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-xs text-emerald-300 space-y-1 font-mono"></div>
@@ -8981,6 +9347,7 @@ async function runAiSimulation() {
 
   <script>
     let cachedMagicInviteUrl = '';
+    let cachedMagicInviteForexUrl = '';
 
     async function loadCloudShareConfig() {
       try {
@@ -8989,9 +9356,12 @@ async function runAiSimulation() {
           fetch('/api/system/cloud-db/status').then(r => r.json()).catch(() => null)
         ]);
         if (res && res.success) {
-          cachedMagicInviteUrl = res.magicInviteUrl || res.publicUrl || window.location.origin;
+          cachedMagicInviteUrl = res.magicInviteBdsUrl || res.magicInviteUrl || res.publicUrl || window.location.origin;
+          cachedMagicInviteForexUrl = res.magicInviteForexUrl || (cachedMagicInviteUrl + (cachedMagicInviteUrl.includes('?') ? '&' : '?') + 'mode=forex_finance');
           const inp = document.getElementById('cloud-magic-invite-input');
           if (inp) inp.value = cachedMagicInviteUrl;
+          const fxInp = document.getElementById('cloud-magic-invite-forex-input');
+          if (fxInp) fxInp.value = cachedMagicInviteForexUrl;
           const tokInp = document.getElementById('cloud-cfg-bot-token');
           if (tokInp && res.settings) tokInp.value = res.settings.telegramBotToken || '';
           const grpInp = document.getElementById('cloud-cfg-group-id');
@@ -9064,13 +9434,14 @@ async function runAiSimulation() {
       const name = document.getElementById('friend-invite-name')?.value?.trim();
       const username = document.getElementById('friend-invite-username')?.value?.trim();
       const password = document.getElementById('friend-invite-password')?.value?.trim() || 'ecopark2026';
+      const operatingMode = document.getElementById('friend-invite-mode')?.value || 'bds_ecopark';
       const box = document.getElementById('friend-invite-result-box');
 
       try {
         const res = await fetch('/api/system/create-friend-invite', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, username, password })
+          body: JSON.stringify({ name, username, password, operatingMode })
         }).then(r => r.json());
 
         if (res && res.success) {
@@ -9079,7 +9450,7 @@ async function runAiSimulation() {
             box.classList.remove('hidden');
             box.innerHTML = `
               <div>🎉 <b>${escapeHtml(res.message)}</b></div>
-              <div>• Tài khoản: <b>${escapeHtml(res.credentials.username)}</b> | Mật khẩu: <b>${escapeHtml(res.credentials.password)}</b></div>
+              <div>• Tài khoản: <b>${escapeHtml(res.credentials.username)}</b> | Mật khẩu: <b>${escapeHtml(res.credentials.password)}</b> | Mảng: <b>${operatingMode === 'forex_finance' ? '📈 Forex Tài Chính' : '🏡 BĐS Ecopark'}</b></div>
               <div class="truncate">• Link vào thẳng (đã copy): <code>${escapeHtml(res.magicLink)}</code></div>
             `;
           }

@@ -41,6 +41,7 @@ export interface FacebookAccount {
   fbPassword?: string; // Mật khẩu để tự động đăng nhập lại
   role?: 'master' | 'satellite' | 'warmup'; // Phân vai Nick Chính / Nick Vệ Tinh / Làm Ấm 48h
   warmupMode?: boolean; // Chế độ làm ấm tự động giảm 70% tốc độ tác vụ
+  verticalMode?: 'bds_ecopark' | 'forex_finance' | 'both'; // Phân mảng độc lập: BĐS Ecopark / Forex Tài Chính / Cả 2
   createdAt: string;
   lastActiveAt: string;
 }
@@ -94,6 +95,13 @@ function loadDatabase(): DatabaseSchema {
       if (memoryDb && (!memoryDb.accounts || memoryDb.accounts.length === 0)) {
         memoryDb.accounts = [...defaultAccounts];
         persistNow();
+      }
+      if (memoryDb && Array.isArray(memoryDb.accounts)) {
+        for (const acc of memoryDb.accounts) {
+          if (!acc.verticalMode) {
+            acc.verticalMode = /trading|forex|fx|vàng|gold/i.test(acc.name || '') ? 'forex_finance' : 'bds_ecopark';
+          }
+        }
       }
     } catch {
       memoryDb = { ...defaultData };

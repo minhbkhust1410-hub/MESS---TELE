@@ -212,9 +212,31 @@ class OnlineCloudDatabase {
 
       const data: any = await res.json();
       this.lastCloudSha = data.sha || null;
-      if (!data.content) return false;
 
-      const rawJson = Buffer.from(data.content, 'base64').toString('utf8');
+      let rawJson = '';
+      if (data.content) {
+        rawJson = Buffer.from(data.content, 'base64').toString('utf8');
+      } else if (data.sha) {
+        // Khi file Vault > 1MB, GitHub Contents API để trống content và trả về qua Git Blob API
+        const blobRes = await fetch(
+          `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/git/blobs/${data.sha}`,
+          { headers }
+        );
+        if (blobRes.ok) {
+          const blobData: any = await blobRes.json();
+          if (blobData.content) {
+            rawJson = Buffer.from(blobData.content, 'base64').toString('utf8');
+          }
+        }
+      }
+      if (!rawJson && data.download_url) {
+        const dlRes = await fetch(data.download_url, { headers });
+        if (dlRes.ok) {
+          rawJson = await dlRes.text();
+        }
+      }
+      if (!rawJson) return false;
+
       const filesMap = decryptVaultPayload(rawJson);
 
       for (const [vKey, b64] of Object.entries(filesMap)) {

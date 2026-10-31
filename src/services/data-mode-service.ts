@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import { TargetGroup, getTargetGroups, addTargetGroup, getKeywords, setKeywords, getCommentTemplates } from '../db/auto-comment-store.js';
-import { parseForexLead, ParsedForexLead } from './forex-parser.js';
+import { TargetGroup, getTargetGroups, addTargetGroup } from '../db/auto-comment-store.js';
+import { parseForexLead, ParsedForexLead, generateForexTargetedComment } from './forex-parser.js';
 
 export type OperatingMode = 'bds_ecopark' | 'forex_finance';
 
@@ -15,6 +15,18 @@ export interface ModeInfo {
   accentBorder: string;
   description: string;
   icon: string;
+}
+
+export interface ForexOfferItem {
+  id: string;
+  category: 'signal' | 'broker_ib' | 'copytrade_ea' | 'fund_ftmo' | 'recovery' | 'education';
+  categoryLabel: string;
+  title: string;
+  symbolOrBroker: string;
+  highlightText: string;
+  ctaComment: string;
+  status: 'available' | 'closed';
+  createdAt: string;
 }
 
 export const MODE_METADATA: Record<OperatingMode, ModeInfo> = {
@@ -44,6 +56,7 @@ export const MODE_METADATA: Record<OperatingMode, ModeInfo> = {
 
 const MODE_CONFIG_FILE = path.resolve('./data/active_mode.json');
 const FOREX_DATA_FILE = path.resolve('./data/forex_leads_pool.json');
+const FOREX_INVENTORY_FILE = path.resolve('./data/forex_inventory.json');
 
 // Danh mục các hội nhóm chuẩn ngành Forex Tài Chính
 const SEED_FOREX_GROUPS: Array<{ name: string; url: string; membersCount?: number }> = [
@@ -96,7 +109,6 @@ export const FOREX_KEYWORDS: string[] = [
   'spread thấp',
 ];
 
-// Mẫu bài cào / lead mẫu được phân loại thực tế
 export interface ClassifiedForexMemberLead {
   id: string;
   name: string;
@@ -107,20 +119,95 @@ export interface ClassifiedForexMemberLead {
   status: 'new' | 'contacted' | 'vip' | 'ignored';
 }
 
+const DEFAULT_FOREX_OFFERS: ForexOfferItem[] = [
+  {
+    id: 'fx_offer_1',
+    category: 'signal',
+    categoryLabel: 'Tín Hiệu VIP',
+    title: 'Channel Tín Hiệu Vàng XAU/USD Thực Chiến (3-5 Kèo/Ngày)',
+    symbolOrBroker: 'XAU/USD · US30',
+    highlightText: 'Winrate ~82% · Có Entry/SL/TP rõ ràng',
+    ctaComment: 'Dạ bên em đang mở cửa trải nghiệm miễn phí 7 ngày nhóm VIP bắn kèo Vàng XAU/USD thực chiến (Entry/SL/TP rõ ràng, winrate ~82%). Bác check inbox em gửi link vào nhóm ngay nhé 📈',
+    status: 'available',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'fx_offer_2',
+    category: 'broker_ib',
+    categoryLabel: 'Hoàn Phí IB Sàn',
+    title: 'Mở TK Exness / IC Markets Zero Spread — Tự Động Backcom 95%',
+    symbolOrBroker: 'Exness · IC Markets',
+    highlightText: 'Hoàn com 95% tự động · Nạp rút VietQR 30s',
+    ctaComment: 'Dạ nếu bác đánh Vàng XAU/USD cần spread mỏng và nạp rút VietQR 30s thì Exness/IC Markets tài khoản Raw/Zero là chuẩn nhất. Bên em cài hoàn phí tự động 95% mỗi sáng, bác check inbox em hỗ trợ nhé 💸',
+    status: 'available',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'fx_offer_3',
+    category: 'copytrade_ea',
+    categoryLabel: 'Copytrade & Bot EA',
+    title: 'Bot EA Quản Trị Vốn XAU/USD Đa Khung (MT4/MT5 Có Myfxbook)',
+    symbolOrBroker: 'Bot EA · Copytrade',
+    highlightText: 'Lợi nhuận 10-14%/tháng · Max DD < 8%',
+    ctaComment: 'Dạ hệ thống Copytrade & Bot EA bên em chạy trực tiếp trên tài khoản Exness/IC Markets của khách, lịch sử Myfxbook 18 tháng chuẩn chỉ, Drawdown dưới 8%. Bác check tin nhắn em gửi link Myfxbook đối chiếu nhé 🤖',
+    status: 'available',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'fx_offer_4',
+    category: 'fund_ftmo',
+    categoryLabel: 'Thi Quỹ FTMO/MFF',
+    title: 'Kèm 1-1 & Bộ Quản Trị Rủi Ro Pass Quỹ FTMO 100.000$',
+    symbolOrBroker: 'FTMO · The5ers',
+    highlightText: 'Giữ Max Daily DD < 3% · Tặng bảng tính Lot',
+    ctaComment: 'Bác đang thi quỹ FTMO gói bao nhiêu thế ạ? Bên em có sẵn bảng Excel tính Volume tự động chống vi phạm Daily Drawdown 5% và lộ trình pass 2 vòng thực tế. Bác check inbox em gửi tặng file nhé 🎯',
+    status: 'available',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'fx_offer_5',
+    category: 'recovery',
+    categoryLabel: 'Cứu Lệnh & Gỡ Âm',
+    title: 'Tổ Tư Vấn Cân Lệnh Hedge & Gỡ Âm XAU/USD An Toàn 24/7',
+    symbolOrBroker: 'XAU/USD · Cứu TK',
+    highlightText: 'Tính điểm Breakeven · Chống cháy Margin',
+    ctaComment: 'Bác bình tĩnh đừng nhồi thêm lệnh vội nhé! Bác nhắn qua inbox các mốc giá đang kẹt và mức Margin Level hiện tại, kỹ thuật bên em tính điểm khóa Hedge và vùng hồi để gỡ hòa vốn an toàn cho bác ngay ạ 🛡️',
+    status: 'available',
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 'fx_offer_6',
+    category: 'education',
+    categoryLabel: 'Đào Tạo Newbie',
+    title: 'Bộ Giáo Trình Price Action & Smart Money Concept (SMC) Thực Chiến',
+    symbolOrBroker: 'Price Action · SMC',
+    highlightText: 'Miễn phí 100% · Kèm mở TK Demo/Cent',
+    ctaComment: 'Người mới bác cứ luyện trên tài khoản Demo hoặc Cent trước cho vững tâm lý nhé. Em gửi tặng bác trọn bộ Ebook Price Action & Video 5 bước đọc cấu trúc sóng qua inbox, bác mở tin nhắn nhận tài liệu nha 📚',
+    status: 'available',
+    createdAt: new Date().toISOString(),
+  },
+];
+
 class DataModeService {
   private currentMode: OperatingMode = 'bds_ecopark';
+  private userModes: Record<string, OperatingMode> = {};
+  private forexOffers: ForexOfferItem[] = [];
 
   constructor() {
     this.loadState();
+    this.loadForexOffers();
     this.seedForexGroupsIfMissing();
   }
 
   private loadState() {
     try {
       if (fs.existsSync(MODE_CONFIG_FILE)) {
-        const raw = JSON.parse(fs.readFileSync(MODE_CONFIG_FILE, 'utf8'));
+        const raw = JSON.parse(fs.readFileSync(MODE_CONFIG_FILE, 'utf8').replace(/^\uFEFF/, ''));
         if (raw.currentMode === 'bds_ecopark' || raw.currentMode === 'forex_finance') {
           this.currentMode = raw.currentMode;
+        }
+        if (raw.userModes && typeof raw.userModes === 'object') {
+          this.userModes = raw.userModes;
         }
       }
     } catch {
@@ -133,7 +220,15 @@ class DataModeService {
       fs.mkdirSync(path.dirname(MODE_CONFIG_FILE), { recursive: true });
       fs.writeFileSync(
         MODE_CONFIG_FILE,
-        JSON.stringify({ currentMode: this.currentMode, updatedAt: new Date().toISOString() }, null, 2),
+        JSON.stringify(
+          {
+            currentMode: this.currentMode,
+            userModes: this.userModes,
+            updatedAt: new Date().toISOString(),
+          },
+          null,
+          2
+        ),
         'utf8'
       );
     } catch (err: any) {
@@ -141,7 +236,105 @@ class DataModeService {
     }
   }
 
-  public getCurrentMode(): OperatingMode {
+  private loadForexOffers() {
+    try {
+      if (fs.existsSync(FOREX_INVENTORY_FILE)) {
+        const raw = JSON.parse(fs.readFileSync(FOREX_INVENTORY_FILE, 'utf8').replace(/^\uFEFF/, ''));
+        if (Array.isArray(raw) && raw.length > 0) {
+          this.forexOffers = raw;
+          return;
+        }
+      }
+    } catch {}
+    this.forexOffers = [...DEFAULT_FOREX_OFFERS];
+    this.saveForexOffers();
+  }
+
+  private saveForexOffers() {
+    try {
+      fs.mkdirSync(path.dirname(FOREX_INVENTORY_FILE), { recursive: true });
+      fs.writeFileSync(FOREX_INVENTORY_FILE, JSON.stringify(this.forexOffers, null, 2), 'utf8');
+    } catch {}
+  }
+
+  public getForexOffers(): ForexOfferItem[] {
+    if (!this.forexOffers || this.forexOffers.length === 0) {
+      this.loadForexOffers();
+    }
+    return this.forexOffers;
+  }
+
+  public toggleForexOfferStatus(offerId: string): ForexOfferItem | null {
+    const item = this.forexOffers.find((o) => o.id === offerId);
+    if (!item) return null;
+    item.status = item.status === 'available' ? 'closed' : 'available';
+    this.saveForexOffers();
+    return item;
+  }
+
+  public ingestForexOfferFromText(rawText: string): ForexOfferItem {
+    const parsed = parseForexLead(rawText);
+    const categoryMap: Record<string, { cat: ForexOfferItem['category']; label: string }> = {
+      lead_broker: { cat: 'broker_ib', label: 'Hoàn Phí IB Sàn' },
+      lead_signal: { cat: 'signal', label: 'Tín Hiệu VIP' },
+      lead_copytrade_ea: { cat: 'copytrade_ea', label: 'Copytrade & Bot EA' },
+      lead_fund: { cat: 'fund_ftmo', label: 'Thi Quỹ FTMO/MFF' },
+      lead_recovery: { cat: 'recovery', label: 'Cứu Lệnh & Gỡ Âm' },
+      lead_newbie: { cat: 'education', label: 'Đào Tạo Newbie' },
+    };
+    const mapped = categoryMap[parsed.intent] || { cat: 'signal', label: 'Kèo Giao Dịch Mới' };
+    const firstLine = rawText.split(/\r?\n/)[0].trim().slice(0, 85);
+    const symbolStr =
+      [...parsed.symbols, ...parsed.brokers].slice(0, 2).join(' · ') || 'XAU/USD · Forex VIP';
+
+    const newOffer: ForexOfferItem = {
+      id: `fx_offer_${Date.now()}`,
+      category: mapped.cat,
+      categoryLabel: mapped.label,
+      title: firstLine || 'Kèo Tín Hiệu XAU/USD & Ưu Đãi Giao Dịch Mới',
+      symbolOrBroker: symbolStr,
+      highlightText: parsed.suggestedAction.slice(0, 48),
+      ctaComment: generateForexTargetedComment(parsed),
+      status: 'available',
+      createdAt: new Date().toISOString(),
+    };
+
+    this.forexOffers.unshift(newOffer);
+    this.saveForexOffers();
+    return newOffer;
+  }
+
+  public matchBestForexOffer(lead: ParsedForexLead): { offer: ForexOfferItem; score: number } {
+    const available = this.getForexOffers().filter((o) => o.status === 'available');
+    const pool = available.length > 0 ? available : this.getForexOffers();
+
+    const intentToCat: Record<string, ForexOfferItem['category']> = {
+      lead_broker: 'broker_ib',
+      lead_signal: 'signal',
+      lead_copytrade_ea: 'copytrade_ea',
+      lead_fund: 'fund_ftmo',
+      lead_recovery: 'recovery',
+      lead_newbie: 'education',
+    };
+    const targetCat = intentToCat[lead.intent] || 'signal';
+    const matched = pool.find((o) => o.category === targetCat) || pool[0];
+    return {
+      offer: matched,
+      score: Math.max(88, Math.min(99, lead.confidenceScore + 6)),
+    };
+  }
+
+  /**
+   * Lấy Mode độc lập theo từng User hoặc Header phiên trình duyệt
+   * Giúp 2 người dùng (1 người làm BĐS Ecopark, 1 người làm Forex) hoạt động song song 100% độc lập
+   */
+  public getCurrentMode(userId?: string, explicitMode?: string): OperatingMode {
+    if (explicitMode === 'bds_ecopark' || explicitMode === 'forex_finance') {
+      return explicitMode;
+    }
+    if (userId && (this.userModes[userId] === 'bds_ecopark' || this.userModes[userId] === 'forex_finance')) {
+      return this.userModes[userId];
+    }
     return this.currentMode;
   }
 
@@ -149,13 +342,20 @@ class DataModeService {
     return MODE_METADATA[mode || this.currentMode];
   }
 
-  public setMode(mode: OperatingMode): ModeInfo {
+  public setMode(mode: OperatingMode, userId?: string): ModeInfo {
     if (mode === 'bds_ecopark' || mode === 'forex_finance') {
+      if (userId) {
+        this.userModes[userId] = mode;
+      }
       this.currentMode = mode;
       this.saveState();
-      console.log(`🔀 [Mode Switcher] Đã chuyển sang chế độ: ${MODE_METADATA[mode].name} (${mode})`);
+      console.log(`🔀 [Mode Switcher] User [${userId || 'global'}] đã chuyển sang chế độ: ${MODE_METADATA[mode].name} (${mode})`);
     }
-    return MODE_METADATA[this.currentMode];
+    return MODE_METADATA[mode];
+  }
+
+  public getUserModesMap(): Record<string, OperatingMode> {
+    return { ...this.userModes };
   }
 
   /**
@@ -219,47 +419,45 @@ class DataModeService {
       return this.getOrGenerateForexLeads();
     }
 
-    // Nếu là BĐS Ecopark, trả về danh sách lead BĐS
     return [];
   }
 
   private getOrGenerateForexLeads(): ClassifiedForexMemberLead[] {
     if (fs.existsSync(FOREX_DATA_FILE)) {
       try {
-        const raw = JSON.parse(fs.readFileSync(FOREX_DATA_FILE, 'utf8'));
+        const raw = JSON.parse(fs.readFileSync(FOREX_DATA_FILE, 'utf8').replace(/^\uFEFF/, ''));
         if (Array.isArray(raw) && raw.length > 0) return raw;
       } catch {}
     }
 
-    // Mẫu lead thực tế được bóc tách từ các group Forex để người dùng trải nghiệm phân loại ngay
     const samplePosts = [
       {
         name: 'Tuấn Hoàng (Trader)',
-        post: 'Anh em cho mình hỏi sàn Exness dạo này nạp rút qua Vietcombank có bị delay không? Đang muốn nạp 5k đánh Vàng XAU/USD cần sàn spread mỏng và nạp rút trong 30s. Bác nào làm IB hỗ trợ hoàn com không?',
+        post: 'Anh em cho mình hỏi sàn Exness dạo này nạp rút qua Vietcombank có bị delay không? Đang muốn nạp 5k đánh Vàng XAU/USD cần sàn spread mỏng và nạp rút trong 30s. Bác nào làm IB hỗ trợ hoàn com liên hệ Zalo 0988412569 giúp mình nhé!',
       },
       {
         name: 'Minh Đức FX',
-        post: 'Bác nào có nhóm Telegram VIP bắn kèo XAUUSD scalping chuẩn không cho em xin vào với? Đang theo mấy nhóm toàn gồng lỗ 100 pips hãi quá. Cần nhóm có Entry, SL, TP rõ ràng!',
-      },
-      {
-        name: 'Phương Linh',
-        post: 'Em là newbie mới tìm hiểu thị trường Forex được 2 tuần. Cho em hỏi nên bắt đầu học từ nến hay chỉ báo Indicator ạ? Bác nào có tài liệu Price Action căn bản cho em xin với!',
+        post: 'Bác nào có nhóm Telegram VIP bắn kèo XAUUSD scalping chuẩn không cho em xin vào với? Đang theo mấy nhóm toàn gồng lỗ 100 pips hãi quá. Cần nhóm có Entry, SL, TP rõ ràng! Nhắn Zalo em: 0912654890',
       },
       {
         name: 'Trần Văn Long',
-        post: 'Cứu em với các bác ơi! Lỡ vào nhồi 3 lệnh BUY Vàng XAUUSD ở giá 2745 đang âm 3500$, tài khoản sắp chạm mức margin call rồi. Có cao thủ nào giúp em tính điểm cân lệnh không ạ?',
-      },
-      {
-        name: 'Quốc Đạt (FTMO Hunter)',
-        post: 'Vừa pass vòng 1 gói 100k quỹ FTMO. Bác nào đang thi vòng 2 chia sẻ kinh nghiệm giữ max daily drawdown dưới 5% với. Chiến lược chủ yếu đánh theo xu hướng US30 và XAU.',
+        post: 'Cứu em với các bác ơi! Lỡ vào nhồi 3 lệnh BUY Vàng XAUUSD ở giá 2745 đang âm 3500$, tài khoản sắp chạm mức margin call rồi. Có cao thủ nào giúp em tính điểm cân lệnh không ạ? SĐT em: 0977321456',
       },
       {
         name: 'Hải Nam EA',
-        post: 'Có bác nào đang chạy Copytrade hoặc Bot EA trên sàn IC Markets lợi nhuận tầm 8-12%/tháng không? Em không có thời gian canh chart muốn tìm bên nào có Myfxbook chuẩn để copy vốn 10.000$.',
+        post: 'Có bác nào đang chạy Copytrade hoặc Bot EA trên sàn IC Markets lợi nhuận tầm 8-12%/tháng không? Em không có thời gian canh chart muốn tìm bên nào có Myfxbook chuẩn để copy vốn 10.000$. LH: 0904889123',
+      },
+      {
+        name: 'Quốc Đạt (FTMO Hunter)',
+        post: 'Vừa pass vòng 1 gói 100k quỹ FTMO. Bác nào đang thi vòng 2 chia sẻ kinh nghiệm giữ max daily drawdown dưới 5% với. Chiến lược chủ yếu đánh theo xu hướng US30 và XAU. Tele: @quocdat_fx',
+      },
+      {
+        name: 'Phương Linh',
+        post: 'Em là newbie mới tìm hiểu thị trường Forex được 2 tuần. Cho em hỏi nên bắt đầu học từ nến hay chỉ báo Indicator ạ? Bác nào có tài liệu Price Action căn bản kèm mở TK Cent cho em xin với! Zalo: 0936712345',
       },
       {
         name: 'Thanh Tùng',
-        post: 'CẢNH BÁO LỪA ĐẢO: Anh em né sàn Fx...Pro đa cấp này ra nhé! Nạp vào 2000$ đánh có lời bấm rút tiền thì nó bắt đóng thuế 20% rồi chặn luôn Zalo. Scam 100%!',
+        post: 'CẢNH BÁO LỪA ĐẢO: Anh em né sàn Fx...Pro đa cấp này ra nhé! Nạp vào 2000$ đánh có lời bấm rút tiền thì nó bắt đóng thuế 20% rồi chặn luôn Zalo. Đang cần tìm sàn quốc tế có giấy phép FCA uy tín để chuyển sang!',
       },
     ];
 
@@ -268,11 +466,11 @@ class DataModeService {
       return {
         id: `forex_lead_${idx + 1}`,
         name: sp.name,
-        profileUrl: `https://www.facebook.com/user.${100085000000 + idx}`,
+        profileUrl: `https://www.facebook.com/groups/forextradervietnam/posts/${100085000000 + idx}`,
         sourceGroup: idx % 2 === 0 ? 'CỘNG ĐỒNG TRADER FOREX VIỆT NAM' : 'HỘI SĂN QUỸ FTMO & MFF',
-        scannedAt: new Date(Date.now() - idx * 3600000 * 4).toISOString(),
+        scannedAt: new Date(Date.now() - idx * 1800_000).toISOString(),
         lead: parsed,
-        status: idx === 0 ? 'vip' : 'new',
+        status: idx < 3 ? 'vip' : 'new',
       };
     });
 
@@ -286,13 +484,14 @@ class DataModeService {
   /**
    * Thống kê tổng hợp số liệu theo từng Mode
    */
-  public getModeStats() {
+  public getModeStats(requestedMode?: OperatingMode) {
     const bdsGroups = this.getGroupsForMode('bds_ecopark');
     const forexGroups = this.getGroupsForMode('forex_finance');
     const forexLeads = this.getLeadsForMode('forex_finance');
+    const offers = this.getForexOffers();
 
     return {
-      currentMode: this.currentMode,
+      currentMode: requestedMode || this.currentMode,
       bds: {
         groupsCount: bdsGroups.length,
         buildingsCount: 49,
@@ -301,6 +500,8 @@ class DataModeService {
       forex: {
         groupsCount: forexGroups.length,
         leadsCount: forexLeads.length,
+        offersCount: offers.length,
+        availableOffersCount: offers.filter((o) => o.status === 'available').length,
         hotLeadsCount: forexLeads.filter((l) => l.lead.intent === 'lead_broker' || l.lead.intent === 'lead_signal').length,
         botCopytradeCount: forexLeads.filter((l) => l.lead.intent === 'lead_copytrade_ea').length,
         fundTradersCount: forexLeads.filter((l) => l.lead.intent === 'lead_fund').length,
