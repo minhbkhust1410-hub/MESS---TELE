@@ -14,7 +14,13 @@ import {
   extractBedroom,
   extractPrice,
 } from './ecopark-parser.js';
-import { PropertyItem, MatchResult, generateTargetedComment } from './property-inventory.js';
+import {
+  PropertyItem,
+  MatchResult,
+  BDS_ECOPARK_FALLBACK_COMMENT,
+  generateTargetedComment,
+  findBestMatchingPropertyWithDistance,
+} from './property-inventory.js';
 
 export interface AiKeyItem {
   id: string;
@@ -787,98 +793,137 @@ Hãy bóc tách thành đối tượng JSON duy nhất:
     if (!availableProps || availableProps.length === 0) return null;
 
     const requestedTarget = demand.building || demand.project || demand.targetLocation;
+    const reqGeo = findBuildingGeo(requestedTarget);
+    const hasSpecificLocationRequest = Boolean(requestedTarget && requestedTarget !== 'Ecopark (Chung)' && reqGeo);
     const candidates: MatchResult[] = [];
 
     for (const prop of availableProps) {
       if (prop.type !== demand.type) continue;
 
       const reasons: string[] = [];
+      const matchedKeywords: string[] = [prop.type === 'rent' ? 'Thuê' : 'Mua/Bán'];
 
-      // 1. Tắt toàn bộ điều kiện/trừ điểm khoảng cách GPS theo yêu cầu
+      // 1. Chấm điểm Khoảng cách Địa lý thực tế theo tọa độ GPS Haversine (40%)
       const propTarget = prop.building || prop.project;
-      const geoScore = 95;
-      reasons.push(`Căn hộ tại Ecopark (${propTarget})`);
+      const propGeo = findBuildingGeo(propTarget);
+      const geoRes = calculateGeoProximityScore(requestedTarget, propTarget);
+      const geoScore = geoRes.score;
+      reasons.push(`📍 GPS: ${geoRes.text} (Tòa ${propTarget})`);
+      if (geoRes.distanceKm <= 0.85) {
+        matchedKeywords.push(propTarget);
+      }
 
-      // 2. Chấm điểm Giá tiền (55%)
+      // 2. Chấm điểm Giá tiền (35%)
       let budgetScore = 75;
       if (demand.budgetMax && demand.budgetMax > 0 && prop.price > 0) {
         const diff = (prop.price - demand.budgetMax) / demand.budgetMax;
         if (diff <= 0.05) {
           budgetScore = 100;
-          reasons.push(`Đúng tầm tiền ngân sách (${prop.priceText})`);
+          reasons.push(`💰 Đúng tầm tiền ngân sách (${prop.priceText})`);
+          matchedKeywords.push(prop.priceText);
         } else if (diff <= 0.20) {
-          budgetScore = 80;
-          reasons.push(`Sát tầm tiền (chênh nhẹ ~${Math.round(diff * 100)}%)`);
+          budgetScore = 82;
+          reasons.push(`💰 Sát tầm tiền (chênh nhẹ ~${Math.round(diff * 100)}%)`);
+          matchedKeywords.push(prop.priceText);
+        } else if (diff <= 0.35) {
+          budgetScore = 60;
         } else {
-          budgetScore = 40;
+          budgetScore = 30;
         }
       }
 
-      // 3. Chấm điểm Loại phòng & Thiết kế (45%)
-      let bedScore = 70;
+      // 3. Chấm điểm Loại phòng & Thiết kế (25%)
+      let bedScore = 75;
       if (demand.bedroom && demand.bedroom !== 'Chưa rõ') {
         const reqB = demand.bedroom.toUpperCase();
         const propB = prop.bedroom.toUpperCase();
         if (reqB === propB) {
           bedScore = 100;
-          reasons.push(`Chuẩn loại phòng ${prop.bedroom}`);
+          reasons.push(`🛏️ Chuẩn loại phòng ${prop.bedroom}`);
+          matchedKeywords.push(prop.bedroom);
         } else if (reqB.includes('2') && propB.includes('2')) {
-          bedScore = 85;
-          reasons.push(`Gần đúng loại phòng (${prop.bedroom})`);
+          bedScore = 88;
+          reasons.push(`🛏️ Cùng phân khúc 2PN (${prop.bedroom})`);
+          matchedKeywords.push(prop.bedroom);
+        } else if (
+          (reqB === 'STUDIO' && propB.includes('1')) ||
+          (reqB.includes('1') && propB === 'STUDIO')
+        ) {
+          bedScore = 70;
         } else {
-          bedScore = 40;
+          bedScore = 35;
         }
       }
 
-      const totalScore = Math.round(budgetScore * 0.55 + bedScore * 0.45);
+      const totalScore = Math.round(geoScore * 0.40 + budgetScore * 0.35 + bedScore * 0.25);
+      const isGeoNear = hasSpecificLocationRequest ? geoRes.distanceKm <= 0.95 : true;
+      const isBudgetNear = budgetScore >= 60;
+      const isBedNear = bedScore >= 65;
+      const isNearMatch = isGeoNear && isBudgetNear && isBedNear && totalScore >= 72;
 
       candidates.push({
         property: prop,
         score: totalScore,
-        distanceKm: 0,
-        distanceText: 'Ecopark',
+        distanceKm: geoRes.distanceKm,
+        distanceMeters: Math.round(geoRes.distanceKm * 1000),
+        distanceText: geoRes.text,
+        isNearMatch,
+        requestedLocation: requestedTarget,
+        requestedCoords: reqGeo ? { lat: reqGeo.lat, lng: reqGeo.lng } : undefined,
+        propertyCoords: prop.geoCoords || (propGeo ? { lat: propGeo.lat, lng: propGeo.lng } : undefined),
+        matchedKeywords: Array.from(new Set(matchedKeywords)),
         reasons,
       });
     }
 
     if (candidates.length === 0) return null;
-    candidates.sort((a, b) => b.score - a.score);
+    candidates.sort((a, b) => {
+      if (a.isNearMatch !== b.isNearMatch) return a.isNearMatch ? -1 : 1;
+      if (b.score !== a.score) return b.score - a.score;
+      return a.distanceKm - b.distanceKm;
+    });
 
-    const best = candidates[0];
-    if (best.score < 40) return null;
-    return best;
+    return candidates[0];
   }
 
   /**
-   * TÁC VỤ 4: Sinh bình luận thông minh bằng AI (tự nhiên, thuyết phục, tập trung nhu cầu khách, không ép GPS)
+   * TÁC VỤ 4: Sinh bình luận thông minh bằng AI (nếu gần nguồn thì tư vấn căn + SĐT/Zalo, nếu xa nguồn thì dùng mẫu chuẩn BĐS Ecopark)
    */
   public async generateSmartCommentWithAI(
     postContent: string,
     matchedProp: PropertyItem,
     matchResult?: MatchResult | null
   ): Promise<{ comment: string; providerUsed?: string; keyUsedMasked?: string }> {
+    if (matchResult && !matchResult.isNearMatch) {
+      return {
+        comment: BDS_ECOPARK_FALLBACK_COMMENT,
+        providerUsed: 'offline',
+        keyUsedMasked: 'Mẫu Chuẩn Ecopark (Xa Nguồn)',
+      };
+    }
+
     const config = getAiConfig();
     const buildingName = matchedProp.building || matchedProp.project;
+    const contactPhone = matchedProp.phone || '0981992137';
 
     const prompt = `
 Bạn là chuyên viên tư vấn BĐS Ecopark duyên dáng, nhiệt tình, tinh tế của văn phòng Eco Trang.
-Khách hàng vừa đăng bài trong nhóm cư dân Ecopark:
+Khách hàng vừa đăng bài hoặc bình luận trong nhóm cư dân Ecopark:
 """
 ${postContent}
 """
 
-Hệ thống đã khớp được căn hộ tốt nhất trong quỹ căn:
-- Dự án & Toà: ${buildingName} (${matchedProp.cluster})
+Hệ thống đã khớp được căn hộ gần nhất trong quỹ căn:
+- Dự án & Toà: ${buildingName} (${matchedProp.cluster}) - Khoảng cách GPS: ${matchResult?.distanceText || 'Cùng phân khu'}
 - Loại phòng: ${matchedProp.bedroom}
 - Mức giá: ${matchedProp.priceText}
 - Nội thất: ${matchedProp.furniture}
-- Số liên hệ: ${matchedProp.phone || '0904555666'}
+- Số liên hệ: ${contactPhone}
 
 Yêu cầu viết 1 câu bình luận ngắn gọn (dưới 40 từ):
-1. Thân thiện, tự nhiên, lịch sự như người thật nhắn, KHÔNG dùng từ ngữ máy móc robot, KHÔNG nhắc đến toạ độ GPS hay khoảng cách số mét.
+1. Thân thiện, tự nhiên, lịch sự như người thật nhắn.
 2. Giới thiệu khéo léo căn đẹp giá tốt đúng tầm tiền/nhu cầu của khách.
-3. Kêu gọi khách check tin nhắn chờ hoặc inbox để gửi video/ảnh thực tế.
-4. Kèm số điện thoại liên hệ nhẹ nhàng ở cuối.
+3. Kêu gọi khách liên hệ cuối câu theo đúng mẫu: "LH/Zalo: ${contactPhone} hoặc ib e có ngay ạ".
 Chỉ trả về DUY NHẤT nội dung bình luận, không kèm nháy kép hay lời dẫn.
 `;
 
@@ -898,42 +943,47 @@ Chỉ trả về DUY NHẤT nội dung bình luận, không kèm nháy kép hay 
     return {
       comment: generateTargetedComment(matchedProp, matchResult),
       providerUsed: 'offline',
-      keyUsedMasked: 'Lõi NLP Trực Tiếp',
+      keyUsedMasked: 'Lõi NLP & GPS Tọa Độ',
     };
   }
 
   /**
-   * TÁC VỤ 5: Mô phỏng toàn trình dành cho UI Dashboard
+   * TÁC VỤ 5: Mô phỏng toàn trình dành cho UI Dashboard (Keyword + GPS Haversine + Fallback khi xa nguồn)
    */
   public async simulateFullMatching(
     postContent: string,
     availableProps: PropertyItem[]
   ): Promise<AiMatchAnalysis> {
     const demand = await this.analyzeCustomerPostWithAI(postContent);
-    const matchResult = this.matchBestPropertyWithGeo(demand, availableProps);
+    const directGeoMatch = findBestMatchingPropertyWithDistance(postContent);
+    const matchResult = directGeoMatch || this.matchBestPropertyWithGeo(demand, availableProps);
 
-    let aiComment = '';
+    let aiComment = BDS_ECOPARK_FALLBACK_COMMENT;
     let providerUsed = 'offline';
-    let keyUsedMasked = 'Lõi NLP GPS';
+    let keyUsedMasked = 'Lõi NLP & GPS Tọa Độ';
 
-    if (matchResult) {
+    if (matchResult && matchResult.isNearMatch) {
       const generated = await this.generateSmartCommentWithAI(postContent, matchResult.property, matchResult);
       aiComment = generated.comment;
       providerUsed = generated.providerUsed || 'offline';
-      keyUsedMasked = generated.keyUsedMasked || 'Lõi NLP GPS';
+      keyUsedMasked = generated.keyUsedMasked || 'Lõi NLP & GPS Tọa Độ';
     } else {
-      aiComment = 'Dạ em chào anh/chị, bên em có quỹ căn đa dạng toàn Ecopark đủ phân khu giá tốt. Anh/chị check tin nhắn em gửi thông tin chi tiết nhé ạ 🌸';
+      aiComment = BDS_ECOPARK_FALLBACK_COMMENT;
+      keyUsedMasked = 'Mẫu BĐS Ecopark (Xa Nguồn)';
     }
 
     return {
       demand,
-      bestMatch: matchResult ? matchResult.property : null,
+      bestMatch: matchResult && matchResult.isNearMatch ? matchResult.property : null,
       matchResult,
       aiComment,
       confidenceScore: matchResult ? matchResult.score : 0,
-      explanation: matchResult
-        ? `Đã khớp toà ${matchResult.property.building || matchResult.property.project} (${matchResult.distanceText}, giá ${matchResult.property.priceText})`
-        : 'Không có căn cụ thể trùng khớp ngân sách hoặc phân khu trong kho.',
+      explanation:
+        matchResult && matchResult.isNearMatch
+          ? `✅ GẦN NGUỒN TRONG KHO: Đã khớp toà ${matchResult.property.building || matchResult.property.project} (${matchResult.distanceText}, giá ${matchResult.property.priceText})`
+          : matchResult
+            ? `📍 XA NGUỒN (${matchResult.distanceText} so với ${matchResult.property.building || matchResult.property.project}) ➔ Tự động bình luận mẫu chuẩn BĐS Ecopark: "${BDS_ECOPARK_FALLBACK_COMMENT}"`
+            : `📍 KHÔNG CÓ NGUỒN GẦN TRONG KHO ➔ Tự động bình luận mẫu chuẩn BĐS Ecopark: "${BDS_ECOPARK_FALLBACK_COMMENT}"`,
       providerUsed,
       keyUsedMasked,
     };

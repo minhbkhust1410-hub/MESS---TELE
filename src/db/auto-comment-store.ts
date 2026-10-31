@@ -129,20 +129,17 @@ const defaultDb: AutoCommentDatabase = {
   },
   templates: [
     {
-      id: 'cmt_1',
-      content: '{Dạ chào bạn|Chào bạn|Hello bạn}! {Shop mình có sẵn nguồn hàng này|Bên mình chuyên cung cấp mẫu này} giá cực tốt, {bạn check inbox mình tư vấn ngay nhé|inbox shop gửi bảng giá chi tiết nha} ạ ❤️',
-      createdAt: new Date().toISOString(),
-      usageCount: 0,
-    },
-    {
-      id: 'cmt_2',
-      content: '{Sản phẩm này bên em đang sẵn kho sỉ & lẻ|Mẫu này bên em có sẵn sll}! {Anh/chị quan tâm nhắn tin em gửi thông tin chi tiết ạ|Em đã nhắn tin qua Messenger cho mình rồi ạ}!',
+      id: 'cmt_bds_fallback',
+      content: 'LH/Zalo: 0981992137 hoặc ib e có ngay ạ',
       createdAt: new Date().toISOString(),
       usageCount: 0,
     },
   ],
   groups: [],
-  keywords: ['tìm nguồn', 'báo giá', 'cần mua', 'sỉ lẻ', 'giá sỉ', 'tư vấn', 'inbox'],
+  keywords: [
+    'cần thuê', 'tìm thuê', 'cần mua', 'tìm căn', 'xin giá', 'tư vấn', 'inbox', 'ib',
+    '1pn', '2pn', '3pn', 'studio', 'sky oasis', 'haven park', 'sol forest', 'swanlake', 'west bay', 'aqua bay', 'rừng cọ'
+  ],
   processedPostIds: {},
   logs: [],
   dailyPosts: [],
@@ -164,6 +161,24 @@ function loadDb(): AutoCommentDatabase {
       memoryDb = JSON.parse(data);
       if (!memoryDb!.dailyPosts) memoryDb!.dailyPosts = [];
       if (!memoryDb!.pendingDrafts) memoryDb!.pendingDrafts = [];
+      // Tự động dọn mẫu shop sỉ lẻ cũ nếu còn sót và thay bằng mẫu chuẩn BĐS Ecopark
+      if (Array.isArray(memoryDb!.templates)) {
+        const cleanedTemplates = memoryDb!.templates.filter(
+          (t) => !t.content.includes('Shop mình có sẵn nguồn hàng') && !t.content.includes('sẵn kho sỉ & lẻ')
+        );
+        if (!cleanedTemplates.some((t) => t.content.includes('0981992137'))) {
+          cleanedTemplates.unshift({
+            id: 'cmt_bds_fallback',
+            content: 'LH/Zalo: 0981992137 hoặc ib e có ngay ạ',
+            createdAt: new Date().toISOString(),
+            usageCount: 0,
+          });
+        }
+        memoryDb!.templates = cleanedTemplates;
+      }
+      if (Array.isArray(memoryDb!.keywords) && memoryDb!.keywords.includes('sỉ lẻ')) {
+        memoryDb!.keywords = defaultDb.keywords;
+      }
     } catch {
       memoryDb = { ...defaultDb };
     }

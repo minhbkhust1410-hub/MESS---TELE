@@ -317,31 +317,77 @@ export function getPropertyInventoryStats() {
   };
 }
 
+/**
+ * Câu bình luận mặc định bên BĐS Ecopark khi không phát hiện có nhu cầu gần hoặc vị trí/ngân sách khách hỏi rất xa nguồn trong kho
+ */
+export const BDS_ECOPARK_FALLBACK_COMMENT = 'LH/Zalo: 0981992137 hoặc ib e có ngay ạ';
+
 export interface MatchResult {
   property: PropertyItem;
   score: number;
   distanceKm: number;
+  distanceMeters?: number;
   distanceText: string;
+  isNearMatch: boolean;
+  requestedLocation?: string;
+  requestedCoords?: { lat: number; lng: number };
+  propertyCoords?: { lat: number; lng: number };
+  matchedKeywords?: string[];
   reasons: string[];
 }
 
 /**
- * Tìm căn hộ trong kho khớp nhất theo Đa Tiêu Chí BĐS Ecopark:
- * 1. Nhu cầu (Thuê / Bán) -> Bắt buộc trùng
- * 2. Khoảng cách địa lý Google Map Ecopark (Haversine) -> Ưu tiên căn gần nhất
- * 3. Tầm tiền -> Lệch ngân sách khách < 15%
- * 4. Loại phòng & Diện tích (2N2VS, 2PN, 1PN, Studio, 83m²...)
+ * Tìm căn hộ trong kho khớp nhất theo Đa Tiêu Chí BĐS Ecopark + Tọa Độ GPS Haversine:
+ * 1. Nhu cầu (Thuê / Bán) & Từ khóa phân loại (Keyword Classification)
+ * 2. Khoảng cách địa lý Google Map Ecopark (GPS Haversine: lat, lng) -> Ưu tiên căn cùng tòa / cùng cụm (< 1.0km)
+ * 3. Tầm tiền -> Lệch ngân sách khách <= 25%
+ * 4. Loại phòng & Diện tích (2N2VS, 2PN, 1PN, Studio, 3PN, Biệt thự...)
+ * Nếu khoảng cách xa (> 1.0km) hoặc lệch loại phòng/tầm tiền xa -> đánh dấu isNearMatch = false để trả về câu bình luận chuẩn:
+ * "LH/Zalo: 0981992137 hoặc ib e có ngay ạ"
  */
 export function findBestMatchingPropertyWithDistance(postInput: string | any): MatchResult | null {
   const available = getAvailableProperties();
   if (available.length === 0) return null;
 
-  const postContent = typeof postInput === 'string' ? postInput : (postInput?.rawPost || postInput?.content || String(postInput || ''));
+  const postContent =
+    typeof postInput === 'string'
+      ? postInput
+      : postInput?.rawPost || postInput?.content || String(postInput || '');
+  const lowerContent = postContent.toLowerCase();
+
+  // Kiểm tra trường hợp khách hỏi khu vực ngoài Ecopark rất xa (Hà Nội nội thành, Ocean Park, Vinhomes, Văn Giang xa...)
+  const FAR_OUTSIDE_KEYWORDS = [
+    'ocean park',
+    'vinhomes',
+    'times city',
+    'royal city',
+    'cầu giấy',
+    'mỹ đình',
+    'hà đông',
+    'tây hồ',
+    'đống đa',
+    'thanh xuân',
+    'long biên',
+    'gia lâm',
+  ];
+  const isOutsideEcopark =
+    FAR_OUTSIDE_KEYWORDS.some((kw) => lowerContent.includes(kw)) && !lowerContent.includes('ecopark');
+
   const requestedGeo = extractBuildingAndProject(postContent);
+  const hasSpecificLocation = requestedGeo.project !== 'Ecopark (Chung)' || Boolean(requestedGeo.building);
   const requestedTarget = requestedGeo.building || requestedGeo.project;
+  const reqGeoInfo = findBuildingGeo(requestedTarget);
   const requestedType = extractType(postContent);
   const requestedBedObj = extractBedroom(postContent);
   const requestedPrice = extractPrice(postContent, requestedType);
+
+  // Bóc tách danh sách từ khóa nhu cầu khớp được trong bình luận/bài viết của khách
+  const matchedKeywords: string[] = [];
+  if (requestedType === 'rent') matchedKeywords.push('Thuê căn hộ');
+  else matchedKeywords.push('Mua / Chuyển nhượng');
+  if (hasSpecificLocation) matchedKeywords.push(requestedTarget);
+  if (requestedBedObj.bedroom !== 'Chưa rõ') matchedKeywords.push(requestedBedObj.bedroom);
+  if (requestedPrice.price > 0) matchedKeywords.push(requestedPrice.priceText);
 
   const candidates: MatchResult[] = [];
 
@@ -350,93 +396,214 @@ export function findBestMatchingPropertyWithDistance(postInput: string | any): M
     if (prop.type !== requestedType) continue;
 
     const reasons: string[] = [];
+    const propTarget = prop.building || prop.project;
+    const propGeoInfo = findBuildingGeo(propTarget);
+    const propCoords = prop.geoCoords || { lat: propGeoInfo.lat, lng: propGeoInfo.lng };
 
-    // 2. Tắt toàn bộ điều kiện/trừ điểm khoảng cách GPS theo yêu cầu (Luôn đạt điểm cao)
-    const geoScore = 95;
-    reasons.push(`Căn hộ tại Ecopark (${prop.building || prop.project})`);
+    // 2. Tính khoảng cách tọa độ GPS thực tế (Haversine) giữa vị trí khách tìm và căn trong kho
+    let geoScore = 92;
+    let distanceKm = 0;
+    let distanceMeters = 0;
+    let distanceText = `Trung tâm Ecopark (${propTarget})`;
 
-    // 3. Chấm điểm Tầm tiền (Weight 55%)
-    let budgetScore = 80;
+    if (hasSpecificLocation) {
+      const prox = calculateGeoProximityScore(requestedTarget, propTarget);
+      geoScore = prox.score;
+      distanceKm = prox.distanceKm;
+      distanceMeters = prox.distanceMeters;
+      distanceText = prox.text;
+      reasons.push(`📍 GPS: ${prox.text} [${propCoords.lat.toFixed(4)}, ${propCoords.lng.toFixed(4)}]`);
+    } else {
+      reasons.push(`📍 GPS Ecopark: ${propTarget} [${propCoords.lat.toFixed(4)}, ${propCoords.lng.toFixed(4)}]`);
+    }
+
+    // 3. Chấm điểm Tầm tiền
+    let budgetScore = 85;
+    let isBudgetFar = false;
     if (requestedPrice.price > 0 && prop.price > 0) {
       const diffPercent = Math.abs(prop.price - requestedPrice.price) / requestedPrice.price;
       if (diffPercent <= 0.15) {
         budgetScore = 100;
-        reasons.push(`Đúng chuẩn tầm tiền (~${prop.priceText})`);
-      } else if (diffPercent <= 0.30) {
-        budgetScore = 85;
-        reasons.push(`Sát tầm tiền (~${prop.priceText})`);
+        reasons.push(`💰 Đúng tầm tiền (~${prop.priceText})`);
+      } else if (diffPercent <= 0.28) {
+        budgetScore = 82;
+        reasons.push(`💰 Sát tầm tiền (~${prop.priceText})`);
       } else {
-        budgetScore = 60;
+        budgetScore = 35;
+        isBudgetFar = true;
+        reasons.push(`⚠️ Lệch ngân sách (${prop.priceText} so với ${requestedPrice.priceText})`);
       }
     } else {
-      reasons.push(`Giá ${prop.priceText}`);
+      reasons.push(`💰 Giá ${prop.priceText}`);
     }
 
-    // 4. Chấm điểm Loại phòng & Diện tích (Weight 45%)
-    let bedScore = 75;
+    // 4. Chấm điểm Loại phòng & Diện tích
+    let bedScore = 85;
+    let isBedroomFar = false;
     if (requestedBedObj.bedroom !== 'Chưa rõ') {
       const reqBed = requestedBedObj.bedroom.toUpperCase();
       const propBed = prop.bedroom.toUpperCase();
 
       if (reqBed === propBed) {
         bedScore = 100;
-        reasons.push(`Đúng loại phòng ${prop.bedroom}`);
+        reasons.push(`🛏️ Đúng chuẩn loại phòng ${prop.bedroom}`);
       } else if (
         (reqBed.includes('2N') && propBed.includes('2N')) ||
         (reqBed.includes('2PN') && propBed.includes('2N')) ||
         (reqBed.includes('2N') && propBed.includes('2PN')) ||
-        (reqBed.includes('1PN') && propBed.includes('1N'))
+        (reqBed.includes('1PN') && propBed.includes('1N')) ||
+        (reqBed.includes('1N') && propBed.includes('1PN'))
       ) {
-        bedScore = 90;
-        reasons.push(`Gần đúng loại phòng (${prop.bedroom})`);
+        bedScore = 92;
+        reasons.push(`🛏️ Khớp loại phòng (${prop.bedroom})`);
+      } else if (
+        (reqBed.includes('STUDIO') && propBed.includes('1')) ||
+        (reqBed.includes('1') && propBed.includes('STUDIO'))
+      ) {
+        bedScore = 75;
+        reasons.push(`🛏️ Gần loại phòng (${prop.bedroom})`);
       } else {
-        bedScore = 65;
+        bedScore = 35;
+        isBedroomFar = true;
+        reasons.push(`⚠️ Khác loại phòng (${prop.bedroom} so với ${requestedBedObj.bedroom})`);
       }
     }
 
-    // Tính tổng điểm Matching (Tập trung giá & loại phòng, không phụ thuộc GPS)
-    const totalScore = Math.round(budgetScore * 0.55 + bedScore * 0.45);
+    // 5. Tổng hợp điểm theo trọng số (ưu tiên Khoảng cách tọa độ GPS khi khách chỉ định tòa/phân khu)
+    const totalScore = hasSpecificLocation
+      ? Math.round(geoScore * 0.45 + budgetScore * 0.3 + bedScore * 0.25)
+      : Math.round(budgetScore * 0.55 + bedScore * 0.45);
+
+    // Kiểm tra lệch phân khúc thấp tầng (Biệt thự / Nhà phố / Shophouse) vs Căn hộ chung cư
+    const asksLowRise = /biệt thự|nhà phố|liền kề|shophouse|villa/i.test(postContent);
+    const propIsLowRise = /biệt thự|nhà phố|liền kề|shophouse|villa|vườn tùng|vườn mai|park river|thủy nguyên|the island/i.test(
+      `${prop.project} ${prop.building || ''} ${prop.rawText || ''}`
+    );
+    const isCategoryMismatch = asksLowRise !== propIsLowRise;
+
+    // Xác định nhu cầu có "Gần nguồn trong kho" (isNearMatch) hay "Rất xa / Lệch nhu cầu"
+    const isDifferentCluster =
+      hasSpecificLocation && reqGeoInfo.cluster !== propGeoInfo.cluster && distanceKm > 0.35;
+    const isGeoFar = isOutsideEcopark || isDifferentCluster || (hasSpecificLocation && distanceKm > 0.65);
+    const isNearMatch =
+      !isGeoFar && !isCategoryMismatch && !isBudgetFar && !isBedroomFar && totalScore >= 75;
 
     candidates.push({
       property: prop,
       score: totalScore,
-      distanceKm: 0,
-      distanceText: `Ecopark`,
+      distanceKm,
+      distanceMeters,
+      distanceText,
+      isNearMatch,
+      requestedLocation: hasSpecificLocation ? requestedTarget : 'Ecopark (Chung)',
+      requestedCoords: { lat: reqGeoInfo.lat, lng: reqGeoInfo.lng },
+      propertyCoords: propCoords,
+      matchedKeywords,
       reasons,
     });
   }
 
   if (candidates.length === 0) return null;
 
-  // Sắp xếp theo điểm cao nhất
-  candidates.sort((a, b) => b.score - a.score);
+  // Ưu tiên căn có isNearMatch === true và điểm cao nhất, gần tọa độ GPS nhất
+  candidates.sort((a, b) => {
+    if (a.isNearMatch !== b.isNearMatch) return a.isNearMatch ? -1 : 1;
+    if (b.score !== a.score) return b.score - a.score;
+    return a.distanceKm - b.distanceKm;
+  });
 
-  const best = candidates[0];
-  if (best.score < 45) return null;
-  return best;
+  return candidates[0];
 }
 
 /**
- * Tìm căn hộ trong kho khớp nhất với nhu cầu trong bài viết của khách (tích hợp khoảng cách Google Map)
+ * Tìm căn hộ trong kho khớp gần nhất với nhu cầu trong bài viết/bình luận của khách
+ * Chỉ trả về PropertyItem nếu căn đó thực sự GẦN nhu cầu (isNearMatch === true)
  */
 export function findBestMatchingProperty(postContent: string): PropertyItem | null {
   const result = findBestMatchingPropertyWithDistance(postContent);
-  return result ? result.property : null;
+  return result && result.isNearMatch ? result.property : null;
 }
 
 /**
- * Tạo bình luận tự nhiên, thuyết phục dựa trên căn hộ khớp (Đã tắt hoàn toàn điều kiện/khoảng cách GPS theo yêu cầu)
+ * Tạo bình luận tự nhiên dựa trên căn hộ khớp gần trong kho.
+ * Nếu không phát hiện nhu cầu gần hoặc khoảng cách GPS/nhu cầu rất xa (isNearMatch === false),
+ * trả về đúng câu chuẩn bên BĐS Ecopark: "LH/Zalo: 0981992137 hoặc ib e có ngay ạ"
  */
-export function generateTargetedComment(prop: PropertyItem, matchResult?: MatchResult | null): string {
+export function generateTargetedComment(prop?: PropertyItem | null, matchResult?: MatchResult | null): string {
+  if (!prop || (matchResult && !matchResult.isNearMatch)) {
+    return BDS_ECOPARK_FALLBACK_COMMENT;
+  }
+
   const areaPart = prop.areaText ? ` (${prop.areaText})` : '';
   const buildingDisplay = prop.building || prop.project;
+  const nearGeoNote =
+    matchResult && matchResult.distanceMeters && matchResult.distanceMeters > 0 && matchResult.distanceMeters <= 850
+      ? ` (ngay sát vị trí anh/chị tìm ~${matchResult.distanceMeters}m)`
+      : '';
 
   const templates = [
-    `Dạ em có sẵn căn ${prop.bedroom} ${buildingDisplay}${areaPart} ${prop.furniture.toLowerCase()}, giá ${prop.priceText} vào ở ngay. Anh/chị check tin nhắn chờ em gửi video chi tiết nhé ạ 🌸${prop.phone ? ` (Hotline: ${prop.phone})` : ''}`,
-    `Bên em vừa trống căn ${prop.bedroom} ${buildingDisplay}${areaPart} cực đẹp ${prop.priceText}, full đồ xịn. Anh/chị check hộp thư đến em gửi thông tin và ảnh thực tế nhé! 🏡${prop.phone ? ` Zalo: ${prop.phone}` : ''}`,
-    `Căn ${prop.bedroom} ${buildingDisplay}${areaPart} đúng nhu cầu của anh/chị đây ạ, giá ${prop.priceText}. Em vừa gửi ảnh qua inbox, anh/chị xem thử nha ✨${prop.phone ? ` SĐT: ${prop.phone}` : ''}`,
-    `Dạ anh/chị tham khảo căn ${prop.bedroom} ${buildingDisplay} bên em nhé, giá ${prop.priceText} full nội thất đẹp. Em gửi chi tiết qua inbox rồi ạ!${prop.phone ? ` (LH: ${prop.phone})` : ''}`,
+    `Dạ em có sẵn căn ${prop.bedroom} ${buildingDisplay}${areaPart}${nearGeoNote} ${prop.furniture.toLowerCase()}, giá ${prop.priceText} vào ở ngay. ${BDS_ECOPARK_FALLBACK_COMMENT}`,
+    `Bên em đang trống căn ${prop.bedroom} ${buildingDisplay}${areaPart}${nearGeoNote} cực đẹp giá ${prop.priceText}, ${prop.furniture.toLowerCase()}. ${BDS_ECOPARK_FALLBACK_COMMENT}`,
+    `Căn ${prop.bedroom} ${buildingDisplay}${areaPart}${nearGeoNote} đúng nhu cầu anh/chị tìm đây ạ, giá ${prop.priceText}. ${BDS_ECOPARK_FALLBACK_COMMENT}`,
   ];
   return templates[Math.floor(Math.random() * templates.length)];
+}
+
+/**
+ * Phân tích toàn diện câu bình luận / bài viết của khách bên BĐS Ecopark
+ * và trả về câu phản hồi chuẩn xác (Gần nguồn -> báo chi tiết căn; Xa nguồn/không rõ -> "LH/Zalo: 0981992137 hoặc ib e có ngay ạ")
+ */
+export function evaluateBdsCustomerComment(customerText: string): {
+  isNearMatch: boolean;
+  matchResult: MatchResult | null;
+  suggestedComment: string;
+  distanceKm: number;
+  distanceText: string;
+  reason: string;
+  demand: {
+    type: 'rent' | 'sale';
+    bedroom: string;
+    budgetText: string;
+    targetLocation: string;
+    building: string;
+    project: string;
+  };
+} {
+  const requestedGeo = extractBuildingAndProject(customerText);
+  const requestedType = extractType(customerText);
+  const requestedBed = extractBedroom(customerText);
+  const requestedPrice = extractPrice(customerText, requestedType);
+  const demand = {
+    type: requestedType,
+    bedroom: requestedBed.bedroom,
+    budgetText: requestedPrice.priceText,
+    targetLocation: requestedGeo.building || requestedGeo.project,
+    building: requestedGeo.building || requestedGeo.project,
+    project: requestedGeo.project,
+  };
+
+  const matchResult = findBestMatchingPropertyWithDistance(customerText);
+  if (matchResult && matchResult.isNearMatch) {
+    return {
+      isNearMatch: true,
+      matchResult,
+      suggestedComment: generateTargetedComment(matchResult.property, matchResult),
+      distanceKm: matchResult.distanceKm,
+      distanceText: matchResult.distanceText,
+      reason: matchResult.reasons.join(' · '),
+      demand,
+    };
+  }
+  return {
+    isNearMatch: false,
+    matchResult,
+    suggestedComment: BDS_ECOPARK_FALLBACK_COMMENT,
+    distanceKm: matchResult ? matchResult.distanceKm : 9.9,
+    distanceText: matchResult ? matchResult.distanceText : 'Xa nguồn quỹ căn (> 1km)',
+    reason: matchResult
+      ? `Xa nguồn / lệch nhu cầu (${matchResult.distanceText}) ➔ Dùng bình luận chuẩn Ecopark`
+      : 'Không có căn gần trong kho ➔ Dùng bình luận chuẩn Ecopark',
+    demand,
+  };
 }
 

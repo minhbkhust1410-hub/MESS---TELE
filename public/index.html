@@ -893,10 +893,10 @@
                     <span>🔥</span> <span id="oneclick-badge-text">TÁC VỤ DUY NHẤT HÀNG NGÀY CỦA BẠN (MẢNG BĐS ECOPARK)</span>
                   </div>
                   <h2 id="oneclick-title" class="text-base sm:text-lg font-bold text-white">
-                    Đăng Bài & AI Tự Động Bóc Tách Lưu Note Vào Kho Căn
+                    Đăng Bài Hàng Ngày ➔ Đa Nick Tự Rải Khắp Nơi & Tự Trích Xuất Căn + Tọa Độ GPS
                   </h2>
                   <p id="oneclick-desc" class="text-xs text-[#86868b]">
-                    Dán nội dung hoặc tải ảnh bảng hàng ➔ AI & OCR bóc tách lưu thẻ căn hộ lên Cloud DB ➔ hệ thống đăng bài và bình luận mồi.
+                    Bạn chỉ cần đăng bài mỗi ngày ➔ Nhiều nick tự động đăng đi khắp các Group & Tường cá nhân ➔ AI tự trích xuất thông tin căn + tọa độ GPS để đối ứng với các bình luận của khách!
                   </p>
                 </div>
               </div>
@@ -914,11 +914,11 @@
               <div>
                 <label class="block text-xs font-semibold text-white mb-1.5 flex items-center justify-between">
                   <span id="oneclick-label-1">1. Nội Dung Bài Viết / Rao Căn / Bảng Hàng:</span>
-                  <span id="oneclick-hint-1" class="text-[11px] text-amber-400 font-normal">AI tự nhận diện: Mã căn, Giá, Phân khu, Số phòng, Diện tích</span>
+                  <span id="oneclick-hint-1" class="text-[11px] text-amber-400 font-normal">AI tự nhận diện: Mã căn, Giá, Phân khu, Số phòng & Tọa độ GPS Ecopark</span>
                 </label>
                 <textarea id="daily-oneclick-content" rows="4" 
                   class="w-full px-4 py-3 rounded-2xl bg-black/40 border border-white/15 text-white placeholder-stone-400 text-xs sm:text-sm focus:border-amber-500 focus:outline-none transition leading-relaxed font-medium"
-                  placeholder="Ví dụ: Cần bán gấp căn Solforest 2PN 2WC tầng 18 view trọn biệt thự đảo, diện tích 72m2, full đồ cao cấp, giá 3.4 tỷ bao phí. Liên hệ chính chủ: 098..."></textarea>
+                  placeholder="Ví dụ: Cần bán gấp căn Solforest 2PN 2WC tầng 18 view trọn biệt thự đảo, diện tích 72m2, full đồ cao cấp, giá 3.4 tỷ bao phí. Liên hệ chính chủ: 0981992137..."></textarea>
               </div>
 
               <!-- Ảnh Đính Kèm & Dropzone -->
@@ -935,12 +935,12 @@
 
                 <div>
                   <label class="block text-xs font-semibold text-white mb-1 flex items-center justify-between">
-                    <span id="oneclick-label-3">3. Bình Luận Mồi Tự Động (First Comment):</span>
-                    <span class="text-[10px] text-emerald-400 font-semibold">Đã tắt GPS 100%</span>
+                    <span id="oneclick-label-3">3. Bình Luận Mồi / Mẫu Xa Nguồn BĐS Ecopark:</span>
+                    <span id="oneclick-gps-status-tag" class="text-[10px] text-emerald-400 font-semibold">📍 Đã bật GPS Tọa Độ Ecopark & Đa Nick</span>
                   </label>
                   <input type="text" id="daily-oneclick-first-comment" 
-                    value="Quý anh chị quan tâm căn đẹp giá tốt vui lòng nhắn tin trực tiếp hoặc gọi Hotline/Zalo chính chủ để xem nhà 24/7 ạ!"
-                    class="w-full px-3.5 py-2 rounded-xl bg-black/40 border border-white/15 text-white text-xs focus:border-amber-500 focus:outline-none transition" />
+                    value="LH/Zalo: 0981992137 hoặc ib e có ngay ạ"
+                    class="w-full px-3.5 py-2 rounded-xl bg-black/40 border border-white/15 text-white text-xs focus:border-amber-500 focus:outline-none transition font-mono" />
                 </div>
               </div>
 
@@ -966,7 +966,7 @@
                   <button onclick="submitDailyOneClickPost()" id="btn-submit-daily-oneclick"
                     class="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-[#d97706] hover:from-amber-400 hover:to-[#b45309] text-white text-xs sm:text-sm font-bold shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2 transition transform active:scale-95 cursor-pointer">
                     <span>🚀</span>
-                    <span id="btn-submit-daily-oneclick-text">ĐĂNG BÀI & TỰ ĐỘNG LƯU VÀO KHO CĂN (1-CHẠM)</span>
+                    <span id="btn-submit-daily-oneclick-text">ĐĂNG BÀI ĐA NICK & TỰ ĐỘNG TRÍCH XUẤT CĂN + GPS (1-CHẠM)</span>
                   </button>
                 </div>
               </div>
@@ -979,7 +979,7 @@
                 <div class="flex items-center justify-between">
                   <div class="flex items-center gap-2">
                     <span id="overview-strip-icon" class="text-sm">🏡</span>
-                    <span id="overview-strip-title" class="text-xs font-bold text-white uppercase tracking-wider">Quỹ Căn Đang Mở Bán / Cho Thuê (Gạt 1-Chạm Còn Căn / Đã Chốt)</span>
+                    <span id="overview-strip-title" class="text-xs font-bold text-white uppercase tracking-wider">Quỹ Căn Đang Mở Bán / Cho Thuê Kèm Tọa Độ GPS (Gạt 1-Chạm Còn Căn / Đã Chốt)</span>
                     <span id="overview-today-props-badge" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">0 căn</span>
                   </div>
                   <button id="overview-strip-link-btn" onclick="switchTab('autocmt')" class="text-[11px] text-[#2997ff] hover:underline font-medium">Mở toàn bộ kho căn ➔</button>
@@ -993,7 +993,7 @@
           </div>
 
           <!-- ======================================================== -->
-          <!-- GÓI NÂNG CẤP 1B: TRUNG TÂM KHÁCH NÓNG / TRADER NÓNG VỪA PHÁT HIỆN (HOT INTENT FEED) -->
+          <!-- GÓI NÂNG CẤP 1B: TRUNG TÂM QUÉT BÌNH LUẬN GROUP, ĐỐI ỨNG KEYWORD + GPS TỌA ĐỘ & KHÁCH NÓNG -->
           <!-- ======================================================== -->
           <div class="apple-card rounded-3xl p-6 border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-white/[0.03] to-transparent shadow-xl space-y-4">
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3.5">
@@ -1004,14 +1004,14 @@
                 <div>
                   <div class="flex items-center gap-2 flex-wrap">
                     <h3 id="hot-leads-title" class="text-base sm:text-lg font-bold text-white tracking-tight">
-                      Trung Tâm Khách Nóng & Gợi Ý Chốt Đơn (Hot Intent Feed)
+                      Quét Bình Luận Group, Phân Loại Keyword & Đối Ứng Quỹ Căn Theo GPS Tọa Độ
                     </h3>
                     <span id="hot-leads-count-badge" class="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
                       0 KHÁCH NÓNG
                     </span>
                   </div>
                   <p id="hot-leads-desc" class="text-xs text-[#86868b]">
-                    Tự động lọc bài khách hỏi thuê/mua nhà trong nhóm, bóc tách SĐT/Zalo và ghép sẵn căn phù hợp nhất trong kho để bạn chốt đơn 1-chạm.
+                    Tự động quét bài đăng & bình luận của khách trong các Group Ecopark: Nếu gần nguồn trong kho (≤0.95km) ➔ báo chi tiết căn; Nếu xa nguồn / khác khu ➔ tự bình luận: <b class="text-emerald-300 font-mono">LH/Zalo: 0981992137 hoặc ib e có ngay ạ</b>
                   </p>
                 </div>
               </div>
@@ -1020,6 +1020,39 @@
                   <span>🔄</span> <span id="hot-leads-refresh-label">Làm mới khách nóng</span>
                 </button>
               </div>
+            </div>
+
+            <!-- BỘ KIỂM THỬ & ĐỐI ỨNG TRỰC TIẾP BÌNH LUẬN KHÁCH HỎI TRONG GROUP (CHỈ HIỆN Ở MODE BĐS ECOPARK) -->
+            <div id="bds-gps-comment-matcher-box" class="p-4 rounded-2xl bg-black/40 border border-emerald-500/30 space-y-3">
+              <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-xs font-bold text-emerald-300 flex items-center gap-1.5">
+                    <span>📍</span> Bộ Đối Ứng Bình Luận Khách Hàng Theo Keyword & Tọa Độ GPS Quỹ Căn:
+                  </span>
+                  <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                    Xa nguồn ➔ LH/Zalo: 0981992137 hoặc ib e có ngay ạ
+                  </span>
+                </div>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <button type="button" onclick="runBdsCommentPreset('near')" class="px-2.5 py-1 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold transition cursor-pointer">
+                    🟢 Test 1: Khách hỏi GẦN nguồn (Sky Oasis S2 2PN 10tr)
+                  </button>
+                  <button type="button" onclick="runBdsCommentPreset('far')" class="px-2.5 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[11px] font-bold transition cursor-pointer">
+                    🟠 Test 2: Khách hỏi XA nguồn (Khu Rừng Cọ / Vườn Tùng >1.5km)
+                  </button>
+                </div>
+              </div>
+              <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <input type="text" id="bds-comment-eval-input"
+                  value="Mình cần tìm thuê căn 2PN bên tòa S2 Sky Oasis giá tầm 10tr full đồ vào ở ngay, ai có căn ib mình nhé!"
+                  placeholder="Dán bình luận của khách trong Group Ecopark để kiểm tra phân loại Keyword + khoảng cách GPS..."
+                  class="flex-1 px-3.5 py-2 rounded-xl bg-black/50 border border-white/15 text-white text-xs focus:border-emerald-400 focus:outline-none" />
+                <button type="button" onclick="evaluateBdsCommentNow()" id="btn-eval-bds-comment"
+                  class="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs transition cursor-pointer whitespace-nowrap shadow">
+                  ⚡ Phân Loại & Đối Ứng Ngay
+                </button>
+              </div>
+              <div id="bds-comment-eval-result" class="hidden p-3.5 rounded-xl bg-white/[0.04] border border-white/15 text-xs space-y-2"></div>
             </div>
 
             <div id="hot-leads-feed-grid" class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
@@ -3325,9 +3358,13 @@
         if (contentTa) {
           contentTa.placeholder = 'Ví dụ: [KÈO VÀNG XAU/USD PHIÊN MỸ] Canh Buy vùng 2642 - 2645, SL 2637, TP1 2655, TP2 2668. Anh em mở tài khoản Exness / IC Markets dưới link IB team nhận ngay Backcom 95% tự động + vào nhóm VIP tín hiệu thực chiến!';
         }
-        if (firstCmtInp && (firstCmtInp.value.includes('xem nhà') || firstCmtInp.value.includes('căn đẹp'))) {
+        if (firstCmtInp && (firstCmtInp.value.includes('xem nhà') || firstCmtInp.value.includes('căn đẹp') || firstCmtInp.value.includes('0981992137'))) {
           firstCmtInp.value = 'Anh em Trader cần vào nhóm VIP Tín Hiệu Vàng XAU/USD, nhận Backcom 95% Exness/IC Markets hoặc hỗ trợ gỡ lệnh âm nhắn trực tiếp mình hỗ trợ 1-1 nhé!';
         }
+
+        // Ẩn hộp đối ứng GPS BĐS khi ở chế độ Forex
+        const bdsGpsMatcher = document.getElementById('bds-gps-comment-matcher-box');
+        if (bdsGpsMatcher) bdsGpsMatcher.classList.add('hidden');
 
         // Strip dưới Khối 0: Kho Gói Forex
         setTxt('overview-strip-icon', '📈');
@@ -3400,30 +3437,34 @@
 
         // Khối 0: One-Click Composer (BĐS Mode)
         setTxt('oneclick-badge-text', 'TÁC VỤ HÀNG NGÀY (MẢNG BĐS ECOPARK)');
-        setTxt('oneclick-title', 'Đăng Bài & AI Tự Động Bóc Tách Lưu Note Vào Kho Căn');
-        setTxt('oneclick-desc', 'Dán nội dung hoặc tải ảnh bảng hàng ➔ AI & OCR bóc tách lưu thẻ căn hộ lên Cloud DB ➔ hệ thống đăng bài và bình luận mồi.');
+        setTxt('oneclick-title', 'Đăng Bài Hàng Ngày Đa Nick & AI Tự Trích Xuất Quỹ Căn + Tọa Độ GPS');
+        setTxt('oneclick-desc', 'Chỉ cần đăng bài mỗi ngày 1 lần ➔ Nhiều nick tự động rải khắp các Hội Nhóm & Tường cá nhân ➔ Tự động trích xuất thông tin căn + gắn tọa độ GPS Ecopark để đối ứng bình luận của khách.');
         setTxt('oneclick-label-1', '1. Nội Dung Bài Viết / Rao Căn / Bảng Hàng:');
-        setTxt('oneclick-hint-1', 'AI tự nhận diện: Mã căn, Giá, Phân khu, Số phòng, Diện tích');
+        setTxt('oneclick-hint-1', 'AI tự trích xuất: Tòa/Phân khu + Tọa độ GPS (lat, lng) + Số phòng + Giá');
         setTxt('oneclick-label-2', '2. Ảnh Căn Hộ Hoặc Ảnh Bảng Hàng (Tùy chọn):');
         setTxt('oneclick-hint-2', 'OCR tự đọc ảnh bảng hàng');
-        setTxt('btn-submit-daily-oneclick-text', 'ĐĂNG BÀI & TỰ ĐỘNG LƯU VÀO KHO CĂN (1-CHẠM)');
+        setTxt('btn-submit-daily-oneclick-text', 'ĐĂNG BÀI ĐA NICK & TRÍCH XUẤT QUỸ CĂN + GPS (1-CHẠM)');
 
         if (contentTa) {
-          contentTa.placeholder = 'Ví dụ: Cần bán gấp căn Solforest 2PN 2WC tầng 18 view trọn biệt thự đảo, diện tích 72m2, full đồ cao cấp, giá 3.4 tỷ bao phí. Liên hệ chính chủ: 098...';
+          contentTa.placeholder = 'Ví dụ: Cần bán gấp căn Solforest 2PN 2WC tầng 18 view trọn biệt thự đảo, diện tích 72m2, full đồ cao cấp, giá 3.4 tỷ bao phí. Liên hệ chính chủ: 0981992137';
         }
-        if (firstCmtInp && (firstCmtInp.value.includes('XAU/USD') || firstCmtInp.value.includes('Backcom'))) {
-          firstCmtInp.value = 'Quý anh chị quan tâm căn đẹp giá tốt vui lòng nhắn tin trực tiếp hoặc gọi Hotline/Zalo chính chủ để xem nhà 24/7 ạ!';
+        if (firstCmtInp && (firstCmtInp.value.includes('XAU/USD') || firstCmtInp.value.includes('Backcom') || firstCmtInp.value.includes('xem nhà'))) {
+          firstCmtInp.value = 'LH/Zalo: 0981992137 hoặc ib e có ngay ạ';
         }
+
+        // Hiện hộp đối ứng GPS BĐS khi ở chế độ BĐS Ecopark
+        const bdsGpsMatcher = document.getElementById('bds-gps-comment-matcher-box');
+        if (bdsGpsMatcher) bdsGpsMatcher.classList.remove('hidden');
 
         // Strip dưới Khối 0: Quỹ Căn BĐS
         setTxt('overview-strip-icon', '🏡');
-        setTxt('overview-strip-title', 'Quỹ Căn Đang Mở Bán / Cho Thuê (Gạt 1-Chạm Còn Căn / Đã Chốt)');
+        setTxt('overview-strip-title', 'Quỹ Căn Đang Mở Bán / Cho Thuê Kèm Tọa Độ GPS (Gạt 1-Chạm Còn Căn / Đã Chốt)');
         setTxt('overview-strip-link-btn', 'Mở toàn bộ kho căn ➔');
         if (typeof loadInventoryProperties === 'function') loadInventoryProperties();
 
         // Trung Tâm Khách Nóng BĐS
-        setTxt('hot-leads-title', 'Trung Tâm Khách Nóng & Gợi Ý Chốt Đơn (Hot Intent Feed)');
-        setTxt('hot-leads-desc', 'Tự động lọc bài khách hỏi thuê/mua nhà trong nhóm, bóc tách SĐT/Zalo và ghép sẵn căn phù hợp nhất trong kho để bạn chốt đơn 1-chạm.');
+        setTxt('hot-leads-title', 'Trung Tâm Quét Bài & Bình Luận Khách Trong Group (Phân Loại Keyword + GPS Gần/Xa Nguồn)');
+        setTxt('hot-leads-desc', 'Quét cả bài đăng lẫn bình luận của khách trong Group: Gần nguồn căn (≤ 0.95km) ➔ báo chi tiết căn khớp; Xa nguồn (> 0.95km hoặc lệch nhu cầu) ➔ tự động bình luận: LH/Zalo: 0981992137 hoặc ib e có ngay ạ');
         setTxt('hot-leads-refresh-label', 'Làm mới khách nóng');
 
         const bdsCard = document.getElementById('bds-inventory-card');
@@ -3776,13 +3817,17 @@
             const cmtOk = rc.filter(r => r.commentPosted === true).length;
             const cmtWanted = firstComment.trim() ? rc.filter(r => r.status === 'verified_success').length : 0;
             const savedCount = res.extractedCount || 0;
+            const accNames = Array.isArray(res.distributedAccountNames) && res.distributedAccountNames.length
+              ? res.distributedAccountNames.join(', ')
+              : 'Nick chính';
             const warn = failList.length > 0 || (cmtWanted > cmtOk) || (content.trim() && savedCount === 0);
             statusBox.className = 'p-3.5 rounded-2xl text-xs font-medium border block ' + (warn ? 'bg-amber-500/15 border-amber-500/40 text-amber-200' : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300');
             statusBox.innerHTML = `
               <div class="space-y-1">
+                <div>🛰️ Phân phối Đa Nick (${res.distributedAccountCount || 1} nick): <b>${escapeHtml(accNames)}</b></div>
                 <div>📝 Đăng bài: <b>${okCount}/${rc.length}</b> đích thành công${failList.length ? ' · <b>' + failList.length + ' đích lỗi</b>' : ''}</div>
                 ${cmtWanted ? `<div>💬 Bình luận mồi: <b>${cmtOk}/${cmtWanted}</b> bài đã bình luận được</div>` : ''}
-                <div>🏠 AI lưu vào kho căn: <b>${savedCount}</b> căn${savedCount === 0 && content.trim() ? ' (AI không nhận ra căn nào trong nội dung - hãy kiểm tra lại nội dung)' : ''}</div>
+                <div>📍 AI trích xuất quỹ căn + tọa độ GPS: <b>${savedCount}</b> căn${savedCount === 0 && content.trim() ? ' (AI không nhận ra căn nào trong nội dung)' : ' đã lưu vào Cloud DB để tự động đối ứng cmt khách'}</div>
                 ${failList.map(f => `<div class="text-red-300">❌ ${escapeHtml(f.target)}: ${escapeHtml(f.error || 'lỗi')}</div>`).join('')}
                 ${res.screenshotUrl ? `<button onclick="openProofModal('${res.screenshotUrl}', 'Ảnh chụp lúc đăng bài', 'Ảnh chụp thật từ trình duyệt Facebook')" class="mt-1 px-2.5 py-1 bg-[#0071e3] text-white font-bold rounded-lg text-[10px]">📸 Xem ảnh</button>` : ''}
               </div>
@@ -4127,17 +4172,21 @@
 
       strip.innerHTML = list.slice(0, 6).map(p => {
         const isAvail = p.status === 'available';
+        const gpsTag = p.geoCoords && typeof p.geoCoords.lat === 'number'
+          ? `<span class="text-[10px] font-mono text-sky-300 bg-sky-500/15 border border-sky-500/30 px-1.5 py-0.5 rounded">📍 GPS: ${p.geoCoords.lat.toFixed(4)}, ${p.geoCoords.lng.toFixed(4)}</span>`
+          : `<span class="text-[10px] font-mono text-[#86868b]">📍 Ecopark</span>`;
         const toggleBtn = isAvail
           ? `<button onclick="quickTogglePropertyStatus('${escapeHtml(p.id)}')" class="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold transition cursor-pointer">🟢 Còn Căn (Bấm để chốt)</button>`
           : `<button onclick="quickTogglePropertyStatus('${escapeHtml(p.id)}')" class="px-2.5 py-1 rounded-lg bg-stone-700/60 hover:bg-stone-600 text-stone-300 border border-stone-600 text-[10px] font-bold transition cursor-pointer">🔴 Đã Chốt (Mở lại)</button>`;
         return `
           <div class="p-3 rounded-2xl bg-white/[0.04] border ${isAvail ? 'border-emerald-500/30' : 'border-white/10 opacity-70'} flex items-center justify-between gap-2">
-            <div class="min-w-0">
-              <div class="text-xs font-bold text-white truncate">
-                [${p.type === 'rent' ? 'Thuê' : 'Bán'}] ${escapeHtml(p.building || p.project)} · ${escapeHtml(p.bedroom || '')}
+            <div class="min-w-0 space-y-1">
+              <div class="text-xs font-bold text-white truncate flex items-center gap-1.5">
+                <span>[${p.type === 'rent' ? 'Thuê' : 'Bán'}] ${escapeHtml(p.building || p.project)} · ${escapeHtml(p.bedroom || '')}</span>
               </div>
-              <div class="text-[11px] text-amber-300 font-mono font-semibold truncate">
-                💰 ${escapeHtml(p.priceText || 'Thỏa thuận')} · ${escapeHtml(p.furniture || 'Full đồ')}
+              <div class="text-[11px] text-amber-300 font-mono font-semibold truncate flex items-center gap-2">
+                <span>💰 ${escapeHtml(p.priceText || 'Thỏa thuận')} · ${escapeHtml(p.furniture || 'Full đồ')}</span>
+                ${gpsTag}
               </div>
             </div>
             <div class="flex-shrink-0">${toggleBtn}</div>
@@ -4172,14 +4221,14 @@
         if (badge) {
           badge.textContent = isForex
             ? `${items.length} TRADER NÓNG · ${res.matchedCount || 0} KHỚP GÓI FX`
-            : `${items.length} KHÁCH NÓNG · ${res.matchedCount || 0} KHỚP CĂN`;
+            : `${items.length} KHÁCH NÓNG · ${res.matchedCount || 0} GẦN NGUỒN CĂN`;
         }
 
         if (items.length === 0) {
           grid.innerHTML = `<div class="col-span-full p-4 rounded-2xl bg-white/[0.03] border border-white/10 text-center text-xs text-[#86868b]">${
             isForex
               ? 'Hệ thống đang quét các nhóm Cộng đồng Trader / Vàng XAU/USD. Khi phát hiện Trader tìm sàn, xin kèo hoặc hỏi Bot EA sẽ hiện ngay tại đây.'
-              : 'Hệ thống đang quét các nhóm mục tiêu. Khi phát hiện bài khách tìm thuê/mua nhà, khách nóng sẽ hiện ngay tại đây kèm SĐT và căn gợi ý.'
+              : 'Hệ thống đang quét bài & bình luận trong các nhóm Ecopark. Khi phát hiện khách hỏi mua/thuê sẽ tự động phân loại Gần/Xa nguồn và gợi ý bình luận.'
           }</div>`;
           return;
         }
@@ -4210,11 +4259,31 @@
                   ${item.sourceGroup ? `<span class="truncate">· Nhóm: ${escapeHtml(item.sourceGroup)}</span>` : ''}
                 </div>
               </div>`;
-          } else if (mp) {
-            matchHtml = `<div class="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-[11px] text-emerald-300 flex items-center justify-between gap-2">
-                 <span class="truncate">🎯 <b>Khớp ${item.matchScore || 92}%:</b> ${escapeHtml(mp.building || mp.project)} (${escapeHtml(mp.bedroom)}) — <b>${escapeHtml(mp.priceText)}</b></span>
-                 <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-[10px] font-mono flex-shrink-0">Còn căn</span>
-               </div>`;
+          } else if (!isForex && item.isNearMatch && mp) {
+            const gpsStr = item.propertyCoords && typeof item.propertyCoords.lat === 'number'
+              ? `${item.propertyCoords.lat.toFixed(4)}, ${item.propertyCoords.lng.toFixed(4)}`
+              : 'Ecopark';
+            matchHtml = `
+              <div class="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/35 text-[11px] text-emerald-300 space-y-1">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="truncate">🟢 <b>GẦN NGUỒN (${escapeHtml(item.distanceText || 'Cùng khu')}):</b> ${escapeHtml(mp.building || mp.project)} (${escapeHtml(mp.bedroom)}) — <b>${escapeHtml(mp.priceText)}</b></span>
+                  <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-[10px] font-mono flex-shrink-0">📍 GPS: ${gpsStr}</span>
+                </div>
+                <div class="text-[10px] text-emerald-200/90 font-mono truncate">
+                  💬 Auto-Comment: "${escapeHtml(item.suggestedComment || '')}"
+                </div>
+              </div>`;
+          } else if (!isForex) {
+            matchHtml = `
+              <div class="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/35 text-[11px] text-amber-300 space-y-1">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="truncate">🟠 <b>XA NGUỒN (${escapeHtml(item.distanceText || 'Khác phân khu / xa quỹ căn')}):</b> Dùng mẫu bình luận chuẩn Ecopark</span>
+                  <span class="px-2 py-0.5 rounded bg-amber-500/20 text-[10px] font-mono flex-shrink-0">Fallback Chuẩn</span>
+                </div>
+                <div class="text-[11px] text-white font-mono font-bold truncate">
+                  💬 Auto-Comment: "${escapeHtml(item.suggestedComment || 'LH/Zalo: 0981992137 hoặc ib e có ngay ạ')}"
+                </div>
+              </div>`;
           } else {
             matchHtml = `<div class="p-2 rounded-xl bg-white/[0.03] border border-white/10 text-[11px] text-[#86868b]">ℹ️ Đang chờ khớp sản phẩm phù hợp trong kho</div>`;
           }
@@ -4248,7 +4317,7 @@
                   ${item.postUrl ? `<a href="${escapeHtml(item.postUrl)}" target="_blank" class="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-white text-[11px] font-medium transition">↗ Mở FB</a>` : ''}
                 </div>
                 <button onclick="copyHotLeadReply('${escapeHtml(item.suggestedComment || '')}')" class="px-2.5 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-[11px] font-semibold transition cursor-pointer">
-                  📋 Copy Câu Chốt
+                  📋 Copy Câu Bình Luận
                 </button>
               </div>
             </div>
@@ -4263,6 +4332,81 @@
       if (!text) return;
       navigator.clipboard?.writeText(text);
       alert('📋 Đã copy mẫu câu tư vấn chốt khách vào bộ nhớ tạm:\n\n' + text);
+    }
+
+    function runBdsCommentPreset(type) {
+      const inp = document.getElementById('bds-test-customer-comment');
+      if (!inp) return;
+      if (type === 'near') {
+        inp.value = 'Mình cần tìm thuê căn 2PN bên tòa S2 Sky Oasis Ecopark full đồ ngân sách khoảng 9 - 10 triệu/tháng, vào ở ngay tuần này ạ';
+      } else {
+        inp.value = 'Có bác nào chính chủ cho thuê biệt thự Vườn Tùng hoặc căn hộ Rừng Cọ khu giai đoạn 1 giá tầm 6 triệu/tháng không ạ?';
+      }
+      evaluateBdsCommentNow();
+    }
+
+    async function evaluateBdsCommentNow() {
+      const inp = document.getElementById('bds-test-customer-comment');
+      const box = document.getElementById('bds-comment-eval-result');
+      if (!inp || !box) return;
+      const comment = inp.value.trim();
+      if (!comment) return;
+
+      box.classList.remove('hidden');
+      box.innerHTML = '<div class="text-[#86868b] font-mono">⏳ Đang phân tích Keyword & đo khoảng cách tọa độ GPS Ecopark...</div>';
+
+      try {
+        const res = await fetch('/api/bds/evaluate-comment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ comment }),
+        }).then(r => r.json());
+
+        if (!res || !res.success) {
+          box.innerHTML = `<div class="text-rose-400">❌ Lỗi phân tích: ${escapeHtml(res?.error || 'Không xác định')}</div>`;
+          return;
+        }
+
+        const isNear = !!res.isNearMatch;
+        const mp = res.matchedProperty;
+        const kwList = Array.isArray(res.matchedKeywords) && res.matchedKeywords.length
+          ? res.matchedKeywords.join(' · ')
+          : 'Không có keyword khớp gần';
+        const reqGps = res.requestedCoords
+          ? `${res.requestedCoords.lat.toFixed(4)}, ${res.requestedCoords.lng.toFixed(4)}`
+          : 'Chưa xác định phân khu';
+        const propGps = res.propertyCoords
+          ? `${res.propertyCoords.lat.toFixed(4)}, ${res.propertyCoords.lng.toFixed(4)}`
+          : 'N/A';
+
+        box.innerHTML = `
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2 border-b border-white/10">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold font-mono ${isNear ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'}">
+                ${isNear ? '🟢 GẦN NGUỒN QUỸ CĂN (KHỚP TỌA ĐỘ GPS)' : '🟠 XA NGUỒN / LỆCH NHU CẦU ➔ BÌNH LUẬN MẪU CHUẨN'}
+              </span>
+              <span class="text-[11px] text-sky-300 font-mono">📍 Khoảng cách: <b>${escapeHtml(res.distanceText || 'N/A')}</b></span>
+            </div>
+            <span class="text-[10px] font-mono text-[#86868b]">GPS Khách: ${reqGps} ${mp ? `➔ GPS Căn: ${propGps}` : ''}</span>
+          </div>
+          <div class="pt-2 space-y-1.5">
+            <div class="text-[11px] text-[#86868b]">
+              🔎 <b>Phân loại Keyword:</b> <span class="text-white">${escapeHtml(kwList)}</span>
+              ${mp ? ` · 🏡 <b>Căn đối ứng:</b> <span class="text-emerald-300 font-semibold">${escapeHtml(mp.building)} (${escapeHtml(mp.bedroom)} - ${escapeHtml(mp.priceText)})</span>` : ''}
+            </div>
+            <div class="p-2.5 rounded-xl ${isNear ? 'bg-emerald-500/15 border border-emerald-500/40' : 'bg-amber-500/15 border border-amber-500/40'} flex items-center justify-between gap-2">
+              <div class="text-xs text-white font-mono">
+                💬 <b>Nội dung Bot tự bình luận:</b> <span class="${isNear ? 'text-emerald-300' : 'text-amber-300'} font-bold">"${escapeHtml(res.suggestedComment)}"</span>
+              </div>
+              <button type="button" onclick="copyHotLeadReply('${escapeHtml(res.suggestedComment)}')" class="px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold flex-shrink-0 cursor-pointer">
+                📋 Copy
+              </button>
+            </div>
+          </div>
+        `;
+      } catch (err) {
+        box.innerHTML = `<div class="text-rose-400">❌ Lỗi kết nối: ${escapeHtml(err.message)}</div>`;
+      }
     }
 
     function renderOverviewAccountRolesBar() {
@@ -9487,6 +9631,11 @@ async function runAiSimulation() {
 
     window.addEventListener('DOMContentLoaded', () => {
       setTimeout(loadCloudShareConfig, 1500);
+      setTimeout(() => {
+        if (typeof evaluateBdsCommentNow === 'function' && currentOperatingMode !== 'forex_finance') {
+          evaluateBdsCommentNow();
+        }
+      }, 1800);
     });
   </script>
 </body>

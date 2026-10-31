@@ -29,6 +29,8 @@ import {
   CommentLog,
 } from '../db/auto-comment-store.js';
 import {
+  BDS_ECOPARK_FALLBACK_COMMENT,
+  evaluateBdsCustomerComment,
   findBestMatchingProperty,
   findBestMatchingPropertyWithDistance,
   generateTargetedComment,
@@ -43,6 +45,7 @@ export interface ScrapedPost {
   author: string;
   content: string;
   matchedKeywords: string[];
+  sourceType?: 'group_post' | 'group_comment';
 }
 
 export type OnCommentReportCallback = (report: {
@@ -151,7 +154,7 @@ export class AutoCommentEngine {
         for (const post of posts) {
           if (isPostProcessed(post.id)) continue;
 
-          console.log(`🎯 [AutoComment Engine] PHÁT HIỆN BÀI VIẾT PHÙ HỢP!`);
+          console.log(`🎯 [AutoComment Engine] PHÁT HIỆN ${post.sourceType === 'group_comment' ? 'BÌNH LUẬN KHÁCH HỎI TRONG GROUP' : 'BÀI VIẾT KHÁCH HỎI'}!`);
           console.log(`• Tác giả: ${post.author}`);
           console.log(`• Từ khóa khớp: ${post.matchedKeywords.join(', ')}`);
           console.log(`• Link bài: ${post.url}`);
@@ -164,11 +167,11 @@ export class AutoCommentEngine {
             finalComment = generateForexTargetedComment(forexLead);
             console.log(`📈 [Forex Engine] Đã nhận diện Lead: [${forexLead.intentLabel}] (${forexLead.symbols.join(', ') || 'XAU/USD'} - Độ tin cậy: ${forexLead.confidenceScore}%)!`);
           } else {
-            // Khớp bài viết với Quỹ Căn BĐS Trong Ngày theo khoảng cách Google Maps & ngân sách
-            const matchResult = findBestMatchingPropertyWithDistance(post.content);
-            if (matchResult) {
+            // Khớp bài viết / bình luận khách với Quỹ Căn BĐS Trong Ngày theo Keyword + Tọa Độ GPS Haversine
+            const evalRes = evaluateBdsCustomerComment(post.content);
+            const matchResult = evalRes.matchResult;
+            if (evalRes.isNearMatch && matchResult) {
               const matchedProp = matchResult.property;
-              // Sử dụng Free AI (Gemini / Groq / NLP) để sinh bình luận cá nhân hóa (Đã tắt GPS)
               try {
                 const { freeAiService, getAiConfig } = await import('../services/free-ai-service.js');
                 const aiCfg = getAiConfig();
@@ -177,17 +180,19 @@ export class AutoCommentEngine {
                   finalComment = aiRes.comment;
                   console.log(`🤖 [Free AI Comment Engine] Đã sinh bình luận qua ${aiCfg.provider}: "${finalComment}"`);
                 } else {
-                  finalComment = generateTargetedComment(matchedProp, matchResult);
+                  finalComment = evalRes.suggestedComment;
                 }
               } catch (err) {
-                finalComment = generateTargetedComment(matchedProp, matchResult);
+                finalComment = evalRes.suggestedComment;
               }
 
               const bName = matchedProp.building || matchedProp.project;
-              console.log(`🏠 [Kho Nguồn Ecopark] Đã khớp toà/căn: ${bName} (${matchedProp.bedroom} - ${matchedProp.priceText}) - Điểm: ${matchResult.score}%!`);
+              console.log(`🏠 [Kho Nguồn Ecopark - GẦN NGUỒN GPS] Đã khớp toà/căn: ${bName} (${matchedProp.bedroom} - ${matchedProp.priceText}) - Khoảng cách: ${evalRes.distanceText} - Điểm: ${matchResult.score}%!`);
               incrementMatchedCount(matchedProp.id);
             } else {
-              console.log(`ℹ️ [AutoComment] Không có căn cụ thể khớp trong kho, dùng mẫu chung ngẫu nhiên.`);
+              // Chỉ áp dụng bên BĐS Ecopark: Nếu không phát hiện nhu cầu gần hoặc rất xa kho nguồn -> bình luận mẫu chuẩn
+              finalComment = BDS_ECOPARK_FALLBACK_COMMENT;
+              console.log(`📍 [BĐS Ecopark - XA NGUỒN / NGOÀI QUỸ CĂN GẦN] (${evalRes.reason}) -> Bình luận chuẩn: "${finalComment}"`);
             }
           }
 
@@ -199,7 +204,11 @@ export class AutoCommentEngine {
           await new Promise((r) => setTimeout(r, delaySec * 1000));
 
           // Thực hiện bình luận
-          const res = await this.commentOnPost(post.url, finalComment, account);
+          const res = await this.commentOnPost(post.url, finalComment, account, {
+            author: post.author,
+            snippet: post.content,
+            sourceType: post.sourceType,
+          });
           if (res.success) {
             markPostProcessed(post.id, account.id);
             totalCommentsMade++;
@@ -218,7 +227,7 @@ export class AutoCommentEngine {
   }
 
   /**
-   * Quét và trích xuất các bài viết mới từ một Group Facebook
+   * Quét và trích xuất cả Bài Viết Mới VÀ Bình Luận Của Khách Hàng trong một Group Facebook
    * Tránh hoàn toàn lỗi tranh chấp khóa profile bằng việc dùng withNewFacebookPage cho nick đang chạy
    */
   public async scanGroupPosts(groupUrl: string, account: FacebookAccount): Promise<ScrapedPost[]> {
@@ -236,7 +245,7 @@ export class AutoCommentEngine {
       const cleanBase = groupUrl.split('?')[0].replace(/\/$/, '');
       const chronoUrl = `${cleanBase}/?sorting_setting=CHRONOLOGICAL`;
 
-      console.log(`[FalconX Scanner] Đang mở nhóm để tìm bài viết mới nhất: ${chronoUrl}`);
+      console.log(`[FalconX Scanner] Đang mở nhóm để quét bài viết & bình luận khách hàng: ${chronoUrl}`);
       await page.goto(chronoUrl, {
         waitUntil: 'domcontentloaded',
         timeout: 45000,
@@ -252,13 +261,20 @@ export class AutoCommentEngine {
         await popups.first().click().catch(() => {});
       }
 
-      // Cuộn mượt theo chuẩn lõi KudoX (smoothScrollDown) để nạp các bài viết mới nhất như người thật
+      // Cuộn mượt theo chuẩn lõi KudoX (smoothScrollDown) để nạp các bài viết và bình luận mới nhất như người thật
       await smoothScrollDown(page, 2);
 
-      // Quét DOM tìm các bài viết với bộ lọc phân loại ý định Khách Hàng (Customer Intent Filter)
+      // Quét DOM tìm cả Bài Viết Khách Hỏi (group_post) VÀ Bình Luận Khách Hỏi Dưới Bài (group_comment)
       const domPosts = await page.evaluate((kws) => {
-        const results: Array<{ id: string; author: string; content: string; url: string; matched: string[] }> = [];
-        const articles = document.querySelectorAll('[role="feed"] [role="article"], [role="article"]');
+        const results: Array<{
+          id: string;
+          author: string;
+          content: string;
+          url: string;
+          matched: string[];
+          sourceType: 'group_post' | 'group_comment';
+        }> = [];
+        const articles = document.querySelectorAll('[role="feed"] > div, [role="article"]');
 
         const DEMAND_KEYWORDS = [
           'cần thuê', 'tìm thuê', 'cần tìm', 'tìm căn', 'ai có căn', 'cần mua',
@@ -266,21 +282,24 @@ export class AutoCommentEngine {
           'ngân sách', 'dọn vào', 'tìm phòng', 'có căn nào', 'inbox mình', 'thuê căn hộ'
         ];
 
+        const COMMENT_INTENT_KEYWORDS = [
+          'xin giá', 'ib', 'inbox', 'tư vấn', 'còn không', 'còn căn', 'giá sao',
+          'báo giá', 'check ib', 'zalo', 'quan tâm', 'cần thuê', 'tìm thuê', 'cần mua',
+          '1pn', '2pn', '3pn', 'studio', '2n2vs', '1n1vs'
+        ];
+
         const BROKER_SUPPLY_KEYWORDS = [
           'chính chủ gửi', 'bán gấp', 'cắt lỗ', 'độc quyền', 'giỏ hàng', 'bảng hàng',
           'quỹ căn độc quyền', 'lh xem nhà', 'bên em có căn', 'liên hệ ngay', 'quỹ căn ngoại giao',
-          'chuyên cho thuê', 'chuyên chuyển nhượng', 'chính chủ cho thuê'
+          'chuyên cho thuê', 'chuyên chuyển nhượng', 'chính chủ cho thuê', 'lh/zalo'
         ];
 
         articles.forEach((art, idx) => {
           const text = (art as HTMLElement).innerText || '';
           const lowerText = text.toLowerCase();
+          if (!text || text.trim().length < 8) return;
 
-          // 1. LOẠI BỎ NGAY BÀI VIẾT CỦA MÔI GIỚI KHÁC CHÀO BÁN (Tránh cmt vào bài của sale khác)
-          const isBrokerPost = BROKER_SUPPLY_KEYWORDS.some((bw) => lowerText.includes(bw));
-          if (isBrokerPost) return;
-
-          // 2. Tìm link bài viết chi tiết hợp lệ (bắt buộc phải là permalink thực tế)
+          // Tìm link bài viết chi tiết hợp lệ (bắt buộc phải là permalink thực tế)
           const links = art.querySelectorAll('a[href*="/posts/"], a[href*="/permalink/"], a[href*="multi_permalinks="]');
           let postLink = '';
           links.forEach((l) => {
@@ -290,31 +309,67 @@ export class AutoCommentEngine {
             }
           });
 
-          // Nếu không bóc tách được permalink cụ thể của bài viết, bỏ qua (không bao giờ lấy link chung của group)
           if (!postLink) return;
 
-          // 3. Kiểm tra xem bài viết có bị tắt tính năng bình luận ngay trên feed không
+          // Kiểm tra xem bài viết có bị tắt tính năng bình luận ngay trên feed không
           if (lowerText.includes('tính năng bình luận đã bị tắt') || lowerText.includes('comments have been turned off')) {
             return;
           }
 
-          // 4. Kiểm tra xem có chứa từ khóa mục tiêu hoặc từ khóa nhu cầu khách hỏi không
+          const basePostId = postLink.replace(/[^0-9]/g, '') || `post_${Date.now()}_${idx}`;
+
+          // A. QUÉT CÁC BÌNH LUẬN CỦA KHÁCH HÀNG BÊN TRONG BÀI VIẾT (Kể cả bài của cư dân hay bài rao)
+          const commentNodes = art.querySelectorAll(
+            'ul li, div[role="article"][aria-label*="Bình luận" i], div[role="article"][aria-label*="Comment" i]'
+          );
+          commentNodes.forEach((cNode, cIdx) => {
+            const cText = ((cNode as HTMLElement).innerText || '').trim();
+            if (!cText || cText.length < 6 || cText.length > 450) return;
+            const cLower = cText.toLowerCase();
+
+            // Bỏ qua bình luận của môi giới khác hoặc chính mình
+            if (BROKER_SUPPLY_KEYWORDS.some((bw) => cLower.includes(bw))) return;
+
+            const cMatchedKws = kws.filter((kw: string) => cLower.includes(kw.toLowerCase()));
+            const cMatchedIntent = COMMENT_INTENT_KEYWORDS.filter((ck) => cLower.includes(ck));
+            const allCommentMatched = Array.from(new Set([...cMatchedKws, ...cMatchedIntent]));
+
+            if (allCommentMatched.length > 0) {
+              const cAuthorEl = cNode.querySelector('a[role="link"] span, strong, a[role="link"]');
+              const cAuthor = cAuthorEl ? (cAuthorEl as HTMLElement).innerText.trim() : 'Khách bình luận trong Group';
+              const cCleanContent = cText.replace(/\n+/g, ' ').slice(0, 260);
+              const commentHash = cCleanContent.replace(/[^a-zA-Z0-9]/g, '').slice(0, 24) || `${cIdx}`;
+
+              results.push({
+                id: `${basePostId}_cmt_${commentHash}`,
+                author: cAuthor,
+                content: `[Bình luận Group] ${cCleanContent}`,
+                url: postLink,
+                matched: allCommentMatched,
+                sourceType: 'group_comment',
+              });
+            }
+          });
+
+          // B. QUÉT BÀI VIẾT CHÍNH CỦA KHÁCH HÀNG TRONG GROUP
+          const isBrokerPost = BROKER_SUPPLY_KEYWORDS.some((bw) => lowerText.includes(bw));
+          if (isBrokerPost) return;
+
           const matchedKws = kws.filter((kw: string) => lowerText.includes(kw.toLowerCase()));
           const matchedDemand = DEMAND_KEYWORDS.filter((dk) => lowerText.includes(dk));
           const allMatched = Array.from(new Set([...matchedKws, ...matchedDemand]));
 
-          // Chỉ nhận bài viết nếu có ít nhất 1 từ khóa nhu cầu của khách hàng
           if (allMatched.length > 0) {
             const authorEl = art.querySelector('h2, h3, h4, strong, a[role="link"]');
             const author = authorEl ? (authorEl as HTMLElement).innerText.trim() : 'Khách hỏi Ecopark';
-            const id = postLink.replace(/[^0-9]/g, '') || `post_${Date.now()}_${idx}`;
 
             results.push({
-              id,
+              id: basePostId,
               author,
               content: text.slice(0, 300),
               url: postLink,
               matched: allMatched,
+              sourceType: 'group_post',
             });
           }
         });
@@ -330,6 +385,7 @@ export class AutoCommentEngine {
             author: dp.author,
             content: dp.content,
             matchedKeywords: dp.matched,
+            sourceType: dp.sourceType,
           });
         }
       }
@@ -369,7 +425,8 @@ export class AutoCommentEngine {
   public async commentOnPost(
     postUrl: string,
     commentText: string | any,
-    account?: FacebookAccount
+    account?: FacebookAccount,
+    postMeta?: { author?: string; snippet?: string; sourceType?: 'group_post' | 'group_comment' }
   ): Promise<{ success: boolean; postUrl: string; commentPermalink?: string; screenshotPath?: string; error?: string }> {
     const acc = account || getAllAccounts().find((a) => a.isDefault) || getAllAccounts()[0];
     if (!acc) {
@@ -497,8 +554,8 @@ export class AutoCommentEngine {
         accountId: acc.id,
         accountName: acc.name,
         postUrl,
-        postAuthor: 'Thành viên Facebook',
-        postSnippet: postUrl,
+        postAuthor: postMeta?.author || 'Thành viên Facebook',
+        postSnippet: postMeta?.snippet || postUrl,
         commentText,
         status: result.submitted ? 'success' : 'failed',
       });
@@ -508,8 +565,8 @@ export class AutoCommentEngine {
         await this.reportCallback({
           success: result.submitted,
           postUrl,
-          postAuthor: 'Bài viết Group',
-          postSnippet: postUrl,
+          postAuthor: postMeta?.author || 'Bài viết Group',
+          postSnippet: postMeta?.snippet || postUrl,
           commentText,
           accountName: acc.name,
           proxyUsed: acc.proxy,
@@ -533,8 +590,8 @@ export class AutoCommentEngine {
         accountId: acc.id,
         accountName: acc.name,
         postUrl,
-        postAuthor: 'Thành viên Facebook',
-        postSnippet: postUrl,
+        postAuthor: postMeta?.author || 'Thành viên Facebook',
+        postSnippet: postMeta?.snippet || postUrl,
         commentText,
         status: 'failed',
         error: err.message,
@@ -544,8 +601,8 @@ export class AutoCommentEngine {
         await this.reportCallback({
           success: false,
           postUrl,
-          postAuthor: 'Bài viết Group',
-          postSnippet: postUrl,
+          postAuthor: postMeta?.author || 'Bài viết Group',
+          postSnippet: postMeta?.snippet || postUrl,
           commentText,
           accountName: acc.name,
           proxyUsed: acc.proxy,

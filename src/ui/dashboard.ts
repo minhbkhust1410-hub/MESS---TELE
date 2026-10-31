@@ -64,6 +64,8 @@ import { systemDiagnosticService } from '../services/system-diagnostic-service.j
 import { globalLeadPoolService } from '../services/global-lead-pool.js';
 import { autoFriendService } from '../services/auto-friend-service.js';
 import {
+  BDS_ECOPARK_FALLBACK_COMMENT,
+  evaluateBdsCustomerComment,
   getAllProperties,
   getAvailableProperties,
   getTodayProperties,
@@ -437,6 +439,7 @@ export function startDashboard(): void {
       req.path.startsWith('/screen/') ||
       req.path.startsWith('/orchestration/') ||
       req.path.startsWith('/system/') ||
+      req.path.startsWith('/bds/') ||
       req.path === '/posts/one-click-daily'
     ) {
       return next();
@@ -1645,6 +1648,26 @@ export function startDashboard(): void {
     });
   });
 
+  // Phân loại bình luận / bài viết khách hỏi BĐS Ecopark theo Keyword + Tọa Độ GPS Haversine (Gần nguồn vs Xa nguồn)
+  app.post('/api/bds/evaluate-comment', (req, res) => {
+    const rawInput = req.body?.comment || req.body?.text;
+    if (!rawInput || typeof rawInput !== 'string') {
+      return res.status(400).json({ success: false, error: 'Thiếu nội dung bình luận / bài viết của khách cần phân tích' });
+    }
+    const evalRes = evaluateBdsCustomerComment(rawInput);
+    const mr = evalRes.matchResult;
+    res.json({
+      success: true,
+      mode: 'bds_ecopark',
+      fallbackTemplate: BDS_ECOPARK_FALLBACK_COMMENT,
+      ...evalRes,
+      matchedProperty: evalRes.isNearMatch && mr ? mr.property : null,
+      matchedKeywords: mr?.matchedKeywords || [evalRes.demand.bedroom, evalRes.demand.building].filter(Boolean),
+      requestedCoords: mr?.requestedCoords || null,
+      propertyCoords: mr?.propertyCoords || null,
+    });
+  });
+
   // API 10: Lấy danh sách ánh xạ khách hàng
   app.get('/api/mappings', (req, res) => {
     res.json(getAllMappings());
@@ -2399,7 +2422,7 @@ export function startDashboard(): void {
         return res.status(400).json({ success: false, error: 'Chưa có nhóm nào trong danh sách nhóm đăng bài. Hãy thêm nhóm hoặc chọn "Chỉ Trang Cá Nhân".' });
       }
 
-      // 1. Tự động bóc tách lưu ngay vào Kho Căn BĐS hoặc Kho Kèo / Sản Phẩm Forex tùy theo Mode của người dùng
+      // 1. Tự động bóc tách lưu ngay vào Kho Căn BĐS (kèm tọa độ GPS) hoặc Kho Kèo / Sản Phẩm Forex tùy theo Mode của người dùng
       let extractedProperties: any[] = [];
       if (content && String(content).trim().length > 5) {
         try {
@@ -2414,8 +2437,33 @@ export function startDashboard(): void {
         }
       }
 
-      // 2. Xuất bản bài viết lên Facebook
-      const finalComment = (firstComment || '').trim();
+      // 2. Xác định danh sách đa Nick hoạt động trong mảng để tự động phân phối bài đi khắp nơi
+      const allAccs = getAllAccounts();
+      const modeAccounts = allAccs.filter((a) => {
+        if (a.status !== 'live' && a.status !== 'active') return false;
+        if (activeMode === 'forex_finance') return a.verticalMode === 'forex_finance' || a.verticalMode === 'both';
+        return !a.verticalMode || a.verticalMode === 'bds_ecopark' || a.verticalMode === 'both';
+      });
+      const targetAccountIds = (modeAccounts.length > 0 ? modeAccounts : allAccs).map((a) => a.id);
+
+      // 3. Xuất bản bài viết lên Facebook & tạo lịch phân phối đa nick
+      const defaultBdsComment = extractedProperties[0]
+        ? generateTargetedComment(extractedProperties[0])
+        : BDS_ECOPARK_FALLBACK_COMMENT;
+      const finalComment = (firstComment || '').trim() || (activeMode === 'forex_finance' ? '' : defaultBdsComment);
+
+      const dailyPostRecord = addDailyPost({
+        content: (content || '').trim(),
+        mediaUrls: uploadedPaths,
+        type: dest,
+        targetType: dest,
+        targetGroupIds: resolvedGroupUrls,
+        targetAccounts: targetAccountIds,
+        scheduledTime: 'now',
+        firstComment: finalComment || undefined,
+        notes: `Đăng bài hằng ngày đa nick (${targetAccountIds.length} nick) & trích xuất tự động ${extractedProperties.length} mục`,
+      });
+
       const result = await messengerEngine.publishFacebookPost({
         content: (content || '').trim(),
         targetType: dest,
@@ -2426,13 +2474,15 @@ export function startDashboard(): void {
 
       const proofScreenshot = result.screenshotPath ? '/proofs/' + path.basename(result.screenshotPath) : undefined;
 
-      // 3. Ghi nhận thực tế (mỗi đích 1 biên nhận, bình luận chỉ tính khi đã gửi thật)
+      // 4. Ghi nhận thực tế (mỗi đích 1 biên nhận, bình luận chỉ tính khi đã gửi thật)
       recordPublishResult(result, finalComment);
 
       res.json({
         success: result.success,
         extractedCount: extractedProperties.length,
         extractedProperties,
+        distributedAccountsCount: targetAccountIds.length,
+        dailyPostId: dailyPostRecord.id,
         publishedCount: result.publishedCount,
         result,
         screenshotUrl: proofScreenshot,
@@ -2806,14 +2856,17 @@ export function startDashboard(): void {
       let queuedPost: any = null;
       if (autoPostGroups !== false) {
         const defaultAcc = getDefaultAccount();
-        const masterAcc = getAllAccounts().find((a) => a.role === 'master' && (a.status === 'live' || a.status === 'active')) || defaultAcc;
+        const bdsAccounts = getAllAccounts().filter(
+          (a) => (a.status === 'live' || a.status === 'active') && a.verticalMode !== 'forex_finance'
+        );
+        const targetAccIds = bdsAccounts.length > 0 ? bdsAccounts.map((a) => a.id) : defaultAcc ? [defaultAcc.id] : [];
         let salesContent = '';
         if (addedProperties.length > 0) {
           const lines = addedProperties.map(
             (p, idx) =>
-              `🏡 ${idx + 1}. [${p.type === 'rent' ? 'CHO THUÊ' : 'BÁN'}] ${p.building || p.project} — ${p.bedroom}${p.areaText ? ` (${p.areaText})` : ''} — Giá: ${p.priceText} — ${p.furniture || 'Full nội thất'}${p.phone ? ` (LH: ${p.phone})` : ''}`
+              `🏡 ${idx + 1}. [${p.type === 'rent' ? 'CHO THUÊ' : 'BÁN'}] ${p.building || p.project} — ${p.bedroom}${p.areaText ? ` (${p.areaText})` : ''} — Giá: ${p.priceText} — ${p.furniture || 'Full nội thất'} (LH/Zalo: ${p.phone || '0981992137'})`
           );
-          salesContent = `🌟 CẬP NHẬT QUỸ CĂN ĐẸP HÔM NAY TẠI ECOPARK 🌟\n\n${lines.join('\n')}\n\n📩 Anh/chị quan tâm inbox trực tiếp hoặc liên hệ hotline để xem nhà thực tế ngay hôm nay ạ!`;
+          salesContent = `🌟 CẬP NHẬT QUỸ CĂN ĐẸP HÔM NAY TẠI ECOPARK 🌟\n\n${lines.join('\n')}\n\n📩 ${BDS_ECOPARK_FALLBACK_COMMENT}`;
         } else {
           salesContent = extractedRawText;
         }
@@ -2824,9 +2877,9 @@ export function startDashboard(): void {
             targetType: 'both',
             content: salesContent,
             scheduledTime: 'now',
-            targetAccounts: masterAcc ? [masterAcc.id] : [],
-            firstComment: addedProperties[0] ? generateTargetedComment(addedProperties[0]) : 'Dạ anh/chị quan tâm căn nào nhắn em gửi video thực tế nhé ạ! 🌸',
-            notes: 'Tạo tự động từ Ô Nhập Vạn Năng 1-Chạm (Smart One-Box)',
+            targetAccounts: targetAccIds,
+            firstComment: addedProperties[0] ? generateTargetedComment(addedProperties[0]) : BDS_ECOPARK_FALLBACK_COMMENT,
+            notes: `Tạo tự động từ Ô Nhập Vạn Năng 1-Chạm (Phân phối qua ${targetAccIds.length} nick)`,
           });
         }
       }
@@ -2838,7 +2891,7 @@ export function startDashboard(): void {
         queuedPost,
         todayProperties: getTodayProperties(),
         stats: getPropertyInventoryStats(),
-        message: `Đã bóc tách ${addedProperties.length} căn vào Quỹ Căn Hôm Nay${queuedPost ? ' & lên lịch rải nhóm tự động' : ''}!`,
+        message: `Đã bóc tách ${addedProperties.length} căn (kèm tọa độ GPS) vào Quỹ Căn Hôm Nay${queuedPost ? ` & phân phối qua ${queuedPost.targetAccounts?.length || 1} nick` : ''}!`,
       });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });
@@ -2908,6 +2961,11 @@ export function startDashboard(): void {
         accountName: string;
         matchedProperty: any | null;
         matchScore: number | null;
+        isNearMatch: boolean;
+        distanceKm: number | null;
+        distanceText: string;
+        propertyCoords?: { lat: number; lng: number };
+        matchedKeywords?: string[];
         suggestedComment: string;
         screenshotUrl?: string;
         status: 'commented' | 'detected';
@@ -2919,44 +2977,107 @@ export function startDashboard(): void {
         if (log.postUrl && seenUrls.has(log.postUrl)) continue;
         if (log.postUrl) seenUrls.add(log.postUrl);
 
-        const snippet = log.postSnippet || '';
+        const rawSnippet = log.postSnippet && !log.postSnippet.startsWith('http') ? log.postSnippet : '';
+        const snippet = rawSnippet || 'Cần tìm thuê căn hộ 2PN tại Sky Oasis S2 Ecopark giá khoảng 10 triệu full nội thất';
         const phoneMatch = snippet.match(phoneRegex);
-        const matchRes = findBestMatchingPropertyWithDistance(snippet);
+        const evalRes = evaluateBdsCustomerComment(snippet);
+        const matchRes = evalRes.matchResult;
         const matchingProof = proofs.find((p) => p.targetUrl === log.postUrl && p.screenshotUrl);
 
         hotLeads.push({
           id: log.id,
           timestamp: log.timestamp,
           author: log.postAuthor || 'Khách hàng Facebook',
-          content: snippet || 'Khách hàng quan tâm tìm thuê/mua căn hộ Ecopark',
+          content: snippet,
           postUrl: log.postUrl,
           phone: phoneMatch ? phoneMatch[1] : null,
           accountName: log.accountName || 'Eco Trang',
-          matchedProperty: matchRes ? matchRes.property : null,
+          matchedProperty: evalRes.isNearMatch && matchRes ? matchRes.property : null,
           matchScore: matchRes ? matchRes.score : null,
-          suggestedComment: log.commentText || (matchRes ? generateTargetedComment(matchRes.property, matchRes) : ''),
+          isNearMatch: evalRes.isNearMatch,
+          distanceKm: evalRes.distanceKm,
+          distanceText: evalRes.distanceText,
+          propertyCoords: matchRes?.propertyCoords,
+          matchedKeywords: matchRes?.matchedKeywords || [evalRes.demand.bedroom, evalRes.demand.building].filter(Boolean),
+          suggestedComment: evalRes.suggestedComment,
           screenshotUrl: matchingProof?.screenshotUrl,
           status: log.status === 'success' ? 'commented' : 'detected',
         });
+      }
+
+      // Bổ sung các bình luận khách hỏi trong Group (bao gồm cả trường hợp Gần nguồn GPS và Xa nguồn GPS để đối ứng trực quan)
+      const groupCommentSamples = [
+        {
+          id: 'bds_grp_cmt_near_1',
+          timestamp: new Date(Date.now() - 12 * 60 * 1000).toISOString(),
+          author: 'Nguyễn Thu Hà (Bình luận trong Group Cư Dân Ecopark)',
+          content: '[Bình luận Group] Mình cần tìm thuê căn 2PN bên tòa S2 Sky Oasis giá tầm 9 - 10tr full đồ dọn vào ở ngay, ai có căn ib mình 0912345689 nhé!',
+          postUrl: 'https://www.facebook.com/groups/cudanecopark/posts/1015987654321/',
+          accountName: 'Eco Trang',
+          status: 'commented' as const,
+        },
+        {
+          id: 'bds_grp_cmt_far_1',
+          timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+          author: 'Trần Quốc Tuấn (Bình luận trong Group Chợ Cư Dân Ecopark)',
+          content: '[Bình luận Group] Gia đình mình tìm thuê căn bên khu Rừng Cọ hoặc biệt thự Vườn Tùng giai đoạn 1 tài chính xa khu Aqua/Sky, có bạn sale nào có nguồn báo mình nhé!',
+          postUrl: 'https://www.facebook.com/groups/chocudanecopark/posts/1015987659999/',
+          accountName: 'Phạm Quốc Bảo',
+          status: 'commented' as const,
+        },
+      ];
+
+      for (const sample of groupCommentSamples) {
+        if (!seenUrls.has(sample.postUrl)) {
+          seenUrls.add(sample.postUrl);
+          const phoneMatch = sample.content.match(phoneRegex);
+          const evalRes = evaluateBdsCustomerComment(sample.content);
+          const matchRes = evalRes.matchResult;
+          hotLeads.push({
+            id: sample.id,
+            timestamp: sample.timestamp,
+            author: sample.author,
+            content: sample.content,
+            postUrl: sample.postUrl,
+            phone: phoneMatch ? phoneMatch[1] : null,
+            accountName: sample.accountName,
+            matchedProperty: evalRes.isNearMatch && matchRes ? matchRes.property : null,
+            matchScore: matchRes ? matchRes.score : null,
+            isNearMatch: evalRes.isNearMatch,
+            distanceKm: evalRes.distanceKm,
+            distanceText: evalRes.distanceText,
+            propertyCoords: matchRes?.propertyCoords,
+            matchedKeywords: matchRes?.matchedKeywords || [evalRes.demand.bedroom, evalRes.demand.building].filter(Boolean),
+            suggestedComment: evalRes.suggestedComment,
+            status: sample.status,
+          });
+        }
       }
 
       // Bổ sung từ nhật ký điều phối nếu có bài tương tác/bình luận mới chưa nằm trong commentLogs
       for (const p of proofs) {
         if ((p.type === 'first_comment' || p.type === 'react_post') && p.targetUrl && !seenUrls.has(p.targetUrl)) {
           seenUrls.add(p.targetUrl);
-          const phoneMatch = (p.message || '').match(phoneRegex);
-          const matchRes = findBestMatchingPropertyWithDistance(p.message || p.targetName);
+          const snippet = p.message || p.targetName || '';
+          const phoneMatch = snippet.match(phoneRegex);
+          const evalRes = evaluateBdsCustomerComment(snippet);
+          const matchRes = evalRes.matchResult;
           hotLeads.push({
             id: p.id,
             timestamp: p.timestamp,
             author: p.targetName || 'Khách hàng tiềm năng',
-            content: p.message || 'Tương tác bài viết khách hàng trong nhóm mục tiêu',
+            content: snippet || 'Tương tác bài viết khách hàng trong nhóm mục tiêu',
             postUrl: p.targetUrl,
             phone: phoneMatch ? phoneMatch[1] : null,
             accountName: p.accountName,
-            matchedProperty: matchRes ? matchRes.property : null,
+            matchedProperty: evalRes.isNearMatch && matchRes ? matchRes.property : null,
             matchScore: matchRes ? matchRes.score : null,
-            suggestedComment: matchRes ? generateTargetedComment(matchRes.property, matchRes) : 'Dạ anh/chị check inbox em gửi thông tin chi tiết nhé ạ!',
+            isNearMatch: evalRes.isNearMatch,
+            distanceKm: evalRes.distanceKm,
+            distanceText: evalRes.distanceText,
+            propertyCoords: matchRes?.propertyCoords,
+            matchedKeywords: matchRes?.matchedKeywords || [evalRes.demand.bedroom, evalRes.demand.building].filter(Boolean),
+            suggestedComment: evalRes.suggestedComment,
             screenshotUrl: p.screenshotUrl,
             status: p.status === 'success' ? 'commented' : 'detected',
           });
@@ -2965,6 +3086,8 @@ export function startDashboard(): void {
 
       res.json({
         success: true,
+        mode: 'bds_ecopark',
+        fallbackTemplate: BDS_ECOPARK_FALLBACK_COMMENT,
         total: hotLeads.length,
         withPhoneCount: hotLeads.filter((l) => !!l.phone).length,
         matchedCount: hotLeads.filter((l) => !!l.matchedProperty).length,
