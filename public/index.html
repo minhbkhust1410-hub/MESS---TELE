@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="vi" class="theme-warm-gold">
+<html lang="vi" class="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,91 +10,97 @@
   <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;0,6..72,700;1,6..72,400;1,6..72,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   
       <style>
-    /* Apple Design System Typography */
+    /* Executive Command Center Design System */
     body { 
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Plus Jakarta Sans", "Helvetica Neue", sans-serif;
       letter-spacing: -0.015em;
-      background-color: #000000;
-      color: #f5f5f7;
+      background-color: #07090e;
+      color: #f1f5f9;
+      background-image: 
+        radial-gradient(circle at 10% 8%, rgba(56, 189, 248, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at 90% 12%, rgba(16, 185, 129, 0.04) 0%, transparent 40%),
+        radial-gradient(circle at 50% 90%, rgba(245, 158, 11, 0.03) 0%, transparent 50%),
+        linear-gradient(180deg, #07090e 0%, #0b0e17 50%, #07090e 100%);
+      background-attachment: fixed;
     }
     .font-mono { 
-      font-family: "SF Mono", Monaco, Menlo, Consolas, monospace; 
+      font-family: "JetBrains Mono", "SF Mono", Monaco, Menlo, Consolas, monospace; 
       letter-spacing: -0.02em;
     }
 
-    /* Apple-Style Minimalist Scrollbars */
-    ::-webkit-scrollbar { width: 5px; height: 5px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 9999px; }
+    /* Minimalist High-Contrast Scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); }
+    ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.16); border-radius: 9999px; }
     ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.3); }
 
-    /* Apple Bento Card & Frosted Glass Surfaces */
+    /* Frosted Bento Glass Cards */
     .claude-card, .apple-card {
-      background: rgba(28, 28, 30, 0.65);
-      backdrop-filter: blur(25px) saturate(180%);
-      -webkit-backdrop-filter: blur(25px) saturate(180%);
+      background: rgba(14, 18, 29, 0.78);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
       border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 18px;
+      border-radius: 20px;
       position: relative;
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .claude-card:hover, .apple-card:hover {
-      border-color: rgba(255, 255, 255, 0.18);
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+      border-color: rgba(255, 255, 255, 0.16);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
       transform: translateY(-1px);
     }
     .claude-card::after { display: none !important; }
 
-    /* Apple Hero Gradient Typography */
+    /* Hero Gradient Typography */
     .apple-headline {
-      background: linear-gradient(180deg, #FFFFFF 0%, rgba(255, 255, 255, 0.72) 100%);
+      background: linear-gradient(180deg, #FFFFFF 0%, rgba(255, 255, 255, 0.75) 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
     .apple-subhead {
-      color: #86868b;
+      color: #94a3b8;
     }
 
-    /* Apple Pill Buttons */
+    /* Primary & Secondary Buttons */
     .apple-btn-primary {
       background: #0071e3;
       color: #ffffff;
       border-radius: 9999px;
-      font-weight: 500;
+      font-weight: 600;
       transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .apple-btn-primary:hover {
       background: #0077ed;
-      box-shadow: 0 0 15px rgba(0, 113, 227, 0.4);
+      box-shadow: 0 0 16px rgba(0, 113, 227, 0.45);
     }
     .apple-btn-secondary {
-      background: rgba(255, 255, 255, 0.08);
-      color: #f5f5f7;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.06);
+      color: #f1f5f9;
+      border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 9999px;
       font-weight: 500;
       transition: all 0.2s ease;
     }
     .apple-btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.12);
       border-color: rgba(255, 255, 255, 0.2);
     }
 
-    /* Apple Inputs */
+    /* Inputs, Selects & Textareas */
     input, textarea, select {
-      background: rgba(255, 255, 255, 0.05) !important;
+      background: rgba(10, 13, 22, 0.85) !important;
       border: 1px solid rgba(255, 255, 255, 0.12) !important;
       border-radius: 12px !important;
-      color: #f5f5f7 !important;
+      color: #f8fafc !important;
       transition: all 0.2s ease;
     }
     input:focus, textarea:focus, select:focus {
       outline: none !important;
-      border-color: #0071e3 !important;
-      box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.25) !important;
+      border-color: #38bdf8 !important;
+      box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2) !important;
     }
 
-    /* Ẩn triệt để rác thị giác */
+    /* Visual Cleanup */
     .ambient-orb, 
     #kudo-cat-mascot-root, 
     #cute-confetti-canvas {
@@ -102,14 +108,14 @@
       pointer-events: none !important;
     }
 
-    /* Apple Pulse Status Dot */
+    /* Status Dot Animation */
     @keyframes apple-pulse {
       0%, 100% { opacity: 1; transform: scale(1); }
       50% { opacity: 0.4; transform: scale(0.9); }
     }
     .animate-warm-pulse { animation: apple-pulse 2.2s infinite ease-in-out; }
 
-    /* Apple Live Activity Pulse Cells */
+    /* Live Activity Matrix Pulse */
     @keyframes apple-matrix-cell {
       0%, 100% { opacity: 0.6; transform: scale(1); }
       50% { opacity: 1; transform: scale(1.1); filter: drop-shadow(0 0 4px rgba(48, 209, 88, 0.8)); }
@@ -118,424 +124,46 @@
       animation: apple-matrix-cell 3s infinite ease-in-out;
     }
 
-    /* ======================================================== */
-    /* THEME: SÁNG VÀNG HOÀNG KIM & NĂNG LƯỢNG TƯƠI SÁNG        */
-    /* (WARM SUNLIGHT GOLD & CHAMPAGNE GENTLE HARMONY)          */
-    /* ======================================================== */
-    html.theme-warm-gold,
-    html.theme-warm-gold body {
-      background-color: #faf6ee !important;
+    /* Clean Light Mode Fallback (When Toggled) */
+    html.theme-warm-gold body,
+    html.theme-light body {
+      background-color: #f8fafc !important;
+      color: #0f172a !important;
       background-image: 
-        radial-gradient(circle at 10% 8%, rgba(245, 158, 11, 0.18) 0%, transparent 40%),
-        radial-gradient(circle at 90% 12%, rgba(251, 191, 36, 0.20) 0%, transparent 45%),
-        radial-gradient(circle at 50% 85%, rgba(254, 240, 138, 0.35) 0%, transparent 55%),
-        linear-gradient(180deg, #fdfbf7 0%, #faf5ea 45%, #f5efe2 100%) !important;
-      background-attachment: fixed !important;
-      color: #1f1c18 !important;
+        radial-gradient(circle at 10% 8%, rgba(56, 189, 248, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 90% 12%, rgba(245, 158, 11, 0.06) 0%, transparent 45%),
+        linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
     }
-
-    html.theme-warm-gold aside {
-      background: rgba(255, 253, 248, 0.94) !important;
-      border-right: 1px solid rgba(226, 206, 170, 0.65) !important;
-      box-shadow: 2px 0 20px rgba(217, 180, 130, 0.12) !important;
-    }
-
-    html.theme-warm-gold header {
-      background: rgba(255, 253, 248, 0.90) !important;
-      border-bottom: 1px solid rgba(226, 206, 170, 0.65) !important;
-      box-shadow: 0 2px 14px rgba(217, 180, 130, 0.10) !important;
-    }
-
-    /* Cards in Warm Gold Theme */
     html.theme-warm-gold .claude-card,
-    html.theme-warm-gold .apple-card {
-      background: rgba(255, 255, 255, 0.90) !important;
-      border: 1px solid rgba(226, 206, 170, 0.70) !important;
-      box-shadow: 0 4px 20px -2px rgba(217, 180, 130, 0.15), 0 1px 3px rgba(0, 0, 0, 0.03) !important;
-      color: #1f1c18 !important;
+    html.theme-warm-gold .apple-card,
+    html.theme-light .claude-card,
+    html.theme-light .apple-card {
+      background: #ffffff !important;
+      border: 1px solid #e2e8f0 !important;
+      box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.06) !important;
+      color: #0f172a !important;
     }
-    html.theme-warm-gold .claude-card:hover,
-    html.theme-warm-gold .apple-card:hover {
-      border-color: rgba(245, 158, 11, 0.5) !important;
-      box-shadow: 0 12px 30px -4px rgba(245, 158, 11, 0.20), 0 2px 8px rgba(0, 0, 0, 0.04) !important;
-    }
-
-    /* Containers & Sub-panels in Warm Gold */
-    html.theme-warm-gold .bg-\[\#161617\],
-    html.theme-warm-gold .bg-\[\#1c1c1e\],
-    html.theme-warm-gold .bg-\[\#2c2c2e\],
-    html.theme-warm-gold .bg-\[\#121214\],
-    html.theme-warm-gold .bg-\[\#000000\],
-    html.theme-warm-gold .bg-\[\#0d1117\],
-    html.theme-warm-gold .bg-\[\#141210\],
-    html.theme-warm-gold .bg-\[\#161b22\],
-    html.theme-warm-gold .bg-\[\#24201C\],
-    html.theme-warm-gold .bg-\[\#1C1815\],
-    html.theme-warm-gold .bg-black\/50,
-    html.theme-warm-gold .bg-black\/40,
-    html.theme-warm-gold .bg-black\/60 {
-      background-color: #ffffff !important;
-      border-color: rgba(226, 206, 170, 0.75) !important;
-      color: #1c1917 !important;
-    }
-    html.theme-warm-gold .bg-white\/\[0\.04\],
-    html.theme-warm-gold .bg-white\/\[0\.05\],
-    html.theme-warm-gold .bg-white\/\[0\.06\],
-    html.theme-warm-gold .bg-white\/10 {
-      background-color: rgba(254, 248, 235, 0.85) !important;
-      border-color: rgba(226, 206, 170, 0.6) !important;
-    }
-    html.theme-warm-gold .border-white\/10,
-    html.theme-warm-gold .border-white\/15,
-    html.theme-warm-gold .border-white\/20,
-    html.theme-warm-gold .border-white\/\[0\.08\],
-    html.theme-warm-gold .border-\[\#30363d\],
-    html.theme-warm-gold .border-\[\#2E2925\],
-    html.theme-warm-gold .border-\[\#3a332c\] {
-      border-color: rgba(226, 206, 170, 0.75) !important;
-    }
-
-    /* Typography & Contrast in Warm Gold Theme (Chữ Đậm Rõ Nét) */
-    html.theme-warm-gold h1,
-    html.theme-warm-gold h2,
-    html.theme-warm-gold h3,
-    html.theme-warm-gold h4,
-    html.theme-warm-gold h5 {
-      color: #1c1917 !important;
-    }
-    html.theme-warm-gold #section-title,
-    html.theme-warm-gold #section-title span {
-      color: #1c1917 !important;
-    }
-    html.theme-warm-gold .text-white:not(button):not([class*="bg-[#0071e3]"]):not([class*="bg-emerald"]):not([class*="bg-amber"]):not([class*="bg-red"]):not([class*="bg-purple"]):not([class*="bg-cyan"]):not([class*="bg-rose"]):not(.badge-solid) {
-      color: #1c1917 !important;
-    }
-    html.theme-warm-gold .text-\[\#f0f6fc\],
-    html.theme-warm-gold .text-\[\#f5f5f7\],
-    html.theme-warm-gold .text-\[\#D6D3D1\],
-    html.theme-warm-gold .text-\[\#d6d3d1\] {
-      color: #1c1917 !important;
-    }
-    html.theme-warm-gold .text-\[\#86868b\],
-    html.theme-warm-gold .text-\[\#8b949e\],
-    html.theme-warm-gold .text-\[\#78716C\],
-    html.theme-warm-gold .text-\[\#78716c\],
-    html.theme-warm-gold .text-\[\#a1a1a6\] {
-      color: #57534e !important;
-      font-weight: 500 !important;
-    }
-    html.theme-warm-gold p.text-\[\#86868b\],
-    html.theme-warm-gold span.text-\[\#86868b\],
-    html.theme-warm-gold p.text-\[\#8b949e\],
-    html.theme-warm-gold span.text-\[\#8b949e\] {
-      color: #57534e !important;
-    }
-    html.theme-warm-gold .apple-headline {
-      background: linear-gradient(180deg, #1c1917 0%, #44403c 100%) !important;
-      -webkit-background-clip: text !important;
-      -webkit-text-fill-color: transparent !important;
-    }
-    html.theme-warm-gold .apple-subhead {
-      color: #57534e !important;
-    }
-
-    /* ĐẶC TRỊ MÀU CHỮ SOẠN BÀI & CHỌN NƠI ĐĂNG (RÕ NÉT 100%) */
-    html.theme-warm-gold label:has(input[name="web-post-target"]) {
-      background-color: #ffffff !important;
-      border: 1.5px solid rgba(226, 206, 170, 0.85) !important;
-      box-shadow: 0 1px 4px rgba(217, 180, 130, 0.12) !important;
-    }
-    html.theme-warm-gold label:has(input[name="web-post-target"]):hover {
-      border-color: #d97706 !important;
-      background-color: #fefce8 !important;
-    }
-    html.theme-warm-gold label:has(input[name="web-post-target"]:checked) {
-      border-color: #d97706 !important;
-      background: linear-gradient(135deg, #ffffff 0%, #fefce8 100%) !important;
-      box-shadow: 0 2px 8px rgba(217, 119, 6, 0.20) !important;
-    }
-    html.theme-warm-gold label:has(input[name="web-post-target"]) div.font-bold {
-      color: #1c1917 !important;
-      font-weight: 700 !important;
-    }
-    html.theme-warm-gold label:has(input[name="web-post-target"]) div.text-\[10px\] {
-      color: #57534e !important;
-      font-weight: 600 !important;
-    }
-
-    /* ĐẶC TRỊ DANH SÁCH CHECKBOX GROUP CẦN ĐĂNG (CHỮ ĐẬM SẮC NÉT) */
-    html.theme-warm-gold #web-post-groups-checkboxes label,
-    html.theme-warm-gold label:has(input[name="post-target-group"]) {
-      background-color: #ffffff !important;
-      border: 1px solid rgba(217, 190, 150, 0.75) !important;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
-    }
-    html.theme-warm-gold #web-post-groups-checkboxes label:hover,
-    html.theme-warm-gold label:has(input[name="post-target-group"]):hover {
-      background-color: #fffbeb !important;
-      border-color: #d97706 !important;
-    }
-    html.theme-warm-gold #web-post-groups-checkboxes label span,
-    html.theme-warm-gold label:has(input[name="post-target-group"]) span {
-      color: #1c1917 !important;
-      font-weight: 600 !important;
-    }
-
-    /* Khung nhập nội dung bài viết */
-    html.theme-warm-gold #web-post-content,
-    html.theme-warm-gold #daily-oneclick-content,
-    html.theme-warm-gold #daily-oneclick-first-comment {
-      background-color: #ffffff !important;
-      border: 1.5px solid rgba(226, 206, 170, 0.85) !important;
-      color: #1c1917 !important;
-      font-weight: 500 !important;
-    }
-    html.theme-warm-gold #web-post-content::placeholder,
-    html.theme-warm-gold #daily-oneclick-content::placeholder {
-      color: #78716c !important;
-      font-weight: 400 !important;
-    }
-    html.theme-warm-gold #web-post-content:focus,
-    html.theme-warm-gold #daily-oneclick-content:focus,
-    html.theme-warm-gold #daily-oneclick-first-comment:focus {
-      border-color: #d97706 !important;
-      box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.20) !important;
-    }
-
-    /* ĐẶC TRỊ KHỐI MA TRẬN ĐIỀU PHỐI & BẢNG BẰNG CHỨNG XÁC THỰC */
-    html.theme-warm-gold #orchestration-pipelines-grid > div {
-      background-color: #ffffff !important;
-      border: 1px solid rgba(226, 206, 170, 0.8) !important;
-      box-shadow: 0 2px 8px rgba(217, 180, 130, 0.12) !important;
-    }
-    html.theme-warm-gold #orchestration-pipelines-grid span.text-white,
-    html.theme-warm-gold #orchestration-pipelines-grid b.text-white {
-      color: #1c1917 !important;
-    }
-    html.theme-warm-gold #orchestration-proofs-tbody tr:hover {
-      background-color: rgba(254, 243, 199, 0.40) !important;
-    }
-    html.theme-warm-gold #orchestration-proofs-tbody td {
-      color: #1c1917 !important;
-      font-weight: 500 !important;
-    }
-    html.theme-warm-gold #orchestration-proofs-tbody th {
-      color: #57534e !important;
-      font-weight: 700 !important;
-    }
-    html.theme-warm-gold #orchestration-proofs-tbody button {
-      background-color: #0071e3 !important;
-      color: #ffffff !important;
-      font-weight: 600 !important;
-    }
-    html.theme-warm-gold #btn-purge-junk {
-      background-color: #059669 !important;
-      color: #ffffff !important;
-      font-weight: 600 !important;
-    }
-
-    /* Fine-tuned Profile, Badges & Toggles in Warm Gold */
-    html.theme-warm-gold #sidebar-name,
-    html.theme-warm-gold button[onclick*="openSidebarActiveProfilePage"],
-    html.theme-warm-gold button[onclick*="openSidebarActiveProfilePage"] span {
-      color: #1c1917 !important;
-    }
-    html.theme-warm-gold #toggle-stats-text {
-      color: #78350f !important;
-    }
-    html.theme-warm-gold #btn-toggle-stats {
-      background-color: rgba(254, 243, 199, 0.90) !important;
-      border-color: rgba(245, 158, 11, 0.45) !important;
-      color: #78350f !important;
-    }
-    html.theme-warm-gold #topbar-btn-mode-forex,
-    html.theme-warm-gold #sidebar-btn-mode-forex {
-      color: #78716c !important;
-    }
-    html.theme-warm-gold #topbar-btn-mode-forex:hover,
-    html.theme-warm-gold #sidebar-btn-mode-forex:hover {
-      color: #1c1917 !important;
-    }
-
-    /* Preserve solid white text on action buttons */
-    html.theme-warm-gold button.bg-\[\#0071e3\],
-    html.theme-warm-gold button.bg-\[\#0071e3\] span,
-    html.theme-warm-gold button.bg-emerald-500,
-    html.theme-warm-gold button.bg-emerald-500 span,
-    html.theme-warm-gold button.bg-amber-500,
-    html.theme-warm-gold button.bg-amber-500 span,
-    html.theme-warm-gold button.bg-red-500,
-    html.theme-warm-gold button.bg-red-500 span,
-    html.theme-warm-gold .apple-btn-primary,
-    html.theme-warm-gold .apple-btn-primary span,
-    html.theme-warm-gold .group div[class*="bg-\[#"] span,
-    html.theme-warm-gold .group div[class*="bg-\[#"] {
-      color: #ffffff !important;
-    }
-
-    /* Inputs & Selects in Warm Gold */
     html.theme-warm-gold input,
     html.theme-warm-gold textarea,
-    html.theme-warm-gold select {
+    html.theme-warm-gold select,
+    html.theme-light input,
+    html.theme-light textarea,
+    html.theme-light select {
+      background: #ffffff !important;
+      border: 1px solid #cbd5e1 !important;
+      color: #0f172a !important;
+    }
+    html.theme-warm-gold h1, html.theme-warm-gold h2, html.theme-warm-gold h3, html.theme-warm-gold h4, html.theme-warm-gold h5,
+    html.theme-light h1, html.theme-light h2, html.theme-light h3, html.theme-light h4, html.theme-light h5 {
+      color: #0f172a !important;
+    }
+    html.theme-warm-gold aside, html.theme-light aside {
+      background: #ffffff !important;
+      border-right: 1px solid #e2e8f0 !important;
+    }
+    html.theme-warm-gold header, html.theme-light header {
       background: rgba(255, 255, 255, 0.95) !important;
-      border: 1px solid rgba(217, 190, 150, 0.65) !important;
-      color: #1c1917 !important;
-    }
-    html.theme-warm-gold input::placeholder,
-    html.theme-warm-gold textarea::placeholder {
-      color: #a8a29e !important;
-    }
-    html.theme-warm-gold input:focus,
-    html.theme-warm-gold textarea:focus,
-    html.theme-warm-gold select:focus {
-      border-color: #f59e0b !important;
-      box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.22) !important;
-    }
-
-    /* Sidebar Navigation Items */
-    html.theme-warm-gold .nav-item {
-      color: #6b635b !important;
-    }
-    html.theme-warm-gold .nav-item span {
-      color: inherit !important;
-    }
-    html.theme-warm-gold .nav-item:hover {
-      color: #1c1917 !important;
-      background-color: rgba(254, 243, 199, 0.70) !important;
-    }
-    html.theme-warm-gold .nav-item.active,
-    html.theme-warm-gold .nav-item[class*="bg-[#0071e3]/15"],
-    html.theme-warm-gold button[id^="nav-btn-"][class*="text-[#2997ff]"] {
-      background: linear-gradient(135deg, rgba(254, 243, 199, 0.95), rgba(253, 230, 138, 0.65)) !important;
-      color: #b45309 !important;
-      border: 1px solid rgba(245, 158, 11, 0.50) !important;
-      box-shadow: 0 2px 10px rgba(245, 158, 11, 0.18) !important;
-    }
-    html.theme-warm-gold .nav-item.active span,
-    html.theme-warm-gold .nav-item[class*="bg-[#0071e3]/15"] span,
-    html.theme-warm-gold button[id^="nav-btn-"][class*="text-[#2997ff]"] span {
-      color: #b45309 !important;
-    }
-
-    /* Tables & Lists in Warm Gold */
-    html.theme-warm-gold table {
-      color: #1c1917 !important;
-    }
-    html.theme-warm-gold thead tr {
-      background-color: rgba(254, 246, 230, 0.95) !important;
-    }
-    html.theme-warm-gold thead th {
-      color: #78716c !important;
-      border-bottom: 1px solid rgba(226, 206, 170, 0.65) !important;
-    }
-    html.theme-warm-gold tbody tr {
-      border-bottom: 1px solid rgba(235, 222, 200, 0.50) !important;
-    }
-    html.theme-warm-gold tbody tr:hover {
-      background-color: rgba(254, 243, 199, 0.40) !important;
-    }
-    html.theme-warm-gold tbody td {
-      color: #292524 !important;
-    }
-
-    /* Modals in Warm Gold */
-    html.theme-warm-gold #auth-login-modal,
-    html.theme-warm-gold .fixed.inset-0.bg-black\/80,
-    html.theme-warm-gold .fixed.inset-0.bg-black\/70,
-    html.theme-warm-gold .fixed.inset-0.bg-black\/60 {
-      background-color: rgba(45, 35, 20, 0.45) !important;
-      backdrop-filter: blur(12px) !important;
-    }
-
-    /* Apple Buttons Secondary */
-    html.theme-warm-gold .apple-btn-secondary {
-      background: rgba(254, 246, 230, 0.90) !important;
-      color: #44403c !important;
-      border-color: rgba(226, 206, 170, 0.65) !important;
-    }
-    html.theme-warm-gold .apple-btn-secondary:hover {
-      background: rgba(254, 243, 199, 1) !important;
-      color: #1c1917 !important;
-      border-color: rgba(245, 158, 11, 0.50) !important;
-    }
-    html.theme-warm-gold #sidebar-diagnostic-text {
-      color: #1c1917 !important;
-    }
-
-    /* Warm Gold Scrollbars */
-    html.theme-warm-gold ::-webkit-scrollbar-thumb {
-      background: rgba(217, 180, 130, 0.45) !important;
-    }
-    html.theme-warm-gold ::-webkit-scrollbar-thumb:hover {
-      background: rgba(245, 158, 11, 0.65) !important;
-    }
-
-    /* Warehouse & Specific Custom Dark Divs in Warm Gold Theme */
-    html.theme-warm-gold #scanned-warehouse-block,
-    html.theme-warm-gold .bg-\[\#161b22\],
-    html.theme-warm-gold .bg-\[\#141210\],
-    html.theme-warm-gold .bg-\[\#1A1613\],
-    html.theme-warm-gold .bg-\[\#24201C\],
-    html.theme-warm-gold .bg-\[\#2C2723\],
-    html.theme-warm-gold .bg-\[\#0d1117\],
-    html.theme-warm-gold .bg-\[\#0f172a\] {
-      background-color: rgba(255, 255, 255, 0.90) !important;
-      border-color: rgba(226, 206, 170, 0.65) !important;
-      color: #1c1917 !important;
-    }
-
-    html.theme-warm-gold #scanned-warehouse-block .border-b,
-    html.theme-warm-gold .border-\[\#30363d\] {
-      border-color: rgba(226, 206, 170, 0.6) !important;
-    }
-
-    html.theme-warm-gold #scanned-warehouse-block input {
-      background: rgba(255, 255, 255, 0.95) !important;
-      border-color: rgba(217, 190, 150, 0.65) !important;
-      color: #1c1917 !important;
-    }
-
-    html.theme-warm-gold #scanned-warehouse-block table thead,
-    html.theme-warm-gold table thead.bg-\[\#1A1613\] {
-      background-color: rgba(254, 246, 230, 0.95) !important;
-      border-bottom: 1px solid rgba(226, 206, 170, 0.6) !important;
-    }
-    html.theme-warm-gold #scanned-warehouse-block table thead th,
-    html.theme-warm-gold table thead.bg-\[\#1A1613\] th {
-      color: #78716c !important;
-    }
-    html.theme-warm-gold #scanned-warehouse-block table tbody tr {
-      border-bottom: 1px solid rgba(235, 222, 200, 0.50) !important;
-      background: transparent !important;
-    }
-    html.theme-warm-gold #scanned-warehouse-block table tbody tr:hover {
-      background-color: rgba(254, 243, 199, 0.40) !important;
-    }
-    html.theme-warm-gold #scanned-warehouse-block table tbody td {
-      color: #1c1917 !important;
-    }
-    html.theme-warm-gold #scanned-warehouse-block .text-\[\#f0f6fc\],
-    html.theme-warm-gold #scanned-warehouse-block .text-white {
-      color: #1c1917 !important;
-    }
-
-    /* Inventory & Today Panel in Warm Gold */
-    html.theme-warm-gold #bds-inventory-card {
-      background-color: rgba(255, 255, 255, 0.90) !important;
-      border-color: rgba(226, 206, 170, 0.65) !important;
-      color: #1c1917 !important;
-    }
-    html.theme-warm-gold #inv-today-panel {
-      background-color: rgba(254, 243, 199, 0.40) !important;
-      border-color: rgba(245, 158, 11, 0.35) !important;
-    }
-    html.theme-warm-gold #inv-today-cards-wrap > div {
-      background-color: rgba(255, 255, 255, 0.95) !important;
-      border-color: rgba(245, 158, 11, 0.35) !important;
-      box-shadow: 0 2px 8px rgba(217, 180, 130, 0.12) !important;
-    }
-    html.theme-warm-gold #inv-properties-tbody tr:hover {
-      background-color: rgba(254, 243, 199, 0.35) !important;
+      border-bottom: 1px solid #e2e8f0 !important;
     }
   </style>
 </head>
@@ -879,6 +507,201 @@
           </div>
 
           <!-- ======================================================== -->
+          <!-- ======================================================== -->
+          <!-- BẢNG CHỈ SỐ BAO QUÁT TOÀN HỆ THỐNG (EXECUTIVE KPI GRID) -->
+          <!-- ======================================================== -->
+          <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
+            <!-- Card 1: Dàn Nick & Proxy -->
+            <div onclick="switchTab('accounts')" class="apple-card p-4 rounded-2xl border border-white/10 hover:border-emerald-500/40 cursor-pointer transition group shadow-sm flex flex-col justify-between">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  <span>ONLINE</span>
+                </span>
+                <span class="text-xl opacity-75 group-hover:scale-110 transition-transform">👥</span>
+              </div>
+              <div class="mt-2.5">
+                <span class="text-[11px] text-slate-400 font-medium block">Dàn Nick & Proxy</span>
+                <div class="flex items-baseline gap-1 mt-0.5">
+                  <span id="kpi-acc-count" class="text-2xl font-bold font-mono text-white">1</span>
+                  <span class="text-[10px] text-slate-400">tài khoản</span>
+                </div>
+                <span class="text-[10px] text-emerald-400 font-medium truncate block mt-0.5">● Eco Trang · Proxy Live</span>
+              </div>
+            </div>
+
+            <!-- Card 2: Bài Đăng Hôm Nay -->
+            <div onclick="switchTab('posts')" class="apple-card p-4 rounded-2xl border border-white/10 hover:border-blue-500/40 cursor-pointer transition group shadow-sm flex flex-col justify-between">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30">
+                  ĐA NICK
+                </span>
+                <span class="text-xl opacity-75 group-hover:scale-110 transition-transform">📝</span>
+              </div>
+              <div class="mt-2.5">
+                <span class="text-[11px] text-slate-400 font-medium block">Bài Đăng Hôm Nay</span>
+                <div class="flex items-baseline gap-1 mt-0.5">
+                  <span id="kpi-posts-count" class="text-2xl font-bold font-mono text-white">0</span>
+                  <span class="text-[10px] text-slate-400">bài</span>
+                </div>
+                <span class="text-[10px] text-blue-400 font-medium truncate block mt-0.5">Tự trích xuất căn + GPS</span>
+              </div>
+            </div>
+
+            <!-- Card 3: Khách Nóng Radar (GPS Ecopark) -->
+            <div onclick="switchTab('autocmt')" class="apple-card p-4 rounded-2xl border border-white/10 hover:border-amber-500/40 cursor-pointer transition group shadow-sm flex flex-col justify-between">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                  GPS TỌA ĐỘ
+                </span>
+                <span class="text-xl opacity-75 group-hover:scale-110 transition-transform">🔥</span>
+              </div>
+              <div class="mt-2.5">
+                <span class="text-[11px] text-slate-400 font-medium block">Khách Nóng Radar</span>
+                <div class="flex items-baseline gap-1 mt-0.5">
+                  <span id="kpi-leads-count" class="text-2xl font-bold font-mono text-amber-400">29</span>
+                  <span class="text-[10px] text-slate-400">nhu cầu</span>
+                </div>
+                <span class="text-[10px] text-amber-300 font-medium truncate block mt-0.5">Bán kính ≤0.95km Ecopark</span>
+              </div>
+            </div>
+
+            <!-- Card 4: Kết Bạn KudoX 2 (F12 Exact) -->
+            <div onclick="switchTab('growth')" class="apple-card p-4 rounded-2xl border border-white/10 hover:border-teal-500/40 cursor-pointer transition group shadow-sm flex flex-col justify-between">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-teal-500/15 text-teal-400 border border-teal-500/30">
+                  HUMAN F12
+                </span>
+                <span class="text-xl opacity-75 group-hover:scale-110 transition-transform">🤝</span>
+              </div>
+              <div class="mt-2.5">
+                <span class="text-[11px] text-slate-400 font-medium block">Kết Bạn KudoX 2</span>
+                <div class="flex items-baseline gap-1 mt-0.5">
+                  <span id="kpi-autofriend-count" class="text-2xl font-bold font-mono text-white">0</span>
+                  <span class="text-[10px] text-slate-400">đã gửi</span>
+                </div>
+                <span class="text-[10px] text-teal-400 font-medium truncate block mt-0.5">174 chờ quét · Anti-Checkpoint</span>
+              </div>
+            </div>
+
+            <!-- Card 5: Điều Phối Autopilot & Cloud DB -->
+            <div onclick="openCloudShareModal()" class="apple-card p-4 rounded-2xl border border-white/10 hover:border-purple-500/40 cursor-pointer transition group shadow-sm flex flex-col justify-between col-span-2 sm:col-span-1">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-400 border border-purple-500/30 flex items-center gap-1">
+                  <span>☁️</span> 100% ONLINE
+                </span>
+                <span class="text-xl opacity-75 group-hover:scale-110 transition-transform">🤖</span>
+              </div>
+              <div class="mt-2.5">
+                <span class="text-[11px] text-slate-400 font-medium block">Lõi Autopilot & Cloud DB</span>
+                <div class="flex items-baseline gap-1 mt-0.5">
+                  <span id="kpi-autopilot-count" class="text-2xl font-bold font-mono text-purple-300">6</span>
+                  <span class="text-[10px] text-slate-400">tác vụ thật</span>
+                </div>
+                <span class="text-[10px] text-purple-400 font-medium truncate block mt-0.5">59 bảng Cloud synced (0B local)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- ======================================================== -->
+          <!-- 🎮 TRUNG TÂM KIỂM THỬ NHANH & ĐIỀU HÀNH 1-CHẠM (QUICK TEST DECK) -->
+          <!-- ======================================================== -->
+          <div class="apple-card rounded-3xl p-5 border border-sky-500/30 bg-gradient-to-r from-sky-500/10 via-slate-900/60 to-purple-500/10 shadow-xl space-y-3.5">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center text-lg border border-sky-500/30">
+                  🧪
+                </div>
+                <div>
+                  <h3 class="text-xs sm:text-sm font-bold text-white tracking-tight uppercase flex items-center gap-1.5">
+                    <span>Trung Tâm Kiểm Thử & Thao Tác 1-Chạm (Quick Test & Control Deck)</span>
+                    <span class="text-[9px] font-mono px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30">Dành Cho User Test Nhanh</span>
+                  </h3>
+                  <p class="text-[11px] text-slate-400">Nhấp trực tiếp vào bất kỳ nút nào bên dưới để kiểm tra chức năng ngay lập tức mà không cần tìm kiếm!</p>
+                </div>
+              </div>
+              <span class="text-[10px] font-mono text-emerald-400 flex items-center gap-1 self-start sm:self-center">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                <span>Tất Cả 6 Tính Năng Sẵn Sàng</span>
+              </span>
+            </div>
+
+            <!-- 6 NÚT KIỂM THỬ TRỰC TIẾP -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-xs">
+              <!-- Test 1 -->
+              <button type="button" onclick="quickTestFeature('composer')" class="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 hover:border-amber-500/50 text-left transition flex flex-col justify-between group cursor-pointer">
+                <div class="flex items-center justify-between w-full">
+                  <span class="text-base group-hover:scale-110 transition-transform">⚡</span>
+                  <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold">Test 1</span>
+                </div>
+                <div class="mt-2">
+                  <div class="font-bold text-white text-[11px] truncate">1. Soạn & Đăng Bài</div>
+                  <div class="text-[9px] text-slate-400 truncate">Nạp mẫu & cuộn soạn</div>
+                </div>
+              </button>
+
+              <!-- Test 2 -->
+              <button type="button" onclick="quickTestFeature('gps_near')" class="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 hover:border-emerald-500/50 text-left transition flex flex-col justify-between group cursor-pointer">
+                <div class="flex items-center justify-between w-full">
+                  <span class="text-base group-hover:scale-110 transition-transform">🟢</span>
+                  <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 font-bold">Test 2</span>
+                </div>
+                <div class="mt-2">
+                  <div class="font-bold text-white text-[11px] truncate">2. GPS Gần Nguồn</div>
+                  <div class="text-[9px] text-slate-400 truncate">Sky Oasis ≤0.95km</div>
+                </div>
+              </button>
+
+              <!-- Test 3 -->
+              <button type="button" onclick="quickTestFeature('gps_far')" class="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 hover:border-amber-500/50 text-left transition flex flex-col justify-between group cursor-pointer">
+                <div class="flex items-center justify-between w-full">
+                  <span class="text-base group-hover:scale-110 transition-transform">🟠</span>
+                  <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-bold">Test 3</span>
+                </div>
+                <div class="mt-2">
+                  <div class="font-bold text-white text-[11px] truncate">3. GPS Xa Nguồn</div>
+                  <div class="text-[9px] text-slate-400 truncate">Rừng Cọ &gt;1.5km ➔ LH/Zalo</div>
+                </div>
+              </button>
+
+              <!-- Test 4 -->
+              <button type="button" onclick="quickTestFeature('autofriend')" class="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 hover:border-teal-500/50 text-left transition flex flex-col justify-between group cursor-pointer">
+                <div class="flex items-center justify-between w-full">
+                  <span class="text-base group-hover:scale-110 transition-transform">🤝</span>
+                  <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-teal-500/20 text-teal-300 font-bold">Test 4</span>
+                </div>
+                <div class="mt-2">
+                  <div class="font-bold text-white text-[11px] truncate">4. Kết Bạn F12</div>
+                  <div class="text-[9px] text-slate-400 truncate">Nhãn "Thêm bạn bè"</div>
+                </div>
+              </button>
+
+              <!-- Test 5 -->
+              <button type="button" onclick="quickTestFeature('telegram')" class="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 hover:border-blue-500/50 text-left transition flex flex-col justify-between group cursor-pointer">
+                <div class="flex items-center justify-between w-full">
+                  <span class="text-base group-hover:scale-110 transition-transform">✈️</span>
+                  <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-300 font-bold">Test 5</span>
+                </div>
+                <div class="mt-2">
+                  <div class="font-bold text-white text-[11px] truncate">5. Báo Cáo Tele</div>
+                  <div class="text-[9px] text-slate-400 truncate">Gửi báo cáo ngay</div>
+                </div>
+              </button>
+
+              <!-- Test 6 -->
+              <button type="button" onclick="quickTestFeature('diagnostic')" class="p-2.5 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 hover:border-purple-500/50 text-left transition flex flex-col justify-between group cursor-pointer">
+                <div class="flex items-center justify-between w-full">
+                  <span class="text-base group-hover:scale-110 transition-transform">🛡️</span>
+                  <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 font-bold">Test 6</span>
+                </div>
+                <div class="mt-2">
+                  <div class="font-bold text-white text-[11px] truncate">6. Kiểm Định FB</div>
+                  <div class="text-[9px] text-slate-400 truncate">7/7 Pass FB 2026</div>
+                </div>
+              </button>
+            </div>
+          </div>
+
           <!-- KHỐI 0: TÁC VỤ DUY NHẤT HÀNG NGÀY: SOẠN BÀI & NẠP CĂN / NẠP KÈO FOREX AI -->
           <!-- ======================================================== -->
           <div id="overview-oneclick-card" class="apple-card rounded-3xl p-6 border-2 border-amber-500/40 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent shadow-xl relative overflow-hidden space-y-4">
@@ -912,7 +735,15 @@
             <!-- Form Soạn & Nạp Căn / Kèo Forex -->
             <div class="space-y-4">
               <div>
-                <label class="block text-xs font-semibold text-white mb-1.5 flex items-center justify-between">
+                                <!-- MẪU NHANH 1-CHẠM -->
+                <div class="flex items-center gap-1.5 flex-wrap mb-2">
+                  <span class="text-[11px] text-slate-400 font-medium mr-1">Mẫu bài viết mẫu:</span>
+                  <button type="button" onclick="applyQuickPostTemplate('solforest')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-white/[0.06] hover:bg-amber-500/20 text-amber-300 border border-white/10 hover:border-amber-500/40 transition">🏡 Solforest 2PN View Đảo</button>
+                  <button type="button" onclick="applyQuickPostTemplate('skyoasis')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-white/[0.06] hover:bg-emerald-500/20 text-emerald-300 border border-white/10 hover:border-emerald-500/40 transition">🔑 Sky Oasis 2PN Thuê 10tr</button>
+                  <button type="button" onclick="applyQuickPostTemplate('swanlake')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-white/[0.06] hover:bg-sky-500/20 text-sky-300 border border-white/10 hover:border-sky-500/40 transition">♨️ Swanlake Khoáng Nóng</button>
+                  <button type="button" onclick="applyQuickPostTemplate('forex')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-white/[0.06] hover:bg-purple-500/20 text-purple-300 border border-white/10 hover:border-purple-500/40 transition">📈 Forex Kèo Vàng XAU/USD</button>
+                </div>
+<label class="block text-xs font-semibold text-white mb-1.5 flex items-center justify-between">
                   <span id="oneclick-label-1">1. Nội Dung Bài Viết / Rao Căn / Bảng Hàng:</span>
                   <span id="oneclick-hint-1" class="text-[11px] text-amber-400 font-normal">AI tự nhận diện: Mã căn, Giá, Phân khu, Số phòng & Tọa độ GPS Ecopark</span>
                 </label>
@@ -3220,6 +3051,68 @@
   <!-- JAVASCRIPT APP LOGIC & REALTIME SYNC                      -->
   <!-- ======================================================== -->
   <script>
+    // ========================================================
+    // HELPER FUNCTIONS: QUICK TEST DECK, TEMPLATES & KPI GRID
+    // ========================================================
+    function applyQuickPostTemplate(type) {
+      const contentEl = document.getElementById('daily-oneclick-content');
+      if (!contentEl) return;
+      if (type === 'solforest') {
+        contentEl.value = '🏡 BÁN GẤP CĂN SOLFOREST 2PN 2WC TẦNG ĐẸP ECOPARK\n- Diện tích: 72m2, ban công Đông Nam view trọn biệt thự đảo\n- Full nội thất cao cấp nhập khẩu, xách vali vào ở ngay\n- Giá bán: 3.4 tỷ bao toàn bộ phí sang tên\n📞 Liên hệ xem nhà 24/7: 0981992137 (Zalo)';
+      } else if (type === 'skyoasis') {
+        contentEl.value = '🔑 CHO THUÊ CĂN HỘ 2PN S2 SKY OASIS ECOPARK\n- Căn hộ tầng trung thoáng mát, view hồ Thiên Nga tuyệt đẹp\n- Đã trang bị full đồ: sofa, tivi, giường tủ, máy giặt, tủ lạnh\n- Giá thuê: 10 triệu/tháng (hợp đồng 1 năm)\n📞 LH/Zalo: 0981992137 hoặc inbox em hỗ trợ ngay ạ!';
+      } else if (type === 'swanlake') {
+        contentEl.value = '♨️ CĂN HỘ KHOÁNG NÓNG ONSEN SWANLAKE TÒA R3\n- Thiết kế 2PN khoáng nóng tại gia chăm sóc sức khỏe gia đình\n- Tầng 16 ban công thoáng mát, view công viên hồ Thiên Nga\n- Pháp lý sổ đỏ lâu dài, giá tốt chốt nhanh\n📞 Liên hệ chính chủ: 0981992137';
+      } else if (type === 'forex') {
+        contentEl.value = '📈 TÍN HIỆU GIAO DỊCH VÀNG XAU/USD HÔM NAY\n- Chiến lược: CANH BUY vùng hỗ trợ 2735 - 2738\n- Mục tiêu chốt lời (TP1): 2748 | (TP2): 2758\n- Cắt lỗ (SL): 2729 (Quản lý vốn 1-2% tài khoản)\n💬 Nhắn tin nhận phân tích đa khung thời gian & bot cảnh báo!';
+      }
+      contentEl.focus();
+    }
+
+    function quickTestFeature(featureKey) {
+      if (featureKey === 'composer') {
+        applyQuickPostTemplate('solforest');
+        const comp = document.getElementById('overview-oneclick-card');
+        if (comp) comp.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const ta = document.getElementById('daily-oneclick-content');
+        if (ta) ta.focus();
+      } else if (featureKey === 'gps_near') {
+        runBdsCommentPreset('near');
+        evaluateBdsCommentNow();
+        const box = document.getElementById('bds-gps-comment-matcher-box');
+        if (box) box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else if (featureKey === 'gps_far') {
+        runBdsCommentPreset('far');
+        evaluateBdsCommentNow();
+        const box = document.getElementById('bds-gps-comment-matcher-box');
+        if (box) box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else if (featureKey === 'autofriend') {
+        switchTab('growth');
+        setTimeout(() => {
+          startAutoFriendScannedList();
+        }, 300);
+      } else if (featureKey === 'telegram') {
+        sendDailyTelegramDigestNow();
+      } else if (featureKey === 'diagnostic') {
+        openSystemDiagnosticModal();
+      } else if (featureKey === 'clouddb') {
+        openCloudShareModal();
+      }
+    }
+
+    function updateExecutiveKpiGrid(data) {
+      if (!data) return;
+      if (data.accounts) {
+        const accCountEl = document.getElementById('kpi-acc-count');
+        if (accCountEl) accCountEl.textContent = data.accounts.total || data.accounts.items?.length || 1;
+      }
+      if (data.dailyPosts) {
+        const postsCountEl = document.getElementById('kpi-posts-count');
+        const pCount = Array.isArray(data.dailyPosts) ? data.dailyPosts.length : (data.dailyPosts.items?.length || 0);
+        if (postsCountEl) postsCountEl.textContent = pCount;
+      }
+    }
+
     let summaryData = null;
     let allCustomers = [];
     let currentTab = 'overview';
@@ -4864,7 +4757,7 @@
 
     // Khởi tạo Theme Sáng Vàng mặc định
     (function initTheme() {
-      const savedTheme = localStorage.getItem('falconx_theme') || 'warm-gold';
+      const savedTheme = localStorage.getItem('falconx_theme') || 'dark';
       if (savedTheme === 'warm-gold') {
         document.documentElement.classList.remove('dark');
         document.documentElement.classList.add('theme-warm-gold');
@@ -4934,6 +4827,7 @@
         ]);
 
         summaryData = sumRes;
+      updateExecutiveKpiGrid(sumRes);
         allCustomers = custRes || [];
 
         const activeAcc = sumRes.accounts.items.find(a => a.isDefault) || sumRes.accounts.items[0];
