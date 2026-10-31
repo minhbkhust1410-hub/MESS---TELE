@@ -39,6 +39,8 @@ export interface FacebookAccount {
   ownerId?: string; // ID của User quản lý nick này
   fbUsername?: string; // Tài khoản (email/SĐT/UID) để tự động đăng nhập lại
   fbPassword?: string; // Mật khẩu để tự động đăng nhập lại
+  role?: 'master' | 'satellite' | 'warmup'; // Phân vai Nick Chính / Nick Vệ Tinh / Làm Ấm 48h
+  warmupMode?: boolean; // Chế độ làm ấm tự động giảm 70% tốc độ tác vụ
   createdAt: string;
   lastActiveAt: string;
 }

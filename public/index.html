@@ -920,17 +920,76 @@
                   </label>
                 </div>
 
-                <button onclick="submitDailyOneClickPost()" id="btn-submit-daily-oneclick"
-                  class="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-[#d97706] hover:from-amber-400 hover:to-[#b45309] text-white text-xs sm:text-sm font-bold shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2 transition transform active:scale-95 cursor-pointer">
-                  <span>🚀</span>
-                  <span>ĐĂNG BÀI & TỰ ĐỘNG LƯU VÀO KHO CĂN</span>
-                </button>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <button onclick="submitSmartOneBox()" id="btn-submit-smart-onebox"
+                    class="px-5 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white text-xs sm:text-sm font-bold shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2 transition transform active:scale-95 cursor-pointer"
+                    title="10 Giây Mỗi Sáng: Bóc tách AI/OCR lưu vào Quỹ Căn Hôm Nay & đưa vào hàng đợi rải nhóm tự động">
+                    <span>⚡</span>
+                    <span>NẠP NHANH 1-CHẠM (10 GIÂY)</span>
+                  </button>
+
+                  <button onclick="submitDailyOneClickPost()" id="btn-submit-daily-oneclick"
+                    class="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-[#d97706] hover:from-amber-400 hover:to-[#b45309] text-white text-xs sm:text-sm font-bold shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2 transition transform active:scale-95 cursor-pointer">
+                    <span>🚀</span>
+                    <span>ĐĂNG BÀI & TỰ ĐỘNG LƯU VÀO KHO CĂN</span>
+                  </button>
+                </div>
               </div>
 
               <!-- Alert kết quả tức thì -->
               <div id="daily-oneclick-status" class="hidden p-3.5 rounded-2xl text-xs font-medium border transition-all"></div>
+
+              <!-- QUỸ CĂN HÔM NAY (GẠT 1-CHẠM CÒN CĂN / ĐÃ CHỐT NGAY TẠI TRANG CHỦ) -->
+              <div class="pt-3 border-t border-white/10 space-y-2.5">
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm">🏡</span>
+                    <span class="text-xs font-bold text-white uppercase tracking-wider">Quỹ Căn Đang Mở Bán / Cho Thuê (Gạt 1-Chạm Còn Căn / Đã Chốt)</span>
+                    <span id="overview-today-props-badge" class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">0 căn</span>
+                  </div>
+                  <button onclick="switchTab('autocmt')" class="text-[11px] text-[#2997ff] hover:underline font-medium">Mở toàn bộ kho căn ➔</button>
+                </div>
+                <div id="overview-today-props-strip" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                  <div class="col-span-full text-xs text-[#86868b] py-2">Đang tải danh sách quỹ căn...</div>
+                </div>
+              </div>
             </div>
 
+          </div>
+
+          <!-- ======================================================== -->
+          <!-- GÓI NÂNG CẤP 1B: TRUNG TÂM KHÁCH NÓNG VỪA PHÁT HIỆN (HOT INTENT FEED) -->
+          <!-- ======================================================== -->
+          <div class="apple-card rounded-3xl p-6 border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-white/[0.03] to-transparent shadow-xl space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-3.5">
+              <div class="flex items-center gap-3">
+                <div class="w-11 h-11 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-xl shadow-lg shadow-amber-500/30 flex-shrink-0">
+                  🔥
+                </div>
+                <div>
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <h3 class="text-base sm:text-lg font-bold text-white tracking-tight">
+                      Trung Tâm Khách Nóng & Gợi Ý Chốt Đơn (Hot Intent Feed)
+                    </h3>
+                    <span id="hot-leads-count-badge" class="text-[10px] font-mono font-bold px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                      0 KHÁCH NÓNG
+                    </span>
+                  </div>
+                  <p class="text-xs text-[#86868b]">
+                    Tự động lọc bài khách hỏi thuê/mua nhà trong nhóm, bóc tách SĐT/Zalo và ghép sẵn căn phù hợp nhất trong kho để bạn chốt đơn 1-chạm.
+                  </p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2 self-start sm:self-center">
+                <button onclick="loadHotLeadsToday()" class="px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-xs font-semibold text-white transition flex items-center gap-1.5">
+                  <span>🔄</span> <span>Làm mới khách nóng</span>
+                </button>
+              </div>
+            </div>
+
+            <div id="hot-leads-feed-grid" class="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              <div class="col-span-full text-center text-xs text-[#86868b] py-4">Đang tải danh sách khách nóng...</div>
+            </div>
           </div>
 
           <!-- ======================================================== -->
@@ -955,8 +1014,14 @@
                 </p>
               </div>
 
-              <!-- Master Toggle Autopilot -->
-              <div class="flex items-center gap-2.5 self-start sm:self-center">
+              <!-- Master Toggle Autopilot + Daily Telegram Digest Button -->
+              <div class="flex items-center gap-2 flex-wrap self-start sm:self-center">
+                <button onclick="sendDailyTelegramDigestNow()" id="btn-send-telegram-digest"
+                  class="px-3.5 py-2 rounded-full bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold transition flex items-center gap-1.5 shadow-md shadow-[#0071e3]/25 cursor-pointer"
+                  title="Gửi báo cáo tổng kết vận hành hôm nay về nhóm Telegram ngay lập tức (Tự động gửi lúc 20:30 mỗi tối)">
+                  <span>✈️</span>
+                  <span>Báo Cáo Về Telegram</span>
+                </button>
                 <button onclick="toggleAutopilotMode()" id="btn-toggle-autopilot" 
                   class="px-4 py-2 rounded-full bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-bold transition flex items-center gap-2 shadow-md shadow-emerald-500/25">
                   <span class="w-2 h-2 rounded-full bg-white animate-pulse"></span>
@@ -968,12 +1033,26 @@
               </div>
             </div>
 
+            <!-- GÓI NÂNG CẤP 2: CHIẾN THUẬT PHÂN VAI NICK CHÍNH – NICK VỆ TINH – LÀM ẤM 48H -->
+            <div class="p-4 rounded-2xl bg-white/[0.03] border border-white/10 space-y-2.5">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm">🛡️</span>
+                  <span class="text-xs font-bold text-white uppercase tracking-wider">Chiến Thuật Phân Vai Dàn Nick (Nick Chính · Nick Vệ Tinh · Làm Ấm 48h)</span>
+                </div>
+                <span class="text-[11px] text-[#86868b]">Nick Chính giữ uy tín chốt đơn · Nick Vệ Tinh đi quét nhóm, kết bạn & bình luận mồi</span>
+              </div>
+              <div id="overview-account-roles-bar" class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                <div class="text-xs text-[#86868b]">Đang tải danh sách phân vai tài khoản...</div>
+              </div>
+            </div>
+
             <!-- 6 TÁC VỤ — SỐ LIỆU THẬT, chỉ đếm khi Facebook đã xác nhận (render bằng JS) -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="orchestration-pipelines-grid">
               <div class="col-span-full text-center text-xs text-[#86868b] py-4">Đang tải số liệu thật...</div>
             </div>
             <p class="text-[11px] text-[#86868b]">
-              Số liệu chỉ tính các thao tác Facebook đã xác nhận trong hôm nay (<span id="orchestration-date">—</span>). Chưa có thao tác nào thì hiển thị 0.
+              Số liệu chỉ tính các thao tác Facebook đã xác nhận trong hôm nay (<span id="orchestration-date">—</span>). Tự động tổng kết gửi về Telegram lúc 20:30 hàng ngày.
             </p>
 
           </div>
@@ -988,16 +1067,21 @@
                 <span class="text-xl">📸</span>
                 <div>
                   <h3 class="text-base font-bold text-white tracking-tight">
-                    Bằng Chứng Xác Thực Tác Vụ Thực Tế (Review & Audit Vault)
+                    Thư Viện Bằng Chứng Xác Thực Tác Vụ Thực Tế (Visual Proof Gallery & Audit Vault)
                   </h3>
                   <p class="text-xs text-[#86868b]">
-                    Mỗi tác vụ tự động đều có ảnh chụp màn hình bằng chứng thực tế và link đối soát minh bạch.
+                    Mỗi tác vụ tự động đều có ảnh chụp màn hình bằng chứng thực tế từ trình duyệt Facebook và link đối soát minh bạch.
                   </p>
                 </div>
               </div>
               <button onclick="loadTaskProofs()" class="text-xs text-[#2997ff] hover:underline flex items-center gap-1 font-medium">
                 <span>Làm mới bằng chứng 🔄</span>
               </button>
+            </div>
+
+            <!-- GÓI NÂNG CẤP 3B: THƯ VIỆN THẺ ẢNH BẰNG CHỨNG TRỰC QUAN -->
+            <div id="visual-proof-gallery-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <!-- Render dynamically via loadTaskProofs() -->
             </div>
 
             <!-- Bảng bằng chứng -->
@@ -3868,6 +3952,38 @@
 
         const icons = { post_group: '📝', first_comment: '💬', scan_members: '🔍', auto_friend: '🤝', react_story: '📱', react_post: '❤️' };
 
+        // GÓI NÂNG CẤP 3B: Render Thư viện Thẻ Ảnh Bằng Chứng Trực Quan (Visual Proof Gallery)
+        const galleryGrid = document.getElementById('visual-proof-gallery-grid');
+        if (galleryGrid) {
+          const withShots = res.proofs.filter(p => !!p.screenshotUrl).slice(0, 4);
+          if (withShots.length === 0) {
+            galleryGrid.innerHTML = '';
+          } else {
+            galleryGrid.innerHTML = withShots.map(p => {
+              const t = new Date(p.timestamp);
+              const tStr = `${String(t.getHours()).padStart(2, '0')}:${String(t.getMinutes()).padStart(2, '0')}`;
+              return `
+                <div onclick="openProofModal('${escapeHtml(p.screenshotUrl)}', '${escapeHtml(p.typeLabel)}', '${escapeHtml(p.message || '')}')"
+                     class="group cursor-pointer rounded-2xl overflow-hidden border border-white/15 bg-black/50 hover:border-[#2997ff] transition relative">
+                  <div class="h-28 overflow-hidden relative bg-black">
+                    <img src="${escapeHtml(p.screenshotUrl)}" alt="Proof" class="w-full h-full object-cover object-top group-hover:scale-105 transition duration-300" />
+                    <span class="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/75 text-white text-[10px] font-mono border border-white/15">
+                      ${icons[p.type] || '📸'} ${escapeHtml(p.typeLabel)}
+                    </span>
+                    <span class="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-emerald-500/90 text-black font-bold text-[9px] font-mono">
+                      ${tStr}
+                    </span>
+                  </div>
+                  <div class="p-2.5 space-y-0.5">
+                    <div class="text-[11px] font-bold text-white truncate">${escapeHtml(p.targetName)}</div>
+                    <div class="text-[10px] text-[#86868b] truncate">Nick: ${escapeHtml(p.accountName)} · Nhấp để phóng to</div>
+                  </div>
+                </div>
+              `;
+            }).join('');
+          }
+        }
+
         tbody.innerHTML = res.proofs.slice(0, 30).map(p => {
           const time = new Date(p.timestamp);
           const timeStr = `${String(time.getHours()).padStart(2, '0')}:${String(time.getMinutes()).padStart(2, '0')}:${String(time.getSeconds()).padStart(2, '0')}`;
@@ -3955,6 +4071,272 @@
         if (btn) {
           btn.disabled = false;
           btn.innerHTML = '<span>🧹</span><span>Dọn Rác & Làm Mượt Ngay</span>';
+        }
+      }
+    }
+
+    // ========================================================
+    // BA GÓI NÂNG CẤP TRẢI NGHIỆM 10 GIÂY & TRUNG TÂM ĐIỀU HÀNH
+    // ========================================================
+    async function submitSmartOneBox() {
+      const contentEl = document.getElementById('daily-oneclick-content');
+      const statusBox = document.getElementById('daily-oneclick-status');
+      const btn = document.getElementById('btn-submit-smart-onebox');
+      const text = (contentEl?.value || '').trim();
+      const imageDataUrl = (Array.isArray(dailyOneClickPhotos) && dailyOneClickPhotos.length > 0) ? dailyOneClickPhotos[0] : undefined;
+
+      if (!text && !imageDataUrl) {
+        alert('Vui lòng dán nội dung bảng hàng hoặc chọn ảnh bảng hàng trước khi bấm Nạp Nhanh 1-Chạm!');
+        return;
+      }
+
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span>⏳</span><span>Đang bóc tách AI & lên lịch...</span>';
+      }
+      if (statusBox) {
+        statusBox.className = 'p-3.5 rounded-2xl text-xs font-medium border bg-emerald-500/10 border-emerald-500/30 text-emerald-200 block';
+        statusBox.innerHTML = '⚡ Đang dùng AI/OCR bóc tách thông tin căn hộ lưu vào Quỹ Căn Hôm Nay và tự động tạo bài đăng rải nhóm...';
+      }
+
+      try {
+        const res = await fetch('/api/smart-inbox/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text, imageDataUrl, autoPostGroups: true })
+        }).then(r => r.json());
+
+        if (res && res.success) {
+          if (statusBox) {
+            statusBox.className = 'p-3.5 rounded-2xl text-xs font-medium border bg-emerald-500/15 border-emerald-500/40 text-emerald-300 block';
+            statusBox.innerHTML = `
+              <div class="space-y-1">
+                <div>✅ <b>${escapeHtml(res.message || 'Nạp nhanh thành công!')}</b></div>
+                <div>🏡 Đã thêm mới: <b>${res.addedCount || 0} căn</b> · Tổng kho đang mở bán/cho thuê: <b>${res.stats?.availableCount || 0} căn</b></div>
+                ${res.queuedPost ? `<div>📅 Đã tự động tạo bài bán hàng & đưa vào hàng đợi rải nhóm (Mã bài: <code>${escapeHtml(res.queuedPost.id)}</code>)</div>` : ''}
+              </div>
+            `;
+          }
+          if (contentEl) contentEl.value = '';
+          dailyOneClickPhotos = [];
+          const prevEl = document.getElementById('daily-oneclick-preview');
+          if (prevEl) prevEl.innerHTML = '';
+          loadInventoryProperties();
+          loadHotLeadsToday();
+          refreshData();
+        } else {
+          if (statusBox) {
+            statusBox.className = 'p-3.5 rounded-2xl text-xs font-medium border bg-red-500/15 border-red-500/40 text-red-300 block';
+            statusBox.innerHTML = `❌ Lỗi: ${escapeHtml(res?.error || 'Không thể xử lý dữ liệu')}`;
+          }
+        }
+      } catch (err) {
+        if (statusBox) {
+          statusBox.className = 'p-3.5 rounded-2xl text-xs font-medium border bg-red-500/15 border-red-500/40 text-red-300 block';
+          statusBox.innerHTML = `❌ Lỗi kết nối: ${escapeHtml(err.message)}`;
+        }
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span>⚡</span><span>NẠP NHANH 1-CHẠM (10 GIÂY)</span>';
+        }
+      }
+    }
+
+    function renderOverviewTodayPropsStrip(propsList) {
+      const strip = document.getElementById('overview-today-props-strip');
+      const badge = document.getElementById('overview-today-props-badge');
+      if (!strip) return;
+
+      const list = Array.isArray(propsList) ? propsList : [];
+      const availCount = list.filter(p => p.status === 'available').length;
+      if (badge) badge.textContent = `${availCount} căn đang trống / ${list.length} tổng`;
+
+      if (list.length === 0) {
+        strip.innerHTML = '<div class="col-span-full text-xs text-[#86868b] py-2">Chưa có căn nào trong kho. Hãy dán bảng hàng vào ô phía trên và bấm Nạp Nhanh 1-Chạm!</div>';
+        return;
+      }
+
+      strip.innerHTML = list.slice(0, 6).map(p => {
+        const isAvail = p.status === 'available';
+        const toggleBtn = isAvail
+          ? `<button onclick="quickTogglePropertyStatus('${escapeHtml(p.id)}')" class="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold transition cursor-pointer">🟢 Còn Căn (Bấm để chốt)</button>`
+          : `<button onclick="quickTogglePropertyStatus('${escapeHtml(p.id)}')" class="px-2.5 py-1 rounded-lg bg-stone-700/60 hover:bg-stone-600 text-stone-300 border border-stone-600 text-[10px] font-bold transition cursor-pointer">🔴 Đã Chốt (Mở lại)</button>`;
+        return `
+          <div class="p-3 rounded-2xl bg-white/[0.04] border ${isAvail ? 'border-emerald-500/30' : 'border-white/10 opacity-70'} flex items-center justify-between gap-2">
+            <div class="min-w-0">
+              <div class="text-xs font-bold text-white truncate">
+                [${p.type === 'rent' ? 'Thuê' : 'Bán'}] ${escapeHtml(p.building || p.project)} · ${escapeHtml(p.bedroom || '')}
+              </div>
+              <div class="text-[11px] text-amber-300 font-mono font-semibold truncate">
+                💰 ${escapeHtml(p.priceText || 'Thỏa thuận')} · ${escapeHtml(p.furniture || 'Full đồ')}
+              </div>
+            </div>
+            <div class="flex-shrink-0">${toggleBtn}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function quickTogglePropertyStatus(propId) {
+      try {
+        const res = await fetch(`/api/properties/${encodeURIComponent(propId)}/toggle`, { method: 'POST' }).then(r => r.json());
+        if (res && res.success) {
+          await loadInventoryProperties();
+          await loadHotLeadsToday();
+        }
+      } catch (e) {
+        alert('Lỗi đổi trạng thái căn: ' + e.message);
+      }
+    }
+
+    async function loadHotLeadsToday() {
+      const grid = document.getElementById('hot-leads-feed-grid');
+      const badge = document.getElementById('hot-leads-count-badge');
+      if (!grid) return;
+
+      try {
+        const res = await fetch('/api/hot-leads/today').then(r => r.json());
+        if (!res || !res.success) return;
+        const items = res.items || [];
+        if (badge) badge.textContent = `${items.length} KHÁCH NÓNG · ${res.matchedCount || 0} KHỚP CĂN`;
+
+        if (items.length === 0) {
+          grid.innerHTML = '<div class="col-span-full p-4 rounded-2xl bg-white/[0.03] border border-white/10 text-center text-xs text-[#86868b]">Hệ thống đang quét các nhóm mục tiêu. Khi phát hiện bài khách tìm thuê/mua nhà, khách nóng sẽ hiện ngay tại đây kèm SĐT và căn gợi ý.</div>';
+          return;
+        }
+
+        grid.innerHTML = items.slice(0, 6).map(item => {
+          const t = new Date(item.timestamp);
+          const timeStr = !isNaN(t.getTime()) ? t.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'Vừa xong';
+          const mp = item.matchedProperty;
+          const matchHtml = mp
+            ? `<div class="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-[11px] text-emerald-300 flex items-center justify-between gap-2">
+                 <span class="truncate">🎯 <b>Khớp ${item.matchScore || 92}%:</b> ${escapeHtml(mp.building || mp.project)} (${escapeHtml(mp.bedroom)}) — <b>${escapeHtml(mp.priceText)}</b></span>
+                 <span class="px-2 py-0.5 rounded bg-emerald-500/20 text-[10px] font-mono flex-shrink-0">Còn căn</span>
+               </div>`
+            : `<div class="p-2 rounded-xl bg-white/[0.03] border border-white/10 text-[11px] text-[#86868b]">ℹ️ Đang chờ khớp căn phù hợp trong kho</div>`;
+
+          const phoneBtns = item.phone
+            ? `<a href="https://zalo.me/${escapeHtml(item.phone)}" target="_blank" class="px-2.5 py-1 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-300 border border-sky-500/30 text-[11px] font-bold transition">💬 Chat Zalo (${escapeHtml(item.phone)})</a>
+               <a href="tel:${escapeHtml(item.phone)}" class="px-2.5 py-1 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 text-[11px] font-bold transition">📞 Gọi Ngay</a>`
+            : '';
+
+          return `
+            <div class="p-4 rounded-2xl bg-white/[0.04] border border-white/10 hover:border-amber-500/40 transition space-y-2.5">
+              <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center gap-2 min-w-0">
+                  <span class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-mono font-bold">🔥 ${timeStr}</span>
+                  <span class="text-xs font-bold text-white truncate">${escapeHtml(item.author)}</span>
+                </div>
+                <span class="text-[10px] font-mono px-2 py-0.5 rounded-full ${item.status === 'commented' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-amber-500/15 text-amber-300'}">
+                  ${item.status === 'commented' ? '✅ Đã bình luận' : '👀 Vừa phát hiện'}
+                </span>
+              </div>
+              <p class="text-xs text-[#f5f5f7] line-clamp-2 leading-relaxed">${escapeHtml(item.content)}</p>
+              ${matchHtml}
+              <div class="flex items-center justify-between gap-2 pt-1 flex-wrap">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  ${phoneBtns}
+                  ${item.postUrl ? `<a href="${escapeHtml(item.postUrl)}" target="_blank" class="px-2.5 py-1 rounded-xl bg-white/10 hover:bg-white/20 text-white text-[11px] font-medium transition">↗ Mở Bài FB</a>` : ''}
+                </div>
+                <button onclick="copyHotLeadReply('${escapeHtml(item.suggestedComment || '')}')" class="px-2.5 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-[11px] font-semibold transition cursor-pointer">
+                  📋 Copy Câu Chốt
+                </button>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (e) {
+        console.warn('Lỗi loadHotLeadsToday:', e);
+      }
+    }
+
+    function copyHotLeadReply(text) {
+      if (!text) return;
+      navigator.clipboard?.writeText(text);
+      alert('📋 Đã copy mẫu câu tư vấn chốt khách vào bộ nhớ tạm:\n\n' + text);
+    }
+
+    function renderOverviewAccountRolesBar() {
+      const bar = document.getElementById('overview-account-roles-bar');
+      if (!bar || !summaryData || !summaryData.accounts) return;
+      const accs = summaryData.accounts.items || [];
+      if (accs.length === 0) {
+        bar.innerHTML = '<div class="text-xs text-[#86868b]">Chưa có tài khoản Facebook nào.</div>';
+        return;
+      }
+
+      bar.innerHTML = accs.map(a => {
+        const role = a.role || (a.isDefault ? 'master' : 'satellite');
+        const isLive = a.status === 'live' || a.status === 'active';
+        return `
+          <div class="p-3 rounded-xl bg-black/30 border border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div class="flex items-center gap-2.5 min-w-0">
+              <span class="w-2.5 h-2.5 rounded-full ${isLive ? 'bg-emerald-400' : 'bg-amber-400'} flex-shrink-0"></span>
+              <div class="min-w-0">
+                <div class="text-xs font-bold text-white truncate">${escapeHtml(a.name)}</div>
+                <div class="text-[10px] text-[#86868b] font-mono">${isLive ? 'Đang kết nối sẵn sàng' : 'Cần kiểm tra phiên'} · UID: ${escapeHtml(a.uid || a.id)}</div>
+              </div>
+            </div>
+            <div class="flex items-center gap-1 flex-wrap">
+              <button onclick="updateAccountRole('${escapeHtml(a.id)}', 'master')"
+                class="px-2.5 py-1 rounded-lg text-[10px] font-bold transition cursor-pointer ${role === 'master' ? 'bg-amber-500 text-black shadow' : 'bg-white/5 text-[#86868b] hover:text-white border border-white/10'}">
+                👑 Nick Chính
+              </button>
+              <button onclick="updateAccountRole('${escapeHtml(a.id)}', 'satellite')"
+                class="px-2.5 py-1 rounded-lg text-[10px] font-bold transition cursor-pointer ${role === 'satellite' ? 'bg-[#0071e3] text-white shadow' : 'bg-white/5 text-[#86868b] hover:text-white border border-white/10'}">
+                🛰️ Vệ Tinh
+              </button>
+              <button onclick="updateAccountRole('${escapeHtml(a.id)}', 'warmup')"
+                class="px-2.5 py-1 rounded-lg text-[10px] font-bold transition cursor-pointer ${role === 'warmup' ? 'bg-emerald-500 text-black shadow' : 'bg-white/5 text-[#86868b] hover:text-white border border-white/10'}">
+                🌱 Làm Ấm 48h
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function updateAccountRole(accId, role) {
+      try {
+        const res = await fetch(`/api/accounts/${encodeURIComponent(accId)}/role`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ role })
+        }).then(r => r.json());
+
+        if (res && res.success) {
+          logActivity(`[Phân Vai Nick] ${res.message}`);
+          await refreshData();
+        } else {
+          alert('Lỗi phân vai: ' + (res?.error || 'Không xác định'));
+        }
+      } catch (e) {
+        alert('Lỗi kết nối khi phân vai: ' + e.message);
+      }
+    }
+
+    async function sendDailyTelegramDigestNow() {
+      const btn = document.getElementById('btn-send-telegram-digest');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span>⏳</span><span>Đang gửi Telegram...</span>';
+      }
+      try {
+        const res = await fetch('/api/telegram/send-daily-digest', { method: 'POST' }).then(r => r.json());
+        if (res && res.success) {
+          alert('✈️ ĐÃ GỬI BÁO CÁO TỔNG KẾT VỀ NHÓM TELEGRAM THÀNH CÔNG!\n\n' + (res.reportText || '').replace(/\*/g, '').replace(/`/g, ''));
+          logActivity('[Telegram Digest] Đã gửi Báo Cáo Tổng Kết Vận Hành về nhóm Telegram.');
+        } else {
+          alert('⚠️ ' + (res?.message || res?.error || 'Không thể gửi báo cáo'));
+        }
+      } catch (e) {
+        alert('Lỗi gửi báo cáo Telegram: ' + e.message);
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span>✈️</span><span>Báo Cáo Về Telegram</span>';
         }
       }
     }
@@ -4349,6 +4731,8 @@
         loadOrchestrationStatus();
         loadTaskProofs();
         loadSystemPerformance();
+        loadHotLeadsToday();
+        renderOverviewAccountRolesBar();
 
         fetch('/api/status').then(r => r.json()).then(st => {
           document.getElementById('sidebar-uptime').textContent = formatUptime(st.uptime);
@@ -5096,6 +5480,7 @@
         if (topicEl) topicEl.textContent = `Topic #${topicId} (Telegram)`;
 
         renderTodayPropertiesPanel(todayProps);
+        renderOverviewTodayPropsStrip(allProperties);
         renderInventoryTable(currentInvFilter);
       } catch (err) {
         console.warn('Lỗi tải kho nguồn BĐS:', err);

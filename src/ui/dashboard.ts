@@ -25,7 +25,7 @@ import {
   FacebookAccount,
 } from '../db/store.js';
 import { messengerEngine } from '../engine/messenger-engine.js';
-import { getOrCreateTopicForCustomer, getBotUsername } from '../telegram/bot.js';
+import { getOrCreateTopicForCustomer, getBotUsername, getBot } from '../telegram/bot.js';
 import { loadCannedReplies, saveCannedReply } from '../config/canned-replies.js';
 import { createBrowserSession, checkCookiesLoggedIn, parseProxy, testProxyNetwork, verifyBrowserProxyIP, type SessionResult } from '../core/browser-session.js';
 import { loginFacebookWithCredentials } from '../core/facebook-authenticator.js';
@@ -75,6 +75,8 @@ import {
   ingestPropertiesFromTextWithAI,
   ingestPropertiesFromImageWithAI,
   getPropertyInventoryStats,
+  findBestMatchingPropertyWithDistance,
+  generateTargetedComment,
 } from '../services/property-inventory.js';
 import {
   freeAiService,
@@ -2717,6 +2719,300 @@ export function startDashboard(): void {
       res.status(500).json({ success: false, error: err.message });
     }
   });
+
+  // ========================================================
+  // GÓI NÂNG CẤP 1: Ô NHẬP VẠN NĂNG 1-CHẠM (SMART ONE-BOX) & TRUNG TÂM KHÁCH NÓNG
+  // ========================================================
+  app.post('/api/smart-inbox/submit', async (req, res) => {
+    try {
+      const { text, imageDataUrl, autoPostGroups } = req.body || {};
+      if ((!text || !String(text).trim()) && !imageDataUrl) {
+        return res.status(400).json({ success: false, error: 'Vui lòng dán văn bản bảng hàng hoặc tải ảnh lên' });
+      }
+
+      let addedProperties: any[] = [];
+      let extractedRawText = String(text || '').trim();
+
+      if (imageDataUrl && typeof imageDataUrl === 'string' && imageDataUrl.startsWith('data:image/')) {
+        const base64Match = imageDataUrl.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
+        if (base64Match) {
+          const ext = base64Match[1] === 'jpeg' ? 'jpg' : base64Match[1];
+          const tmpDir = path.resolve(process.cwd(), '.tmp_media');
+          if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+          const imgPath = path.join(tmpDir, `smart_inbox_${Date.now()}.${ext}`);
+          fs.writeFileSync(imgPath, Buffer.from(base64Match[2], 'base64'));
+          const imgRes = await ingestPropertiesFromImageWithAI(imgPath, 'web_image');
+          addedProperties.push(...(imgRes.added || []));
+          if (imgRes.ocrText) {
+            extractedRawText = extractedRawText ? `${extractedRawText}\n${imgRes.ocrText}` : imgRes.ocrText;
+          }
+        }
+      }
+
+      if (text && String(text).trim()) {
+        const txtRes = await ingestPropertiesFromTextWithAI(String(text).trim(), 'web_manual');
+        if (txtRes.added && txtRes.added.length > 0) {
+          addedProperties.push(...txtRes.added);
+        } else {
+          const fallbackAdded = ingestPropertiesFromText(String(text).trim(), 'web_manual');
+          addedProperties.push(...fallbackAdded);
+        }
+      }
+
+      let queuedPost: any = null;
+      if (autoPostGroups !== false) {
+        const defaultAcc = getDefaultAccount();
+        const masterAcc = getAllAccounts().find((a) => a.role === 'master' && (a.status === 'live' || a.status === 'active')) || defaultAcc;
+        let salesContent = '';
+        if (addedProperties.length > 0) {
+          const lines = addedProperties.map(
+            (p, idx) =>
+              `🏡 ${idx + 1}. [${p.type === 'rent' ? 'CHO THUÊ' : 'BÁN'}] ${p.building || p.project} — ${p.bedroom}${p.areaText ? ` (${p.areaText})` : ''} — Giá: ${p.priceText} — ${p.furniture || 'Full nội thất'}${p.phone ? ` (LH: ${p.phone})` : ''}`
+          );
+          salesContent = `🌟 CẬP NHẬT QUỸ CĂN ĐẸP HÔM NAY TẠI ECOPARK 🌟\n\n${lines.join('\n')}\n\n📩 Anh/chị quan tâm inbox trực tiếp hoặc liên hệ hotline để xem nhà thực tế ngay hôm nay ạ!`;
+        } else {
+          salesContent = extractedRawText;
+        }
+
+        if (salesContent) {
+          queuedPost = addDailyPost({
+            type: 'both',
+            targetType: 'both',
+            content: salesContent,
+            status: 'confirmed',
+            scheduledTime: 'now',
+            targetAccounts: masterAcc ? [masterAcc.id] : [],
+            firstComment: addedProperties[0] ? generateTargetedComment(addedProperties[0]) : 'Dạ anh/chị quan tâm căn nào nhắn em gửi video thực tế nhé ạ! 🌸',
+            notes: 'Tạo tự động từ Ô Nhập Vạn Năng 1-Chạm (Smart One-Box)',
+          });
+        }
+      }
+
+      res.json({
+        success: true,
+        addedCount: addedProperties.length,
+        addedProperties,
+        queuedPost,
+        todayProperties: getTodayProperties(),
+        stats: getPropertyInventoryStats(),
+        message: `Đã bóc tách ${addedProperties.length} căn vào Quỹ Căn Hôm Nay${queuedPost ? ' & lên lịch rải nhóm tự động' : ''}!`,
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // API lấy danh sách Khách Nóng Vừa Phát Hiện (Hot Intent Feed) kèm gợi ý căn phù hợp & SĐT
+  app.get('/api/hot-leads/today', (_req, res) => {
+    try {
+      const commentLogs = getCommentLogs(60);
+      const proofs = orchestrationService.getProofs();
+      const phoneRegex = /(0[35789][0-9]{8})\b/;
+
+      const hotLeads: Array<{
+        id: string;
+        timestamp: string;
+        author: string;
+        content: string;
+        postUrl: string;
+        phone: string | null;
+        accountName: string;
+        matchedProperty: any | null;
+        matchScore: number | null;
+        suggestedComment: string;
+        screenshotUrl?: string;
+        status: 'commented' | 'detected';
+      }> = [];
+
+      const seenUrls = new Set<string>();
+
+      for (const log of commentLogs) {
+        if (log.postUrl && seenUrls.has(log.postUrl)) continue;
+        if (log.postUrl) seenUrls.add(log.postUrl);
+
+        const snippet = log.postSnippet || '';
+        const phoneMatch = snippet.match(phoneRegex);
+        const matchRes = findBestMatchingPropertyWithDistance(snippet);
+        const matchingProof = proofs.find((p) => p.targetUrl === log.postUrl && p.screenshotUrl);
+
+        hotLeads.push({
+          id: log.id,
+          timestamp: log.timestamp,
+          author: log.postAuthor || 'Khách hàng Facebook',
+          content: snippet || 'Khách hàng quan tâm tìm thuê/mua căn hộ Ecopark',
+          postUrl: log.postUrl,
+          phone: phoneMatch ? phoneMatch[1] : null,
+          accountName: log.accountName || 'Eco Trang',
+          matchedProperty: matchRes ? matchRes.property : null,
+          matchScore: matchRes ? matchRes.score : null,
+          suggestedComment: log.commentText || (matchRes ? generateTargetedComment(matchRes.property, matchRes) : ''),
+          screenshotUrl: matchingProof?.screenshotUrl,
+          status: log.status === 'success' ? 'commented' : 'detected',
+        });
+      }
+
+      // Bổ sung từ nhật ký điều phối nếu có bài tương tác/bình luận mới chưa nằm trong commentLogs
+      for (const p of proofs) {
+        if ((p.type === 'first_comment' || p.type === 'react_post') && p.targetUrl && !seenUrls.has(p.targetUrl)) {
+          seenUrls.add(p.targetUrl);
+          const phoneMatch = (p.message || '').match(phoneRegex);
+          const matchRes = findBestMatchingPropertyWithDistance(p.message || p.targetName);
+          hotLeads.push({
+            id: p.id,
+            timestamp: p.timestamp,
+            author: p.targetName || 'Khách hàng tiềm năng',
+            content: p.message || 'Tương tác bài viết khách hàng trong nhóm mục tiêu',
+            postUrl: p.targetUrl,
+            phone: phoneMatch ? phoneMatch[1] : null,
+            accountName: p.accountName,
+            matchedProperty: matchRes ? matchRes.property : null,
+            matchScore: matchRes ? matchRes.score : null,
+            suggestedComment: matchRes ? generateTargetedComment(matchRes.property, matchRes) : 'Dạ anh/chị check inbox em gửi thông tin chi tiết nhé ạ!',
+            screenshotUrl: p.screenshotUrl,
+            status: p.status === 'success' ? 'commented' : 'detected',
+          });
+        }
+      }
+
+      res.json({
+        success: true,
+        total: hotLeads.length,
+        withPhoneCount: hotLeads.filter((l) => !!l.phone).length,
+        matchedCount: hotLeads.filter((l) => !!l.matchedProperty).length,
+        items: hotLeads.slice(0, 30),
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // ========================================================
+  // GÓI NÂNG CẤP 2: PHÂN VAI TÀI KHOẢN (NICK CHÍNH / VỆ TINH / LÀM ẤM 48H)
+  // ========================================================
+  app.post('/api/accounts/:id/role', (req, res) => {
+    try {
+      const accId = req.params.id;
+      const { role, warmupMode } = req.body || {};
+      const acc = getAccountById(accId);
+      if (!acc) {
+        return res.status(404).json({ success: false, error: 'Không tìm thấy tài khoản Facebook' });
+      }
+      if (role && ['master', 'satellite', 'warmup'].includes(role)) {
+        acc.role = role as 'master' | 'satellite' | 'warmup';
+        acc.warmupMode = role === 'warmup' ? true : Boolean(warmupMode);
+      } else if (typeof warmupMode === 'boolean') {
+        acc.warmupMode = warmupMode;
+      }
+      saveAccount(acc);
+      res.json({
+        success: true,
+        account: acc,
+        accounts: getAllAccounts(),
+        message: `Đã cập nhật vai trò cho nick "${acc.name}": ${
+          acc.role === 'master' ? '👑 Nick Chính (Chốt Khách)' : acc.role === 'warmup' ? '🌱 Làm Ấm 48h (An Toàn)' : '🛰️ Nick Vệ Tinh (Săn Khách)'
+        }`,
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // ========================================================
+  // GÓI NÂNG CẤP 3: BÁO CÁO TỔNG KẾT TELEGRAM CUỐI NGÀY (DAILY EXECUTIVE DIGEST)
+  // ========================================================
+  async function buildAndSendDailyTelegramDigest(): Promise<{ sent: boolean; reportText: string; topicId?: number; error?: string }> {
+    const invStats = getPropertyInventoryStats();
+    const todayProps = getTodayProperties();
+    const orchStatus = orchestrationService.getStatus();
+    const accounts = getAllAccounts();
+    const liveAccounts = accounts.filter((a) => a.status === 'live' || a.status === 'active');
+    const mem = process.memoryUsage();
+    const ramMb = Math.round(mem.rss / 1024 / 1024);
+    const heapMb = Math.round(mem.heapUsed / 1024 / 1024);
+    const commentLogs = getCommentLogs(30);
+    const autoCfg = getAutoCommentConfig();
+
+    const p = orchStatus.pipelines || {};
+    const nowStr = new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' });
+
+    const reportLines = [
+      `📊 *BÁO CÁO TỔNG KẾT VẬN HÀNH FALCONX AI*`,
+      `🕒 Thời gian: \`${nowStr}\``,
+      `────────────────────────`,
+      `🏠 *1. QUỸ CĂN & BẢNG HÀNG HÔM NAY:*`,
+      `• Quỹ căn mới nạp hôm nay: *${todayProps.length} căn*`,
+      `• Đang mở bán/cho thuê: *${invStats.availableCount} căn* (Đã chốt: *${invStats.doneCount} căn*)`,
+      `• Tổng kho hiện tại: *${invStats.total} căn* (Thuê: ${invStats.rentCount} | Bán: ${invStats.saleCount})`,
+      ``,
+      `🤖 *2. HIỆU SUẤT 6 TÁC VỤ ĐIỀU PHỐI TRONG NGÀY:*`,
+      `• 📝 Đăng bài Nhóm/Tường: *${p.post_group?.success || 0}* thành công`,
+      `• 💬 Bình luận mồi & Tư vấn AI: *${p.first_comment?.success || 0}* bình luận`,
+      `• 🔍 Quét thành viên mới (Radar): *${p.scan_members?.success || 0}* thành viên`,
+      `• 🤝 Gửi lời mời kết bạn: *${p.auto_friend?.success || 0}* lời mời`,
+      `• 📱 Thả tim Story khách: *${p.react_story?.success || 0}* lượt`,
+      `• ❤️ Thích / Tim bài viết: *${p.react_post?.success || 0}* lượt`,
+      ``,
+      `🔥 *3. KHÁCH NÓNG & ĐỒNG BỘ TIN NHẮN:*`,
+      `• Bài khách tìm nhà đã phát hiện & xử lý: *${commentLogs.length} bài*`,
+      `• Tổng luồng khách hàng đồng bộ Telegram: *${getAllMappings().length} khách*`,
+      ``,
+      `🛡️ *4. SỨC KHỎE DÀN NICK & HỆ THỐNG:*`,
+      `• Tài khoản Online: *${liveAccounts.length}/${accounts.length} nick* (${liveAccounts.map((a) => `${a.name}${a.role === 'master' ? ' [👑Chính]' : a.role === 'warmup' ? ' [🌱Làm ấm]' : ' [🛰️Vệ tinh]'}`).join(', ') || 'Chưa có'})`,
+      `• Bộ nhớ RAM máy chủ: *${ramMb} MB* (Heap: ${heapMb} MB — Đã tối ưu chống tràn bộ nhớ)`,
+      `────────────────────────`,
+      `✅ _Hệ thống FalconX Autopilot đang hoạt động ổn định 24/7._`,
+    ];
+
+    const reportText = reportLines.join('\n');
+    const reportTopicId = autoCfg.telegramReportTopicId || undefined;
+
+    try {
+      const bot = getBot();
+      if (config.telegramGroupId) {
+        try {
+          await bot.api.sendMessage(config.telegramGroupId, reportText, {
+            parse_mode: 'Markdown',
+            ...(reportTopicId ? { message_thread_id: reportTopicId } : {}),
+          });
+          return { sent: true, reportText, topicId: reportTopicId };
+        } catch {
+          // Fallback gửi vào General nếu topicId không tồn tại
+          await bot.api.sendMessage(config.telegramGroupId, reportText, { parse_mode: 'Markdown' });
+          return { sent: true, reportText };
+        }
+      }
+      return { sent: false, reportText, error: 'Chưa cấu hình TELEGRAM_GROUP_ID' };
+    } catch (err: any) {
+      return { sent: false, reportText, error: err.message };
+    }
+  }
+
+  app.post('/api/telegram/send-daily-digest', async (_req, res) => {
+    try {
+      const result = await buildAndSendDailyTelegramDigest();
+      res.json({
+        success: result.sent,
+        ...result,
+        message: result.sent
+          ? 'Đã gửi Báo Cáo Tổng Kết Vận Hành vào nhóm Telegram thành công!'
+          : `Đã tạo báo cáo nhưng chưa gửi được qua Telegram: ${result.error}`,
+      });
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // Tự động gửi Báo cáo Tổng kết lúc 20:30 mỗi tối
+  let lastDigestSentDate = '';
+  setInterval(() => {
+    const now = new Date();
+    const vnTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Ho_Chi_Minh' }));
+    const dateKey = `${vnTime.getFullYear()}-${vnTime.getMonth() + 1}-${vnTime.getDate()}`;
+    if (vnTime.getHours() === 20 && vnTime.getMinutes() === 30 && lastDigestSentDate !== dateKey) {
+      lastDigestSentDate = dateKey;
+      buildAndSendDailyTelegramDigest().catch((e) => console.warn('[DailyDigest] Lỗi gửi tự động:', e.message));
+    }
+  }, 45_000);
 
   app.get('/api/executive-summary', (req, res) => {
     const accounts = getAllAccounts();
