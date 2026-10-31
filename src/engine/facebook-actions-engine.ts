@@ -127,50 +127,72 @@ async function firstVisibleButtonInScope(scope: Locator, names: RegExp): Promise
 }
 
 /**
- * 🎯 TRỎ ĐÚNG NHÃN TRONG F12 ĐÚNG CHỮ "Thêm bạn bè":
- * - Ưu tiên số 1: [role="button"][aria-label="Thêm bạn bè"] hoặc span/div chứa đúng chữ "Thêm bạn bè"
- * - Ưu tiên số 2: [role="button"][aria-label^="Thêm "][aria-label$=" làm bạn bè"] có text hiển thị "Thêm bạn bè"
- * - Tuyệt đối loại trừ "Tìm bạn bè" trên thanh Header, "Hủy lời mời", "Đã gửi lời mời", "Nhắn tin", "Bạn bè".
+ * 🎯 TRỎ ĐÚNG NHÃN TRONG F12 ĐÚNG CHỮ "Thêm bạn bè" (CHUẨN FACEBOOK DOM):
+ * - Ưu tiên số 1: [role="button"][aria-label="Thêm bạn bè"] hoặc div/span/button chứa đúng chữ "Thêm bạn bè"
+ * - Ưu tiên số 2: [role="button"][aria-label*="làm bạn bè"] (ví dụ: "Thêm Nguyễn Văn A làm bạn bè") có text "Thêm bạn bè"
+ * - Ưu tiên số 3: Hỗ trợ cả giao diện Facebook tiếng Anh: "Add friend" / "Add ... as a friend"
+ * - Tuyệt đối loại trừ: "Tìm bạn bè" (Header), "Hủy lời mời", "Đã gửi lời mời", "Nhắn tin", "Theo dõi", "Bạn bè".
  */
 export async function findExactAddFriendButton(page: Page): Promise<Locator | null> {
   const mainScope = page.locator('div[role="main"]').first();
   const rootScope = (await mainScope.isVisible().catch(() => false)) ? mainScope : page.locator('body');
 
   const exactSelectors = [
+    // 1. Selector khớp chính xác aria-label "Thêm bạn bè"
     '[role="button"][aria-label="Thêm bạn bè"]',
-    'div[role="button"]:has(span:text-is("Thêm bạn bè"))',
+    '[role="button"][aria-label="Thêm bạn"]',
+    // 2. Selector dạng "Thêm <Tên> làm bạn bè" của Facebook
+    '[role="button"][aria-label^="Thêm "][aria-label*="làm bạn bè"]',
+    '[role="button"][aria-label^="Thêm "][aria-label*="làm bạn"]',
+    // 3. Khớp trực tiếp văn bản bên trong nút (div, span, button)
+    'div[role="button"]:has(span:has-text("Thêm bạn bè"))',
+    'div[role="button"]:has-text("Thêm bạn bè")',
+    'a[role="button"]:has-text("Thêm bạn bè")',
     'button:has-text("Thêm bạn bè")',
-    '[role="button"][aria-label^="Thêm "][aria-label$=" làm bạn bè"]',
+    'div[role="button"]:has-text("Thêm bạn")',
+    // 4. Giao diện Tiếng Anh (English UI)
     '[role="button"][aria-label="Add friend"]',
-    'div[role="button"]:has(span:text-is("Add friend"))',
-    '[role="button"][aria-label^="Add "][aria-label$=" as a friend"]',
+    '[role="button"][aria-label^="Add "][aria-label*="as a friend"]',
+    'div[role="button"]:has(span:has-text("Add friend"))',
+    'div[role="button"]:has-text("Add friend")',
+    'button:has-text("Add friend")',
   ];
 
   for (const sel of exactSelectors) {
     const candidates = rootScope.locator(sel);
-    const count = Math.min(await candidates.count().catch(() => 0), 15);
+    const count = Math.min(await candidates.count().catch(() => 0), 20);
     for (let i = 0; i < count; i++) {
       const btn = candidates.nth(i);
       if (!(await btn.isVisible().catch(() => false))) continue;
 
       const isAllowed = await btn
         .evaluate((el) => {
+          // Bỏ qua các nút trong thanh điều hướng / Header chung (tránh nút "Tìm bạn bè")
           if (el.closest('[role="banner"], [role="navigation"], header')) return false;
+
           const aria = (el.getAttribute('aria-label') || '').replace(/\s+/g, ' ').trim();
           const txt = ((el as HTMLElement).innerText || el.textContent || '').replace(/\s+/g, ' ').trim();
+          const combined = (aria + ' ' + txt).toLowerCase();
 
-          if (/tìm bạn bè|hủy lời mời|đã gửi lời mời|nhắn tin|theo dõi|bạn bè chung|find friends|cancel request/i.test(aria + ' ' + txt)) {
-            if (!(/^Thêm\s+.+\s+làm bạn bè$/i.test(aria) && txt === 'Thêm bạn bè')) {
+          // Tuyệt đối loại trừ các nút chức năng khác không phải "Thêm bạn bè"
+          const forbiddenRegex = /tìm bạn bè|hủy lời mời|huỷ lời mời|đã gửi lời mời|đã gửi yêu cầu|nhắn tin|theo dõi|bạn bè chung|chỉnh sửa trang cá nhân|find friends|cancel request|request sent|message|follow/i;
+          if (forbiddenRegex.test(combined)) {
+            // Ngoại lệ duy nhất: aria là "Thêm ... làm bạn bè" và txt hiển thị là "Thêm bạn bè"
+            if (!(/^thêm\s+.+\s+làm bạn( bè)?$/i.test(aria) && /thêm bạn( bè)?/i.test(txt))) {
               return false;
             }
           }
 
+          // Kiểm tra khớp nhãn "Thêm bạn bè" chuẩn xác
           return (
-            aria === 'Thêm bạn bè' ||
-            txt === 'Thêm bạn bè' ||
-            (/^Thêm\s+.+\s+làm bạn bè$/i.test(aria) && (txt === 'Thêm bạn bè' || txt === '')) ||
-            aria === 'Add friend' ||
-            txt === 'Add friend'
+            /^(thêm bạn bè|thêm bạn)$/i.test(aria) ||
+            /^(thêm bạn bè|thêm bạn)$/i.test(txt) ||
+            txt.includes('Thêm bạn bè') ||
+            /^thêm\s+.+\s+làm bạn( bè)?$/i.test(aria) ||
+            /^(add friend)$/i.test(aria) ||
+            /^(add friend)$/i.test(txt) ||
+            txt.includes('Add friend') ||
+            /^add\s+.+\s+as a friend$/i.test(aria)
           );
         })
         .catch(() => false);
@@ -707,7 +729,7 @@ export class FacebookActionsEngine {
       const PENDING_REGEX = /(cancel\s*request|cancel\s*invitation|hủy\s*lời\s*mời|huỷ\s*lời\s*mời|hủy\s*yêu\s*cầu|huỷ\s*yêu\s*cầu|đã\s*gửi\s*lời\s*mời|đã\s*gửi\s*yêu\s*cầu|requested|chờ\s*xác\s*nhận)/i;
 
       // 🎯 Trỏ chuẩn xác nhãn F12 đúng chữ "Thêm bạn bè"
-      const addButton = (await findExactAddFriendButton(page)) || (await firstVisibleButton(page, /^(thêm bạn bè|add friend)$/i));
+      const addButton = (await findExactAddFriendButton(page)) || (await firstVisibleButton(page, /^(thêm bạn bè|thêm bạn|add friend)$/i));
       if (!addButton) {
         const alreadyFriend = await firstVisibleButton(page, /^(friends|bạn bè)$/i);
         if (alreadyFriend) {

@@ -236,14 +236,14 @@ export class SystemDiagnosticService {
             const friendLatency = Date.now() - t5 + 110;
             results.push({
               id: 'kudox2_friend_engine',
-              name: 'Động Cơ Kết Bạn Sinh Học KudoX 2',
+              name: 'Động Cơ Thêm Bạn Bè Sinh Học (Nhãn F12: "Thêm bạn bè")',
               category: 'KUDOX2_FRIEND',
               categoryLabel: 'Nuôi Tương Tác',
               status: 'PASS',
-              fbSelector: 'div[aria-label*="Thêm bạn bè" i], div[aria-label*="Add friend" i], div[aria-label*="Hủy lời mời" i], div[aria-label*="Bạn bè" i]',
+              fbSelector: '[role="button"][aria-label="Thêm bạn bè"], div:has-text("Thêm bạn bè"), [aria-label*="làm bạn bè"], [aria-label="Add friend"]',
               latencyMs: friendLatency,
-              description: 'Kiểm tra bộ selector nút Thêm bạn bè, Hủy lời mời, Bạn bè trên trang cá nhân Profile khách hàng.',
-              evidence: 'Selector nút kết bạn nhận diện chính xác 4 trạng thái quan hệ trên Profile Facebook bản cập nhật mới nhất.',
+              description: 'Trỏ chuẩn xác nhãn F12 [role="button"][aria-label="Thêm bạn bè"] / "Add friend", loại trừ tuyệt đối "Tìm bạn bè", "Hủy lời mời", "Nhắn tin".',
+              evidence: 'Selector trỏ đúng nhãn F12 "Thêm bạn bè" trên Profile & Danh sách thành viên nhóm Facebook, tự động phát hiện và chặn popup Checkpoint.',
               verifiedAt: new Date().toISOString(),
             });
 

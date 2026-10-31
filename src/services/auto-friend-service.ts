@@ -925,7 +925,7 @@ export class AutoFriendService {
           } else {
             const addFriendBtn =
               (await findExactAddFriendButton(page)) ||
-              (await firstVisibleButton(page, /^(thêm bạn bè|add friend)$/i));
+              (await firstVisibleButton(page, /^(thêm bạn bè|thêm bạn|add friend)$/i));
             if (addFriendBtn) {
               this.addLog({
                 type: 'human_step',

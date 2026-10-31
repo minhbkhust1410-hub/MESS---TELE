@@ -575,7 +575,7 @@
                 <span class="text-xl opacity-75 group-hover:scale-110 transition-transform">🤝</span>
               </div>
               <div class="mt-2.5">
-                <span class="text-[11px] text-slate-400 font-medium block">Kết Bạn KudoX 2</span>
+                <span class="text-[11px] text-slate-400 font-medium block">Thêm Bạn Bè (F12 Facebook)</span>
                 <div class="flex items-baseline gap-1 mt-0.5">
                   <span id="kpi-autofriend-count" class="text-2xl font-bold font-mono text-white">0</span>
                   <span class="text-[10px] text-slate-400">đã gửi</span>
@@ -671,8 +671,8 @@
                   <span class="text-[9px] font-mono px-1.5 py-0.2 rounded bg-teal-500/20 text-teal-300 font-bold">Test 4</span>
                 </div>
                 <div class="mt-2">
-                  <div class="font-bold text-white text-[11px] truncate">4. Kết Bạn F12</div>
-                  <div class="text-[9px] text-slate-400 truncate">Nhãn "Thêm bạn bè"</div>
+                  <div class="font-bold text-white text-[11px] truncate">4. Thêm Bạn Bè (F12)</div>
+                  <div class="text-[9px] text-teal-300 truncate">Trỏ đúng nhãn "Thêm bạn bè"</div>
                 </div>
               </button>
 
@@ -2087,7 +2087,7 @@
 
             <div class="flex flex-wrap items-center gap-2">
               <button id="btn-autofriend-scanned-list" onclick="startAutoFriendScannedList()" class="text-xs px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-extrabold transition flex items-center gap-2 shadow-lg shadow-emerald-500/20">
-                <span>🤝</span> <span>Tự Động Kết Bạn DS Đã Quét (Nhãn F12: "Thêm bạn bè")</span>
+                <span>🤝</span> <span>Tự Động Thêm Bạn Bè DS Đã Quét (Đúng Nhãn F12: "Thêm bạn bè")</span>
               </button>
               <button onclick="openF12ScriptModal()" class="text-xs px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/35 font-bold transition flex items-center gap-1.5">
                 <span>🦁</span> Mã F12 Auto-Friend
@@ -2107,10 +2107,10 @@
               <div class="flex flex-wrap items-center gap-2">
                 <span class="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[11px] font-extrabold flex items-center gap-1.5">
                   <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                  🤝 Chế Độ Tự Động Kết Bạn Danh Sách Đã Quét
+                  🤝 Chế Độ Tự Động Thêm Bạn Bè Danh Sách Đã Quét
                 </span>
                 <span class="px-2.5 py-1 rounded-lg bg-[#1A1613] text-amber-300 border border-amber-500/30 text-[10px] font-mono">
-                  🎯 Nhãn F12 chuẩn: [role="button"][aria-label="Thêm bạn bè"] | span:text-is("Thêm bạn bè")
+                  🎯 Nhãn F12 chuẩn: [role="button"][aria-label="Thêm bạn bè"] | div:has-text("Thêm bạn bè")
                 </span>
                 <span class="px-2.5 py-1 rounded-lg bg-[#1A1613] text-sky-300 border border-sky-500/30 text-[10px] font-mono">
                   🧬 Hành vi Human: Cuộn mượt • Bezier 10 bước • Hover 600ms • Nghỉ 20-38s • Chặn Popup Checkpoint
@@ -2121,7 +2121,7 @@
               </div>
             </div>
             <div id="scanned-af-status-line" class="text-xs text-[#c9d1d9] font-mono bg-[#0d1117]/80 px-3.5 py-2 rounded-xl border border-[#30363d]">
-              💡 Nhấn <strong>"🤝 Tự Động Kết Bạn DS Đã Quét (Nhãn F12: 'Thêm bạn bè')"</strong> ở trên để phân bổ danh sách thành viên đã quét cho dàn nick tự động kết bạn với hành vi người thật chống Checkpoint.
+              💡 Nhấn <strong>"🤝 Tự Động Thêm Bạn Bè DS Đã Quét (Đúng Nhãn F12: 'Thêm bạn bè')"</strong> ở trên để phân bổ danh sách thành viên đã quét cho dàn nick tự động gửi lời mời với hành vi người thật chống Checkpoint.
             </div>
           </div>
 
@@ -2230,8 +2230,8 @@
               </div>
             </div>
             <div class="flex flex-wrap items-center gap-2">
-              <button onclick="startAutoFriendScannedList()" class="text-xs px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-extrabold transition flex items-center gap-1.5 shadow-sm" title="Tự động kết bạn với danh sách đã quét (Trỏ đúng nhãn F12 Thêm bạn bè + Hành vi Human)">
-                <span>🤝</span> <span>Tự Động Kết Bạn DS Đã Quét ("Thêm bạn bè")</span>
+              <button onclick="startAutoFriendScannedList()" class="text-xs px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-extrabold transition flex items-center gap-1.5 shadow-sm" title="Tự động thêm bạn bè với danh sách đã quét (Trỏ đúng nhãn F12 Thêm bạn bè + Hành vi Human)">
+                <span>🤝</span> <span>Tự Động Thêm Bạn Bè DS Đã Quét ("Thêm bạn bè")</span>
               </button>
               <button onclick="loadWarehouseLeads()" class="text-xs px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold transition border border-white/10 flex items-center gap-1.5" title="Tải lại danh sách mới nhất trong kho">
                 <span>🔄</span> <span>Làm Mới Kho</span>
@@ -2398,7 +2398,7 @@
             <!-- Gợi ý quy trình 3-in-1 chuẩn KudoX 2 -->
             <div class="flex flex-wrap items-center gap-3 pt-2 border-t border-white/5 text-[11px] text-[#86868b]">
               <span class="text-amber-400 font-bold">Quy trình 1 chu kỳ:</span>
-              <span class="flex items-center gap-1"><span>🤝</span> 1. Kết bạn sinh học</span>
+              <span class="flex items-center gap-1"><span>🤝</span> 1. Thêm bạn bè sinh học (Nhãn F12: "Thêm bạn bè")</span>
               <span>➔</span>
               <span class="flex items-center gap-1"><span>🎬</span> 2. Xem Story (4-7s) & Thả Tim ❤️</span>
               <span>➔</span>
@@ -2446,8 +2446,8 @@
               </label>
               <select id="af-cfg-action" onchange="onAutoFriendConfigChange()"
                 class="w-full rounded-xl bg-[#1A1613] border border-[#30363d] px-3 py-2 text-xs text-amber-300 font-semibold focus:border-amber-500 focus:outline-none">
-                <option value="full_nurture" selected>🔥 Nuôi Tương Tác Trọn Gói (Kết Bạn + Story + Like 3 Bài) [Khuyến Nghị KudoX 2]</option>
-                <option value="friend_only">🤝 Chỉ Gửi Lời Mời Kết Bạn</option>
+                <option value="full_nurture" selected>🔥 Nuôi Tương Tác Trọn Gói (Thêm Bạn Bè + Story + Like 3 Bài) [Khuyến Nghị KudoX 2]</option>
+                <option value="friend_only">🤝 Chỉ Gửi Lời Mời Thêm Bạn Bè (Nhãn "Thêm bạn bè")</option>
                 <option value="story_only">🎬 Chỉ Xem & Thả Tim Story</option>
                 <option value="post_like_only">👍 Chỉ Like Bài Viết Dòng Thời Gian</option>
               </select>
@@ -2545,8 +2545,8 @@
             <div class="flex items-center gap-2.5">
               <span class="text-xl">🤝</span>
               <div>
-                <h4 class="text-xs font-bold uppercase tracking-wider text-[#f0f6fc]">Kết Bạn Chỉ Định Thủ Công</h4>
-                <p class="text-[11px] text-[#8b949e]">Gửi lời mời kết bạn có kiểm tra chống trùng tới 1 UID Facebook cụ thể</p>
+                <h4 class="text-xs font-bold uppercase tracking-wider text-[#f0f6fc]">Thêm Bạn Bè Chỉ Định Thủ Công</h4>
+                <p class="text-[11px] text-[#8b949e]">Gửi lời mời trỏ đúng nhãn "Thêm bạn bè" có kiểm tra chống trùng tới 1 UID Facebook cụ thể</p>
               </div>
             </div>
 
@@ -2557,7 +2557,7 @@
               
               <button id="btn-send-friend" onclick="sendTargetFriendFromWeb()"
                 class="w-full py-2.5 px-4 rounded-xl bg-[#F59E0B] hover:bg-[#D97706] text-black text-xs font-bold transition shadow-md shadow-[#F59E0B]/20 flex items-center justify-center gap-2">
-                <span>➕ Gửi Lời Mời Kết Bạn Ngay</span>
+                <span>➕ Gửi Lời Mời Thêm Bạn Bè (Nhãn "Thêm bạn bè")</span>
               </button>
             </div>
             <div id="web-friend-result" class="hidden p-3 rounded-xl bg-[#141210] border border-[#30363d] text-xs font-mono"></div>

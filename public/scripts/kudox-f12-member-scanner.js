@@ -93,21 +93,25 @@
     const visibleText = (el.innerText || el.textContent || '').replace(/\s+/g, ' ').trim();
 
     // Tuyệt đối loại trừ các nút không phải "Thêm bạn bè"
-    const forbiddenPattern = /tìm bạn bè|hủy lời mời|đã gửi lời mời|nhắn tin|theo dõi|bạn bè chung|xem trang|find friends|cancel request|request sent|message/i;
+    const forbiddenPattern = /tìm bạn bè|hủy lời mời|huỷ lời mời|đã gửi lời mời|đã gửi yêu cầu|nhắn tin|theo dõi|bạn bè chung|chỉnh sửa trang cá nhân|xem trang|find friends|cancel request|request sent|message|follow/i;
     if (forbiddenPattern.test(aria) || forbiddenPattern.test(visibleText)) {
       // Ngoại lệ duy nhất: aria-label dạng "Thêm <Tên> làm bạn bè" nhưng text là "Thêm bạn bè"
-      if (!(/^Thêm\s+.+\s+làm bạn bè$/i.test(aria) && visibleText === 'Thêm bạn bè')) {
+      if (!(/^Thêm\s+.+\s+làm bạn( bè)?$/i.test(aria) && /thêm bạn( bè)?/i.test(visibleText))) {
         return false;
       }
     }
 
-    // Khớp chính xác chữ "Thêm bạn bè" trong F12
+    // Khớp chính xác chữ "Thêm bạn bè" trong F12 (hỗ trợ cả variations "Thêm bạn", "Thêm ... làm bạn bè", "Add friend")
     const exactLabelMatch =
-      aria === 'Thêm bạn bè' ||
-      visibleText === 'Thêm bạn bè' ||
-      (/^Thêm\s+.+\s+làm bạn bè$/i.test(aria) && (visibleText === 'Thêm bạn bè' || visibleText === '')) ||
-      aria === 'Add friend' ||
-      visibleText === 'Add friend';
+      /^(thêm bạn bè|thêm bạn)$/i.test(aria) ||
+      /^(thêm bạn bè|thêm bạn)$/i.test(visibleText) ||
+      visibleText.includes('Thêm bạn bè') ||
+      aria.includes('Thêm bạn bè') ||
+      (/^Thêm\s+.+\s+làm bạn( bè)?$/i.test(aria) && (visibleText.includes('Thêm') || visibleText === '')) ||
+      /^(add friend)$/i.test(aria) ||
+      /^(add friend)$/i.test(visibleText) ||
+      visibleText.includes('Add friend') ||
+      /^Add\s+.+\s+as a friend$/i.test(aria);
 
     return exactLabelMatch;
   }
