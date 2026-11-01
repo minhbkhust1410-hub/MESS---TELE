@@ -277,60 +277,44 @@
         </div>
       </div>
 
-      <!-- Navigation Menu Items - Apple Sidebar Style -->
-      <nav class="space-y-1">
+      <!-- Navigation Menu Items - Classical Minimalist 4-Item Menu -->
+      <nav class="space-y-2">
         
-        <button onclick="switchTab('overview')" id="nav-btn-overview" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition bg-[#0071e3]/15 text-[#2997ff] border border-[#0071e3]/30">
+        <!-- Mục 1: Login & Kiểm Tra Acc (Mặc định) -->
+        <button onclick="switchTab('accounts')" id="nav-btn-accounts" class="nav-item active w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-xs font-semibold transition bg-[#0071e3]/15 text-[#2997ff] border border-[#0071e3]/30">
           <div class="flex items-center gap-2.5">
-            <span class="text-sm">📊</span>
-            <span>Tổng Quan</span>
+            <span class="text-base">👤</span>
+            <span class="font-bold">1. Login & Kiểm Tra Acc</span>
+          </div>
+          <span id="nav-badge-accounts" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold">Live</span>
+        </button>
+
+        <!-- Mục 2: Đăng Bài -->
+        <button onclick="switchTab('posts')" id="nav-btn-posts" class="nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-xs font-medium transition text-[#86868b] hover:text-white hover:bg-white/[0.05]">
+          <div class="flex items-center gap-2.5">
+            <span class="text-base">📝</span>
+            <span class="font-bold">2. Đăng Bài</span>
           </div>
         </button>
 
-        <button onclick="switchTab('posts')" id="nav-btn-posts" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition text-[#86868b] hover:text-white hover:bg-white/[0.05]">
+        <!-- Mục 3: Kiểm Tra Tương Tác (Kết Bạn & Bình Luận) -->
+        <button onclick="switchTab('interactions')" id="nav-btn-interactions" class="nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-xs font-medium transition text-[#86868b] hover:text-white hover:bg-white/[0.05]">
           <div class="flex items-center gap-2.5">
-            <span class="text-sm">📝</span>
-            <span id="nav-label-posts">Đăng Bài Lên Group</span>
-          </div>
-          <span id="sidebar-badge-posts" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-[#86868b] font-medium">0</span>
-        </button>
-
-        <button onclick="switchTab('autocmt')" id="nav-btn-autocmt" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition text-[#86868b] hover:text-white hover:bg-white/[0.05]">
-          <div class="flex items-center gap-2.5">
-            <span class="text-sm">🤖</span>
-            <span id="nav-label-autocmt">Săn Khách & Quỹ Căn</span>
+            <span class="text-base">🤝</span>
+            <span class="font-bold">3. Kiểm Tra Tương Tác</span>
           </div>
         </button>
 
-        <button onclick="switchTab('growth')" id="nav-btn-growth" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition text-[#86868b] hover:text-white hover:bg-white/[0.05]">
-          <div class="flex items-center gap-2.5">
-            <span class="text-sm">👥</span>
-            <span id="nav-label-growth">Tương Tác & Kết Bạn</span>
-          </div>
-        </button>
-
-        <button onclick="switchTab('accounts')" id="nav-btn-accounts" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition text-[#86868b] hover:text-white hover:bg-white/[0.05]">
-          <div class="flex items-center gap-2.5">
-            <span class="text-sm">👤</span>
-            <span>Tài Khoản & Proxy</span>
-          </div>
-        </button>
-
-        <button onclick="switchTab('logs')" id="nav-btn-logs" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition text-[#86868b] hover:text-white hover:bg-white/[0.05]">
-          <div class="flex items-center gap-2.5">
-            <span class="text-sm">📋</span>
-            <span>Nhật Ký Hoạt Động</span>
-          </div>
-        </button>
-
-        <!-- Ô Tin Nhắn Khách Hàng chuyển xuống cuối cùng theo yêu cầu -->
-        <button onclick="switchTab('inbox')" id="nav-btn-inbox" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition text-[#86868b] hover:text-white hover:bg-white/[0.05]">
-          <div class="flex items-center gap-2.5">
-            <span class="text-sm">💬</span>
-            <span>Tin Nhắn Khách Hàng</span>
-          </div>
-          <span id="sidebar-badge-customers" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-[#86868b] font-medium">22</span>
-        </button>
+        <!-- Mục 4: Ẩn toàn bộ những cái đã làm trong 1 Tab -->
+        <div class="pt-4 border-t border-white/10 mt-3">
+          <button onclick="switchTab('advanced')" id="nav-btn-advanced" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition text-purple-400 hover:text-purple-200 hover:bg-purple-500/10 border border-purple-500/20">
+            <div class="flex items-center gap-2.5">
+              <span class="text-sm">⚙️</span>
+              <span>Hệ Thống Nâng Cao (Kho Cũ)</span>
+            </div>
+            <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300">Gốc</span>
+          </button>
+        </div>
 
       </nav>
 
@@ -445,12 +429,714 @@
     </header>
 
     <!-- Main Dynamic Content Container -->
+    
+    <!-- Main Dynamic Content Container -->
     <main class="flex-1 p-7 space-y-7 max-w-7xl w-full mx-auto">
       
       <!-- ======================================================== -->
-      <!-- TAB 1: TỔNG QUAN HỆ THỐNG (OVERVIEW)                     -->
+      <!-- MỤC 1: LOGIN & KIỂM TRA CÁC ACC FACEBOOK                 -->
       <!-- ======================================================== -->
-      <div id="tab-overview" class="space-y-7 tab-content">
+      <div id="tab-accounts" class="space-y-6 tab-content">
+        
+        <div class="border-b border-white/10 pb-4">
+          <div class="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <span class="text-xs font-mono uppercase tracking-wider text-emerald-400 font-bold">MỤC 1 — TRỌNG TÂM CỐT LÕI</span>
+              <h2 class="text-xl font-bold text-white tracking-tight mt-1">👤 Đăng Nhập & Quản Lý Danh Sách Acc</h2>
+              <p class="text-xs text-[#86868b] mt-0.5">Ưu tiên đăng nhập tài khoản an toàn, gắn proxy riêng từng nick và kiểm tra trạng thái sống/chết.</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="checkAllAccountsLive()" class="px-4 py-2 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-xs font-bold text-emerald-400 transition flex items-center gap-1.5 cursor-pointer">
+                <span>🔄</span> <span>Kiểm Tra Tất Cả Acc</span>
+              </button>
+              <button onclick="openBulkImportModal()" class="px-4 py-2 rounded-xl bg-purple-600/20 hover:bg-purple-600/40 border border-purple-500/30 text-xs font-bold text-purple-300 transition flex items-center gap-1.5 cursor-pointer">
+                <span>⚡</span> <span>Nạp Hàng Loạt 40-100 Nick</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- KHỐI ĐĂNG NHẬP TRỰC TIẾP (CỔ ĐIỂN, RÕ RÀNG, KHÔNG CẦN BẬT MODAL) -->
+        <div class="claude-card rounded-2xl p-6 bg-[#161a26] border border-white/10 space-y-4 shadow-sm">
+          <div class="flex items-center justify-between border-b border-white/10 pb-3">
+            <div class="flex items-center gap-2.5">
+              <span class="text-xl">➕</span>
+              <div>
+                <h3 class="text-sm font-bold text-white">Đăng Nhập Tài Khoản Facebook</h3>
+                <p class="text-[11px] text-[#86868b]">Nhập thông tin bên dưới và bấm nút để khởi chạy đăng nhập</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="toggleCookieLoginForm()" id="btn-toggle-cookie-form" class="text-xs text-[#2997ff] hover:underline font-medium cursor-pointer">
+                📋 Dán Cookie Trực Tiếp
+              </button>
+            </div>
+          </div>
+
+          <!-- Form Đăng Nhập Mật Khẩu -->
+          <div id="direct-cred-login-section" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              <div class="space-y-1.5">
+                <label class="font-bold text-slate-300">Tài khoản Facebook (UID / Email / SĐT): <span class="text-rose-400">*</span></label>
+                <input type="text" id="direct-acc-username" placeholder="VD: 1000892837... hoặc email@gmail.com" class="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/15 text-white font-mono" />
+              </div>
+              <div class="space-y-1.5">
+                <label class="font-bold text-slate-300">Mật khẩu Facebook: <span class="text-rose-400">*</span></label>
+                <input type="password" id="direct-acc-password" placeholder="Nhập mật khẩu tài khoản Facebook" class="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/15 text-white" />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+              <div class="space-y-1.5">
+                <label class="font-bold text-slate-300">Mã 2FA (Nếu có):</label>
+                <input type="text" id="direct-acc-2fa" placeholder="VD: 123456 (Bỏ trống nếu không bật 2FA)" class="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/15 text-white font-mono" />
+              </div>
+              <div class="space-y-1.5 md:col-span-2">
+                <label class="font-bold text-slate-300">Proxy Riêng Của Nick (Không bắt buộc):</label>
+                <input type="text" id="direct-acc-proxy" placeholder="IP:Port:User:Pass (VD: 103.153.22.40:8080:user:pass)" class="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/15 text-white font-mono" />
+              </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
+              <div class="flex items-center gap-4 text-xs">
+                <div class="flex items-center gap-2">
+                  <label class="text-slate-400 font-medium">Mảng hoạt động:</label>
+                  <select id="direct-acc-vertical" class="px-2.5 py-1.5 rounded-lg bg-black/50 border border-white/15 text-xs text-white">
+                    <option value="bds_ecopark">🏡 BĐS Ecopark</option>
+                    <option value="forex_finance">📈 Forex Tài Chính</option>
+                  </select>
+                </div>
+                <label class="flex items-center gap-2 cursor-pointer text-slate-300">
+                  <input type="checkbox" id="direct-make-active" checked class="accent-[#0071e3] rounded" />
+                  <span>Đặt làm nick chính ngay</span>
+                </label>
+              </div>
+
+              <button type="button" onclick="submitDirectCredentialsLogin()" id="btn-submit-direct-login" class="px-6 py-2.5 rounded-xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold transition shadow-lg shadow-[#0071e3]/25 flex items-center gap-2 cursor-pointer">
+                <span>➕</span> <span>ĐĂNG NHẬP & LƯU NICK</span>
+              </button>
+            </div>
+
+            <!-- Phản hồi trạng thái đăng nhập -->
+            <div id="direct-login-feedback" class="hidden p-3 rounded-xl text-xs font-medium border"></div>
+          </div>
+
+          <!-- Form Đăng Nhập Cookie Trực Tiếp (ẩn mặc định, toggle) -->
+          <div id="direct-cookie-login-section" class="hidden space-y-3 pt-3 border-t border-white/10">
+            <div class="space-y-1.5 text-xs">
+              <label class="font-bold text-slate-300">Dán Cookie Facebook (JSON hoặc chuỗi c_user=...; xs=...):</label>
+              <textarea id="direct-acc-cookie" rows="3" placeholder="Dán chuỗi cookie hoặc JSON tại đây..." class="w-full p-3 rounded-xl bg-black/40 border border-white/15 text-white font-mono text-xs"></textarea>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-[11px] text-[#86868b]">Hỗ trợ cookie dạng JSON xuất từ J2TEAM hoặc chuỗi cookie thô.</span>
+              <button type="button" onclick="submitDirectCookieLogin()" id="btn-submit-direct-cookie" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition cursor-pointer">
+                Xác Thực & Thêm Nick Qua Cookie
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- BẢNG DANH SÁCH ACC HIỆN CÓ -->
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-white tracking-tight flex items-center gap-2">
+              <span>📋</span> <span>Danh Sách Các Nick Đang Quản Lý</span>
+            </h3>
+            <span class="text-xs text-[#86868b]">Nhấp vào tên nick để mở trình duyệt hoặc bấm nút kiểm tra</span>
+          </div>
+
+          <div id="accounts-cards-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <!-- Populated dynamically by renderAccountsList() -->
+          </div>
+        </div>
+
+      </div>
+
+      <div id="tab-posts" class="space-y-6 tab-content hidden">
+        <!-- Nút quay về trang chủ -->
+        <div class="flex items-center justify-between">
+          <button onclick="switchTab('overview')" class="px-4 py-2 rounded-full bg-white/10 hover:bg-white/15 border border-white/15 text-xs font-semibold text-white transition flex items-center gap-2">
+            <span>⬅</span> Quay Về Bảng Chức Năng Chính
+          </button>
+        </div>
+        
+        <!-- BẢNG SOẠN & ĐĂNG BÀI TRỰC TIẾP LÊN FACEBOOK -->
+        <div class="claude-card rounded-3xl p-6 space-y-5 border border-[#30363d] bg-[#161b22]">
+          <div class="flex items-center justify-between border-b border-[#30363d] pb-4">
+            <div class="flex items-center gap-3">
+              <span class="text-2xl">📝</span>
+              <div>
+                <h3 class="text-sm font-bold text-[#f0f6fc] tracking-tight">Soạn & Đăng Bài Trực Tiếp Lên Facebook</h3>
+                <p class="text-[11px] text-[#8b949e]">Đăng bài tức thì hoặc lên lịch phân phối song song cùng Telegram Topic 1</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] font-mono px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-bold flex items-center gap-1.5">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+                <span>Nick: Eco Trang • Sẵn sàng</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Nội dung bài viết -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between text-xs">
+              <label class="font-bold text-[#D6D3D1] flex items-center gap-1.5">
+                <span>💬 Nội Dung Bài Viết</span>
+                <span class="text-[#2997ff]">*</span>
+              </label>
+              <span id="post-char-count" class="text-[11px] font-mono text-[#8b949e]">0 ký tự</span>
+            </div>
+            <textarea id="web-post-content" rows="4" oninput="updatePostCharCount()"
+              placeholder="Nhập nội dung bài đăng Facebook (VD: 🏠 BÁN CĂN HỘ ECOPARK... Hotline: 0988...)"
+              class="w-full rounded-2xl bg-[#141210] border border-[#30363d] p-4 text-xs font-sans text-[#f0f6fc] focus:border-[#D96B43] focus:outline-none placeholder-[#78716C] leading-relaxed transition"></textarea>
+          </div>
+
+          <!-- Chọn Đích Đến (Trang cá nhân / Group / Cả hai) -->
+          <div class="space-y-2.5">
+            <label class="text-xs font-bold text-[#D6D3D1] block">🎯 Chọn Nơi Đăng Bài:</label>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+              <label class="flex items-center gap-2.5 p-3 rounded-2xl bg-[#141210] border border-[#30363d] hover:border-[#D96B43]/50 cursor-pointer transition">
+                <input type="radio" name="web-post-target" value="personal_post" checked onchange="toggleGroupSelectionUI()" class="accent-[#D96B43]" />
+                <div>
+                  <div class="font-bold text-[#f0f6fc]">👤 Trang Cá Nhân</div>
+                  <div class="text-[10px] text-[#8b949e]">Đăng lên tường Eco Trang</div>
+                </div>
+              </label>
+
+              <label class="flex items-center gap-2.5 p-3 rounded-2xl bg-[#141210] border border-[#30363d] hover:border-[#D96B43]/50 cursor-pointer transition">
+                <input type="radio" name="web-post-target" value="group_post" onchange="toggleGroupSelectionUI()" class="accent-[#D96B43]" />
+                <div>
+                  <div class="font-bold text-[#f0f6fc]">🌐 Nhóm Mục Tiêu</div>
+                  <div class="text-[10px] text-[#8b949e]">Đăng vào các Group đã chọn</div>
+                </div>
+              </label>
+
+              <label class="flex items-center gap-2.5 p-3 rounded-2xl bg-[#141210] border border-[#30363d] hover:border-[#D96B43]/50 cursor-pointer transition">
+                <input type="radio" name="web-post-target" value="both" onchange="toggleGroupSelectionUI()" class="accent-[#D96B43]" />
+                <div>
+                  <div class="font-bold text-[#f0f6fc]">⚡ Cả Cá Nhân & Group</div>
+                  <div class="text-[10px] text-[#8b949e]">Phủ sóng tối đa 2 chiều</div>
+                </div>
+              </label>
+            </div>
+
+            <!-- Danh sách checkbox Group (ẩn khi chỉ chọn cá nhân) -->
+            <div id="web-post-groups-panel" class="hidden p-4 rounded-2xl bg-[#141210] border border-[#30363d] space-y-2.5">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-bold text-[#f0f6fc]">Chọn Group cần đăng:</span>
+                <button type="button" onclick="toggleSelectAllPostGroups()" class="text-[11px] text-[#D96B43] hover:underline font-semibold">Tích chọn tất cả</button>
+              </div>
+              <div id="web-post-groups-checkboxes" class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                <!-- Dynamically loaded from groups list -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Đính kèm hình ảnh -->
+          <div class="space-y-2">
+            <label class="text-xs font-bold text-[#D6D3D1] block">📸 Hình Ảnh Đính Kèm (Tùy chọn):</label>
+            <div class="flex items-center gap-3">
+              <input type="file" id="web-post-file-input" multiple accept="image/*" onchange="handlePostFilesSelect(event)" class="hidden" />
+              <button type="button" onclick="document.getElementById('web-post-file-input').click()"
+                class="px-4 py-2 rounded-xl bg-[#24201C] hover:bg-[#2C2723] text-[#f0f6fc] border border-[#30363d] text-xs font-semibold flex items-center gap-2 transition">
+                <span>📁 Chọn File Ảnh Từ Máy</span>
+              </button>
+              <span id="web-post-files-summary" class="text-xs text-[#8b949e] font-mono">Chưa chọn ảnh</span>
+            </div>
+            <div id="web-post-previews-container" class="flex flex-wrap gap-2.5 pt-1"></div>
+          </div>
+
+          <!-- Tự động bình luận mồi sau khi đăng (First Comment) -->
+          <div class="space-y-2 p-3.5 rounded-2xl bg-[#141210] border border-[#30363d]">
+            <label class="flex items-center gap-2 cursor-pointer select-none">
+              <input type="checkbox" id="web-post-auto-comment-enable" class="accent-[#D96B43] w-4 h-4 rounded" onchange="document.getElementById('web-post-auto-comment-box').classList.toggle('hidden', !this.checked)" checked />
+              <span class="text-xs font-bold text-[#D6D3D1] flex items-center gap-1.5">
+                <span>💬 Tự động bình luận ngay vào bài viết sau khi đăng (First Comment)</span>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-normal">Tự động hóa Group & Cá nhân</span>
+              </span>
+            </label>
+            <div id="web-post-auto-comment-box" class="pt-1.5 space-y-1">
+              <input type="text" id="web-post-auto-comment-text"
+                placeholder="Nhập nội dung bình luận mồi (VD: Dạ em gửi video thực tế và thông tin chi tiết qua inbox cho anh/chị nhé ạ! Hotline/Zalo: 0988...)"
+                value="Dạ em có sẵn quỹ căn đa dạng full đồ đẹp giá tốt nhất tại Ecopark. Anh/chị quan tâm nhắn tin em gửi video thực tế và xem nhà ngay nhé ạ! ✨"
+                class="w-full rounded-xl bg-[#0d1117] border border-[#30363d] px-3.5 py-2.5 text-xs text-[#f0f6fc] focus:border-[#D96B43] focus:outline-none placeholder-[#78716C] transition" />
+              <p class="text-[10px] text-[#8b949e]">Hệ thống sẽ tự động tìm ô bình luận của bài viết trong Group/Cá nhân và gửi bình luận ngay sau khi bài được xuất bản.</p>
+            </div>
+          </div>
+
+          <!-- Các nút hành động chính -->
+          <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[#30363d]">
+            <div class="flex items-center gap-2">
+              <button id="btn-web-publish-now" onclick="publishPostDirectFromWeb()"
+                class="px-5 py-2.5 rounded-xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold transition shadow-lg shadow-[#D96B43]/30 flex items-center gap-2">
+                <span>⚡ ĐĂNG NGAY LÊN FACEBOOK</span>
+              </button>
+              
+              <button onclick="schedulePostFromWeb()"
+                class="px-4 py-2.5 rounded-xl bg-[#24201C] hover:bg-[#2C2723] text-[#f0f6fc] border border-[#30363d] text-xs font-semibold flex items-center gap-2 transition">
+                <span>⏰ Lên Lịch / Thêm Hàng Đợi</span>
+              </button>
+            </div>
+
+            <button onclick="clearPostComposerForm()" class="text-xs text-[#8b949e] hover:text-[#f0f6fc] transition">
+              Làm mới form
+            </button>
+          </div>
+
+          <!-- Khung hiển thị kết quả & Ảnh Proof sau khi đăng -->
+          <div id="web-post-result-panel" class="hidden p-4 rounded-2xl bg-[#141210] border border-emerald-500/30 space-y-3">
+            <div class="flex items-center justify-between">
+              <span id="web-post-result-title" class="text-xs font-bold text-emerald-400">🎉 ĐÃ ĐĂNG BÀI THÀNH CÔNG!</span>
+              <span id="web-post-result-time" class="text-[11px] font-mono text-[#8b949e]"></span>
+            </div>
+            <p id="web-post-result-desc" class="text-xs text-[#f0f6fc] leading-relaxed"></p>
+            <div id="web-post-proof-container" class="rounded-xl overflow-hidden border border-[#30363d] max-h-80 bg-black flex items-center justify-center">
+              <img id="web-post-proof-img" src="" class="max-h-80 object-contain" />
+            </div>
+          </div>
+        </div>
+
+        <!-- ======================================================== -->
+        <!-- MODULE MỚI: RADAR TỰ ĐỘNG TÌM KIẾM NHÓM FACEBOOK MỚI    -->
+        <!-- ======================================================== -->
+        <div id="group-discovery-radar-card" class="claude-card rounded-3xl p-6 space-y-5 border border-sky-500/35 bg-[#161b22] shadow-xl transition">
+          <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-[#30363d] pb-4">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-2xl bg-sky-500/20 text-sky-400 flex items-center justify-center text-xl shadow-inner border border-sky-500/30">
+                🛰️
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="text-sm font-bold text-[#f0f6fc] tracking-tight uppercase">Radar Tự Động Tìm Kiếm Nhóm Mới</h3>
+                  <span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-400 border border-sky-500/30">AI Group Scraper 2026</span>
+                  <span id="disc-radar-scanning-badge" class="hidden text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 animate-pulse">
+                    ⚡ Đang Quét Facebook...
+                  </span>
+                </div>
+                <p class="text-[11px] text-[#8b949e]">Nhập từ khóa hoặc quét tự động bằng AI, tự bóc tách số thành viên, phân loại công khai/kín, tự động tham gia nhóm và nạp vào kho săn khách.</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <button onclick="autoExpandGroupDiscovery()" id="btn-disc-auto-expand" class="text-xs px-3.5 py-2 rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white font-bold transition flex items-center gap-1.5 shadow-md shadow-sky-500/20" title="Tự động quét mở rộng hàng loạt từ khóa theo ngành">
+                <span>⚡ Quét Mở Rộng 5+ Từ Khóa</span>
+              </button>
+              <button onclick="loadDiscoveredGroups()" class="text-xs px-3 py-2 rounded-xl bg-[#24201C] hover:bg-[#2C2723] text-[#f0f6fc] border border-[#30363d] font-semibold transition flex items-center gap-1.5">
+                <span>🔄 Làm Mới</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- THANH TÌM KIẾM TỪ KHÓA & GỢI Ý NHANH -->
+          <div class="p-4 rounded-2xl bg-black/40 border border-[#30363d] space-y-3">
+            <div class="flex flex-col sm:flex-row gap-2">
+              <div class="relative flex-1">
+                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-sky-400 text-sm">🔍</span>
+                <input type="text" id="disc-search-keyword-input" 
+                       placeholder="Nhập từ khóa tìm kiếm (VD: Bất động sản Ecopark, Cho thuê căn hộ, Cộng đồng Trader...)..." 
+                       class="w-full bg-white/[0.05] border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-[#86868b] focus:outline-none focus:border-sky-400 transition" 
+                       onkeydown="if(event.key === 'Enter') executeGroupSearch()" />
+              </div>
+              <button onclick="executeGroupSearch()" id="btn-disc-search-submit" class="px-5 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-black font-extrabold text-xs transition shadow-md flex items-center justify-center gap-1.5 shrink-0 cursor-pointer">
+                <span>Tìm Nhóm Mới</span>
+              </button>
+            </div>
+
+            <!-- TAGS GỢI Ý NHANH TỪ KHÓA THỊ TRƯỜNG -->
+            <div class="flex items-center gap-1.5 flex-wrap text-xs">
+              <span class="text-[11px] text-[#8b949e] font-medium mr-1">Từ khóa gợi ý:</span>
+              <button onclick="quickSearchGroupKeyword('Bất động sản Ecopark')" class="px-2.5 py-1 rounded-lg text-[11px] bg-white/[0.05] hover:bg-sky-500/20 text-[#f0f6fc] border border-white/10 hover:border-sky-500/30 transition">🏡 BĐS Ecopark</button>
+              <button onclick="quickSearchGroupKeyword('Cư dân Ecopark')" class="px-2.5 py-1 rounded-lg text-[11px] bg-white/[0.05] hover:bg-sky-500/20 text-[#f0f6fc] border border-white/10 hover:border-sky-500/30 transition">🌲 Cư Dân Ecopark</button>
+              <button onclick="quickSearchGroupKeyword('Thuê căn hộ Ecopark')" class="px-2.5 py-1 rounded-lg text-[11px] bg-white/[0.05] hover:bg-sky-500/20 text-[#f0f6fc] border border-white/10 hover:border-sky-500/30 transition">🔑 Thuê Căn Hộ</button>
+              <button onclick="quickSearchGroupKeyword('Homestay Ecopark')" class="px-2.5 py-1 rounded-lg text-[11px] bg-white/[0.05] hover:bg-sky-500/20 text-[#f0f6fc] border border-white/10 hover:border-sky-500/30 transition">✨ Homestay</button>
+              <button onclick="quickSearchGroupKeyword('Cộng đồng Trader Forex')" class="px-2.5 py-1 rounded-lg text-[11px] bg-white/[0.05] hover:bg-amber-500/20 text-amber-300 border border-white/10 hover:border-amber-500/30 transition">📈 Trader Forex</button>
+              <button onclick="quickSearchGroupKeyword('Giao dịch Vàng XAUUSD')" class="px-2.5 py-1 rounded-lg text-[11px] bg-white/[0.05] hover:bg-amber-500/20 text-amber-300 border border-white/10 hover:border-amber-500/30 transition">🪙 Vàng XAUUSD</button>
+            </div>
+          </div>
+
+          <!-- 4 KPI THỐNG KÊ KHO KHÁM PHÁ -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div class="p-3.5 rounded-2xl bg-[#141210] border border-sky-500/30 flex items-center justify-between">
+              <div>
+                <div class="text-[10px] font-mono text-sky-400 uppercase">Tổng Nhóm Phát Hiện</div>
+                <div id="disc-kpi-total" class="text-lg font-bold font-mono text-sky-300 mt-0.5">0</div>
+              </div>
+              <span class="text-2xl opacity-75">🛰️</span>
+            </div>
+
+            <div class="p-3.5 rounded-2xl bg-[#141210] border border-emerald-500/20 flex items-center justify-between">
+              <div>
+                <div class="text-[10px] font-mono text-emerald-400 uppercase">Đã Là Thành Viên</div>
+                <div id="disc-kpi-joined" class="text-lg font-bold font-mono text-emerald-400 mt-0.5">0</div>
+              </div>
+              <span class="text-2xl">✅</span>
+            </div>
+
+            <div class="p-3.5 rounded-2xl bg-[#141210] border border-amber-500/20 flex items-center justify-between">
+              <div>
+                <div class="text-[10px] font-mono text-amber-400 uppercase">Chưa Tham Gia / Sẵn Sàng</div>
+                <div id="disc-kpi-can-join" class="text-lg font-bold font-mono text-amber-400 mt-0.5">0</div>
+              </div>
+              <span class="text-2xl">🚀</span>
+            </div>
+
+            <div class="p-3.5 rounded-2xl bg-[#141210] border border-purple-500/20 flex items-center justify-between">
+              <div>
+                <div class="text-[10px] font-mono text-purple-400 uppercase">Đã Nạp Vào Săn Khách</div>
+                <div id="disc-kpi-added-pool" class="text-lg font-bold font-mono text-purple-400 mt-0.5">0</div>
+              </div>
+              <span class="text-2xl">🎯</span>
+            </div>
+          </div>
+
+          <!-- BẢNG KẾT QUẢ CÁC NHÓM KHÁM PHÁ -->
+          <div class="space-y-3">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <span class="text-xs font-bold text-[#f0f6fc] uppercase tracking-wider block flex items-center gap-1.5">
+                <span>📋</span> Danh Sách Nhóm Khám Phá & Tự Động Phân Loại:
+              </span>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <button onclick="filterDiscoveredGroups('all')" class="disc-filter-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[#24201C] text-[#f0f6fc] border border-[#30363d]" id="btn-disc-filter-all">Tất cả</button>
+                <button onclick="filterDiscoveredGroups('bds')" class="disc-filter-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#8b949e] hover:text-[#f0f6fc]" id="btn-disc-filter-bds">🏡 BĐS Ecopark</button>
+                <button onclick="filterDiscoveredGroups('forex')" class="disc-filter-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#8b949e] hover:text-[#f0f6fc]" id="btn-disc-filter-forex">📈 Forex Tài Chính</button>
+                <button onclick="filterDiscoveredGroups('public')" class="disc-filter-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#8b949e] hover:text-[#f0f6fc]" id="btn-disc-filter-public">🌐 Công khai</button>
+                <button onclick="filterDiscoveredGroups('unjoined')" class="disc-filter-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#8b949e] hover:text-[#f0f6fc]" id="btn-disc-filter-unjoined">⚡ Chưa tham gia</button>
+              </div>
+            </div>
+
+            <div class="overflow-x-auto rounded-2xl border border-[#30363d] bg-[#141210]">
+              <table class="w-full text-left text-xs font-sans">
+                <thead class="bg-[#1C1815] border-b border-[#30363d] text-[11px] font-mono text-[#8b949e]">
+                  <tr>
+                    <th class="py-3 px-3.5">Group Facebook Khám Phá</th>
+                    <th class="py-3 px-3">Quy Mô & Thành Viên</th>
+                    <th class="py-3 px-3">Quyền Riêng Tư</th>
+                    <th class="py-3 px-3">Tần Suất Hoạt Động</th>
+                    <th class="py-3 px-3 text-center">Trạng Thái Nick</th>
+                    <th class="py-3 px-3 text-right">Hành Động</th>
+                  </tr>
+                </thead>
+                <tbody id="discovered-groups-tbody" class="divide-y divide-[#2E2925] text-[11px]">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ======================================================== -->
+        <!-- MODULE: QUẢN LÝ KHO GROUP & TRẠNG THÁI KHẢ DỤNG ĐĂNG BÀI -->
+        <!-- ======================================================== -->
+        <div class="claude-card rounded-3xl p-6 space-y-5 border border-[#30363d] bg-[#161b22]">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#30363d] pb-4">
+            <div class="flex items-center gap-3">
+              <span class="text-2xl">🏛️</span>
+              <div>
+                <h3 class="text-sm font-bold text-[#f0f6fc] tracking-tight flex items-center gap-2">
+                  <span>Kho Group Mục Tiêu & Trạng Thái Đăng Bài</span>
+                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-[#0071e3]/20 text-[#2997ff] border border-[#0071e3]/30 font-mono font-bold">Auto-Notes</span>
+                </h3>
+                <p class="text-[11px] text-[#8b949e]">Tự động ghi chú các nhóm thường lỗi hoặc chờ duyệt, phân loại nhóm đăng trực tiếp và quản lý dạng bài đăng.</p>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 flex-wrap">
+              <button onclick="syncJoinedGroups()" class="text-xs px-3 py-1.5 rounded-xl bg-[#24201C] hover:bg-[#2C2723] text-[#f0f6fc] border border-[#30363d] font-semibold transition flex items-center gap-1.5" title="Đồng bộ các Group đã tham gia thực tế trên Facebook">
+                <span>🔄 Đồng Bộ Group Đã Tham Gia</span>
+              </button>
+              <button onclick="openAddNewGroupModal()" class="text-xs px-3 py-1.5 rounded-xl bg-[#0071e3] hover:bg-[#0077ed] text-white font-bold transition flex items-center gap-1.5 shadow">
+                <span>➕ Thêm Group Mới</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- KPI THỐNG KÊ NHANH TÌNH TRẠNG KHO GROUP -->
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div class="p-3.5 rounded-2xl bg-[#141210] border border-[#30363d] flex items-center justify-between">
+              <div>
+                <div class="text-[10px] font-mono text-[#8b949e] uppercase">Tổng Group Trong Kho</div>
+                <div id="group-stat-total" class="text-lg font-bold font-mono text-[#f0f6fc] mt-0.5">0</div>
+              </div>
+              <span class="text-2xl opacity-70">📁</span>
+            </div>
+
+            <div class="p-3.5 rounded-2xl bg-[#141210] border border-emerald-500/20 flex items-center justify-between">
+              <div>
+                <div class="text-[10px] font-mono text-emerald-400 uppercase">Đăng Ngay Trực Tiếp</div>
+                <div id="group-stat-direct" class="text-lg font-bold font-mono text-emerald-400 mt-0.5">0</div>
+              </div>
+              <span class="text-2xl">🟢</span>
+            </div>
+
+            <div class="p-3.5 rounded-2xl bg-[#141210] border border-amber-500/20 flex items-center justify-between">
+              <div>
+                <div class="text-[10px] font-mono text-amber-400 uppercase">Cần Admin Duyệt</div>
+                <div id="group-stat-pending" class="text-lg font-bold font-mono text-amber-400 mt-0.5">0</div>
+              </div>
+              <span class="text-2xl">⏳</span>
+            </div>
+
+            <div class="p-3.5 rounded-2xl bg-[#141210] border border-rose-500/20 flex items-center justify-between">
+              <div>
+                <div class="text-[10px] font-mono text-rose-400 uppercase">Thường Lỗi / Bị Chặn</div>
+                <div id="group-stat-failed" class="text-lg font-bold font-mono text-rose-400 mt-0.5">0</div>
+              </div>
+              <span class="text-2xl">🔴</span>
+            </div>
+          </div>
+
+          <!-- BẢNG THEO DÕI & NOTE TỪNG GROUP -->
+          <div class="space-y-3">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <span class="text-xs font-bold text-[#f0f6fc] uppercase tracking-wider block">Danh Sách Nhóm & Ghi Chú Đặc Thù:</span>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <button onclick="filterGroupHealthTable('all')" class="group-filter-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[#24201C] text-[#f0f6fc] border border-[#30363d]" id="btn-grp-filter-all">Tất cả</button>
+                <button onclick="filterGroupHealthTable('direct')" class="group-filter-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#8b949e] hover:text-[#f0f6fc]" id="btn-grp-filter-direct">🟢 Đăng tốt</button>
+                <button onclick="filterGroupHealthTable('pending')" class="group-filter-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#8b949e] hover:text-[#f0f6fc]" id="btn-grp-filter-pending">⏳ Chờ duyệt</button>
+                <button onclick="filterGroupHealthTable('failed')" class="group-filter-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#8b949e] hover:text-[#f0f6fc]" id="btn-grp-filter-failed">🔴 Thường lỗi</button>
+              </div>
+            </div>
+
+            <div class="overflow-x-auto rounded-2xl border border-[#30363d] bg-[#141210]">
+              <table class="w-full text-left text-xs font-sans">
+                <thead class="bg-[#1C1815] border-b border-[#30363d] text-[11px] font-mono text-[#8b949e]">
+                  <tr>
+                    <th class="py-3 px-3.5">Group Facebook</th>
+                    <th class="py-3 px-3">Khả Năng Đăng Bài</th>
+                    <th class="py-3 px-3">Lưu Ý / Ghi Chú Nhóm (Note)</th>
+                    <th class="py-3 px-3 text-center">Thống Kê</th>
+                    <th class="py-3 px-3 text-center">Phân Phối</th>
+                    <th class="py-3 px-3 text-right">Thao Tác</th>
+                  </tr>
+                </thead>
+                <tbody id="groups-health-tbody" class="divide-y divide-[#2E2925] text-[11px]">
+                  <!-- Populated dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- HÀNG ĐỢI & LỊCH SỬ BÀI ĐĂNG (TOPIC 1 QUEUE) -->
+        <div class="claude-card rounded-3xl p-5 space-y-4">
+          <div class="flex items-center justify-between border-b border-[#30363d] pb-3">
+            <div>
+              <h3 class="text-xs font-bold text-[#f0f6fc] uppercase tracking-wider">Hàng Đợi Bài Đăng & Lịch Phân Phối Group</h3>
+              <p class="text-[11px] text-[#8b949e]">Danh sách các bài đăng đang chờ hoặc đã hoàn tất xuất bản.</p>
+            </div>
+            <button onclick="clearAllPostsFromWeb()" class="text-xs px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-semibold transition">
+              🗑️ Xóa Sạch Tất Cả Bài
+            </button>
+          </div>
+
+          <!-- Bộ lọc dạng bài đăng -->
+          <div class="flex items-center gap-1.5 flex-wrap pt-1 border-b border-[#30363d] pb-3">
+            <span class="text-[11px] text-[#8b949e] font-medium mr-1">Lọc dạng bài:</span>
+            <button onclick="filterPostsType('all')" class="post-filter-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[#24201C] text-[#f0f6fc] border border-[#30363d]" id="btn-post-filter-all">Tất cả bài</button>
+            <button onclick="filterPostsType('personal_post')" class="post-filter-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#8b949e] hover:text-[#f0f6fc]" id="btn-post-filter-personal">👤 Trang cá nhân</button>
+            <button onclick="filterPostsType('group_post')" class="post-filter-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#8b949e] hover:text-[#f0f6fc]" id="btn-post-filter-group">🌐 Group Facebook</button>
+            <button onclick="filterPostsType('both')" class="post-filter-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#8b949e] hover:text-[#f0f6fc]" id="btn-post-filter-both">⚡ Cả hai</button>
+            <button onclick="filterPostsType('pending_approval')" class="post-filter-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#8b949e] hover:text-[#f0f6fc]" id="btn-post-filter-pending">⏳ Chờ duyệt</button>
+          </div>
+
+          <!-- Posts List Container -->
+          <div id="posts-list-container" class="space-y-3.5">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+      </div>
+      
+      <!-- ======================================================== -->
+      <!-- MỤC 3: KIỂM TRA TƯƠNG TÁC (KẾT BẠN & BÌNH LUẬN)         -->
+      <!-- ======================================================== -->
+      <div id="tab-interactions" class="space-y-6 tab-content hidden">
+        
+        <div class="border-b border-white/10 pb-4">
+          <span class="text-xs font-mono uppercase tracking-wider text-amber-400 font-bold">MỤC 3 — CHỨC NĂNG CHỦ ĐẠO</span>
+          <h2 class="text-xl font-bold text-white tracking-tight mt-1">🤝 Thao Tác & Kiểm Tra Tương Tác Facebook</h2>
+          <p class="text-xs text-[#86868b] mt-0.5">Tập trung vào: Đi kết bạn (Thêm bạn bè), nhắn bình luận tự động và theo dõi lịch sử tương tác.</p>
+        </div>
+
+        <!-- 2 KHỐI THAO TÁC: ĐI KẾT BẠN & NHẮN BÌNH LUẬN -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          <!-- Khối A: Đi Kết Bạn (Chuẩn Nhãn Facebook F12: 'Thêm bạn bè') -->
+          <div class="claude-card rounded-2xl p-6 bg-[#161a26] border border-white/10 space-y-4">
+            <div class="flex items-center justify-between border-b border-white/10 pb-3">
+              <div class="flex items-center gap-2.5">
+                <span class="text-xl">🤝</span>
+                <div>
+                  <h3 class="text-sm font-bold text-white">Đi Kết Bạn (Thêm Bạn Bè)</h3>
+                  <p class="text-[11px] text-[#86868b]">Trỏ đúng 100% nhãn F12: "Thêm bạn bè"</p>
+                </div>
+              </div>
+              <span class="text-[10px] font-mono px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-bold">Chuẩn F12</span>
+            </div>
+
+            <div class="space-y-3 text-xs">
+              <div class="space-y-1">
+                <label class="font-bold text-slate-300">Chọn Nick thực hiện:</label>
+                <select id="interaction-friend-account-select" class="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-white">
+                  <option value="">-- Đang nạp danh sách nick... --</option>
+                </select>
+              </div>
+
+              <div class="space-y-1">
+                <label class="font-bold text-slate-300">Dán Link Profile hoặc UID người muốn kết bạn: <span class="text-rose-400">*</span></label>
+                <textarea id="interaction-friend-target-input" rows="3" 
+                  placeholder="Dán link Facebook cá nhân hoặc UID (VD: https://www.facebook.com/profile.php?id=1000... hoặc 61577949601039)" 
+                  class="w-full p-3 rounded-xl bg-black/40 border border-white/15 text-white font-mono text-xs"></textarea>
+              </div>
+
+              <button type="button" onclick="submitInteractionAddFriend()" id="btn-interaction-friend" 
+                class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-lg shadow-emerald-600/25 flex items-center justify-center gap-2 cursor-pointer">
+                <span>🤝</span> <span>GỬI LỜI MỜI THÊM BẠN BÈ (F12: 'Thêm bạn bè')</span>
+              </button>
+
+              <div id="interaction-friend-feedback" class="hidden p-3 rounded-xl text-xs font-medium border"></div>
+            </div>
+          </div>
+
+          <!-- Khối B: Nhắn Bình Luận (Auto Comment) -->
+          <div class="claude-card rounded-2xl p-6 bg-[#161a26] border border-white/10 space-y-4">
+            <div class="flex items-center justify-between border-b border-white/10 pb-3">
+              <div class="flex items-center gap-2.5">
+                <span class="text-xl">💬</span>
+                <div>
+                  <h3 class="text-sm font-bold text-white">Nhắn Bình Luận Vào Bài Viết</h3>
+                  <p class="text-[11px] text-[#86868b]">Gửi bình luận trực tiếp vào bài viết nhóm hoặc cá nhân</p>
+                </div>
+              </div>
+              <span class="text-[10px] font-mono px-2.5 py-1 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30 font-bold">Auto Cmt</span>
+            </div>
+
+            <div class="space-y-3 text-xs">
+              <div class="space-y-1">
+                <label class="font-bold text-slate-300">Chọn Nick thực hiện:</label>
+                <select id="interaction-comment-account-select" class="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-white">
+                  <option value="">-- Đang nạp danh sách nick... --</option>
+                </select>
+              </div>
+
+              <div class="space-y-1">
+                <label class="font-bold text-slate-300">Dán Link Bài Viết Facebook: <span class="text-rose-400">*</span></label>
+                <input type="text" id="interaction-comment-post-url" 
+                  placeholder="VD: https://www.facebook.com/groups/123/posts/456... hoặc link bài viết bất kỳ" 
+                  class="w-full px-3 py-2.5 rounded-xl bg-black/40 border border-white/15 text-white font-mono text-xs" />
+              </div>
+
+              <div class="space-y-1">
+                <label class="font-bold text-slate-300">Nội dung bình luận muốn nhắn: <span class="text-rose-400">*</span></label>
+                <textarea id="interaction-comment-text" rows="2" 
+                  placeholder="Nhập nội dung bình luận (VD: Chào bạn, mình quan tâm căn này, check inbox giúp mình nhé)" 
+                  class="w-full p-3 rounded-xl bg-black/40 border border-white/15 text-white text-xs"></textarea>
+              </div>
+
+              <button type="button" onclick="submitInteractionComment()" id="btn-interaction-comment" 
+                class="w-full py-3 rounded-xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold transition shadow-lg shadow-[#0071e3]/25 flex items-center justify-center gap-2 cursor-pointer">
+                <span>💬</span> <span>GỬI BÌNH LUẬN VÀO BÀI VIẾT NGAY</span>
+              </button>
+
+              <div id="interaction-comment-feedback" class="hidden p-3 rounded-xl text-xs font-medium border"></div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Khối C: Bảng Thống Kê & Kiểm Tra Tương Tác Tổng Thể -->
+        <div class="claude-card rounded-2xl p-6 bg-[#161a26] border border-white/10 space-y-4">
+          <div class="flex items-center justify-between border-b border-white/10 pb-3">
+            <div>
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <span>📊</span> <span>Bảng Kiểm Tra & Lịch Sử Tương Tác Gần Nhất</span>
+              </h3>
+              <p class="text-[11px] text-[#86868b]">Tổng hợp số liệu tương tác thực tế của các nick trong ngày</p>
+            </div>
+            <button onclick="refreshInteractionLogTable()" class="text-xs text-[#2997ff] hover:underline font-medium cursor-pointer">🔄 Làm Mới</button>
+          </div>
+
+          <!-- 3 Thẻ số liệu cổ điển -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="p-4 rounded-xl bg-black/30 border border-white/5 space-y-1">
+              <span class="text-[11px] text-[#86868b] uppercase font-bold">🤝 Bạn Bè Đã Thêm (F12)</span>
+              <div id="stat-interactions-friends" class="text-2xl font-extrabold text-emerald-400">0</div>
+              <span class="text-[10px] text-emerald-500/80">Trỏ đúng nút 'Thêm bạn bè'</span>
+            </div>
+            <div class="p-4 rounded-xl bg-black/30 border border-white/5 space-y-1">
+              <span class="text-[11px] text-[#86868b] uppercase font-bold">💬 Bình Luận Đã Gửi</span>
+              <div id="stat-interactions-comments" class="text-2xl font-extrabold text-blue-400">0</div>
+              <span class="text-[10px] text-blue-500/80">Comment vào bài viết mục tiêu</span>
+            </div>
+            <div class="p-4 rounded-xl bg-black/30 border border-white/5 space-y-1">
+              <span class="text-[11px] text-[#86868b] uppercase font-bold">📝 Bài Viết Đã Đăng</span>
+              <div id="stat-interactions-posts" class="text-2xl font-extrabold text-purple-400">0</div>
+              <span class="text-[10px] text-purple-500/80">Trang cá nhân & Group</span>
+            </div>
+          </div>
+
+          <!-- Bảng nhật ký tương tác dạng cổ điển -->
+          <div class="overflow-x-auto rounded-xl border border-white/10">
+            <table class="w-full text-left text-xs text-slate-300">
+              <thead class="bg-black/50 text-[11px] uppercase text-[#86868b] border-b border-white/10 font-bold">
+                <tr>
+                  <th class="py-2.5 px-4">Thời Gian</th>
+                  <th class="py-2.5 px-4">Nick Thực Hiện</th>
+                  <th class="py-2.5 px-4">Hành Động</th>
+                  <th class="py-2.5 px-4">Đối Tượng (Link / UID)</th>
+                  <th class="py-2.5 px-4">Trạng Thái</th>
+                </tr>
+              </thead>
+              <tbody id="interaction-history-tbody" class="divide-y divide-white/5 font-mono">
+                <tr>
+                  <td colspan="5" class="py-6 text-center text-[#86868b] font-sans">Chưa có tương tác nào trong phiên này. Hãy thử bấm 'Gửi Lời Mời Thêm Bạn Bè' hoặc 'Gửi Bình Luận' ở trên!</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+
+      
+      <!-- ======================================================== -->
+      <!-- TAB 4: HỆ THỐNG NÂNG CAO (ẨN TOÀN BỘ CÁC TÍNH NĂNG CŨ)   -->
+      <!-- ======================================================== -->
+      <div id="tab-advanced" class="space-y-6 tab-content hidden">
+        
+        <div class="border-b border-white/10 pb-4 flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <span class="text-xs font-mono uppercase tracking-wider text-purple-400 font-bold">HỆ THỐNG NÂNG CAO & KHO DỮ LIỆU CŨ</span>
+            <h2 class="text-xl font-bold text-white tracking-tight mt-1">⚙️ Kho Toàn Bộ Tính Năng & Dashboard Đã Xây Dựng</h2>
+            <p class="text-xs text-[#86868b] mt-0.5">Toàn bộ các module cũ được bảo toàn 100% tại đây, chuyển tab bên dưới để sử dụng.</p>
+          </div>
+          <button onclick="switchTab('accounts')" class="px-4 py-2 rounded-full bg-white/10 hover:bg-white/15 text-xs font-bold text-white transition flex items-center gap-1.5 cursor-pointer">
+            <span>⬅</span> Quay lại 3 Mục Chính
+          </button>
+        </div>
+
+        <!-- Thanh Chuyển Tab Con Bên Trong Kho Nâng Cao -->
+        <div class="flex items-center gap-2 p-1.5 rounded-2xl bg-black/40 border border-white/10 overflow-x-auto text-xs">
+          <button onclick="switchAdvancedSubTab('overview')" id="adv-btn-overview" class="adv-sub-btn active px-4 py-2 rounded-xl font-bold transition bg-[#0071e3] text-white cursor-pointer">
+            📊 1. Tổng Quan KPI & Đồ Thị
+          </button>
+          <button onclick="switchAdvancedSubTab('autocmt')" id="adv-btn-autocmt" class="adv-sub-btn px-4 py-2 rounded-xl font-medium transition text-[#86868b] hover:text-white hover:bg-white/5 cursor-pointer">
+            🤖 2. Săn Khách & Quỹ Căn GPS
+          </button>
+          <button onclick="switchAdvancedSubTab('growth')" id="adv-btn-growth" class="adv-sub-btn px-4 py-2 rounded-xl font-medium transition text-[#86868b] hover:text-white hover:bg-white/5 cursor-pointer">
+            👥 3. Quét Mem Nhóm KudoX 2
+          </button>
+          <button onclick="switchAdvancedSubTab('inbox')" id="adv-btn-inbox" class="adv-sub-btn px-4 py-2 rounded-xl font-medium transition text-[#86868b] hover:text-white hover:bg-white/5 cursor-pointer">
+            💬 4. Hộp Thư Tin Nhắn
+          </button>
+          <button onclick="switchAdvancedSubTab('logs')" id="adv-btn-logs" class="adv-sub-btn px-4 py-2 rounded-xl font-medium transition text-[#86868b] hover:text-white hover:bg-white/5 cursor-pointer">
+            📋 5. Console Live Logs
+          </button>
+        </div>
+
+        <!-- Panel Chứa Từng View Cũ -->
+        <div id="adv-views-wrapper">
+          <div id="adv-view-overview" class="adv-view-panel">
+            <div id="tab-overview" class="space-y-7">
         
         <div class="space-y-6">
 
@@ -1037,443 +1723,9 @@
         </div>
 
       </div>
-
-      <!-- ======================================================== -->
-      <!-- TAB 2: HỘI THOẠI KHÁCH HÀNG (INBOX / CHAT BRIDGE)         -->
-      <!-- ======================================================== -->
-      <div id="tab-inbox" class="space-y-5 tab-content hidden">
-        <!-- Nút quay về trang chủ -->
-        <div class="flex items-center justify-between">
-          <button onclick="switchTab('overview')" class="px-4 py-2 rounded-full bg-white/10 hover:bg-white/15 border border-white/15 text-xs font-semibold text-white transition flex items-center gap-2">
-            <span>⬅</span> Quay Về Bảng Chức Năng Chính
-          </button>
-        </div>
-        
-        <!-- Filter and Search Header -->
-        <div class="claude-card rounded-3xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div class="flex items-center gap-3 w-full sm:w-auto">
-            <div class="relative flex-1 sm:w-80">
-              <input type="text" id="cust-filter-input" oninput="filterCustomerList()" placeholder="🔍 Tìm theo tên khách, UID hoặc Topic ID..." class="w-full bg-[#0d1117] border border-[#30363d] rounded-2xl px-4 py-2.5 text-xs text-[#f0f6fc] placeholder-[#78716C] focus:outline-none focus:border-[#D96B43] font-sans" />
-            </div>
-            <span class="text-xs text-[#8b949e] font-mono whitespace-nowrap"><span id="cust-count-badge" class="font-bold text-[#f0f6fc]">22</span> khách hàng</span>
           </div>
-
-          <div class="flex items-center gap-2 text-xs font-mono">
-            <span class="text-[#8b949e]">Nhãn phân loại:</span>
-            <span class="px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-[10px]">🏷️ ĐÃ CHỐT</span>
-            <span class="px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[10px]">⏳ HỎI GIÁ</span>
-            <span class="px-2.5 py-1 rounded-lg bg-purple-500/15 text-purple-300 border border-purple-500/30 text-[10px]">⭐ VIP</span>
-          </div>
-        </div>
-
-        <!-- Customer Cards Grid -->
-        <div id="customers-cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <!-- Dynamically populated -->
-        </div>
-
-      </div>
-
-      <!-- ======================================================== -->
-      <!-- TAB 3: ĐĂNG BÀI & PHÂN PHỐI (POSTS / TOPIC 1)            -->
-      <!-- ======================================================== -->
-      <div id="tab-posts" class="space-y-6 tab-content hidden">
-        <!-- Nút quay về trang chủ -->
-        <div class="flex items-center justify-between">
-          <button onclick="switchTab('overview')" class="px-4 py-2 rounded-full bg-white/10 hover:bg-white/15 border border-white/15 text-xs font-semibold text-white transition flex items-center gap-2">
-            <span>⬅</span> Quay Về Bảng Chức Năng Chính
-          </button>
-        </div>
-        
-        <!-- BẢNG SOẠN & ĐĂNG BÀI TRỰC TIẾP LÊN FACEBOOK -->
-        <div class="claude-card rounded-3xl p-6 space-y-5 border border-[#30363d] bg-[#161b22]">
-          <div class="flex items-center justify-between border-b border-[#30363d] pb-4">
-            <div class="flex items-center gap-3">
-              <span class="text-2xl">📝</span>
-              <div>
-                <h3 class="text-sm font-bold text-[#f0f6fc] tracking-tight">Soạn & Đăng Bài Trực Tiếp Lên Facebook</h3>
-                <p class="text-[11px] text-[#8b949e]">Đăng bài tức thì hoặc lên lịch phân phối song song cùng Telegram Topic 1</p>
-              </div>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="text-[10px] font-mono px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-bold flex items-center gap-1.5">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-                <span>Nick: Eco Trang • Sẵn sàng</span>
-              </span>
-            </div>
-          </div>
-
-          <!-- Nội dung bài viết -->
-          <div class="space-y-2">
-            <div class="flex items-center justify-between text-xs">
-              <label class="font-bold text-[#D6D3D1] flex items-center gap-1.5">
-                <span>💬 Nội Dung Bài Viết</span>
-                <span class="text-[#2997ff]">*</span>
-              </label>
-              <span id="post-char-count" class="text-[11px] font-mono text-[#8b949e]">0 ký tự</span>
-            </div>
-            <textarea id="web-post-content" rows="4" oninput="updatePostCharCount()"
-              placeholder="Nhập nội dung bài đăng Facebook (VD: 🏠 BÁN CĂN HỘ ECOPARK... Hotline: 0988...)"
-              class="w-full rounded-2xl bg-[#141210] border border-[#30363d] p-4 text-xs font-sans text-[#f0f6fc] focus:border-[#D96B43] focus:outline-none placeholder-[#78716C] leading-relaxed transition"></textarea>
-          </div>
-
-          <!-- Chọn Đích Đến (Trang cá nhân / Group / Cả hai) -->
-          <div class="space-y-2.5">
-            <label class="text-xs font-bold text-[#D6D3D1] block">🎯 Chọn Nơi Đăng Bài:</label>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-              <label class="flex items-center gap-2.5 p-3 rounded-2xl bg-[#141210] border border-[#30363d] hover:border-[#D96B43]/50 cursor-pointer transition">
-                <input type="radio" name="web-post-target" value="personal_post" checked onchange="toggleGroupSelectionUI()" class="accent-[#D96B43]" />
-                <div>
-                  <div class="font-bold text-[#f0f6fc]">👤 Trang Cá Nhân</div>
-                  <div class="text-[10px] text-[#8b949e]">Đăng lên tường Eco Trang</div>
-                </div>
-              </label>
-
-              <label class="flex items-center gap-2.5 p-3 rounded-2xl bg-[#141210] border border-[#30363d] hover:border-[#D96B43]/50 cursor-pointer transition">
-                <input type="radio" name="web-post-target" value="group_post" onchange="toggleGroupSelectionUI()" class="accent-[#D96B43]" />
-                <div>
-                  <div class="font-bold text-[#f0f6fc]">🌐 Nhóm Mục Tiêu</div>
-                  <div class="text-[10px] text-[#8b949e]">Đăng vào các Group đã chọn</div>
-                </div>
-              </label>
-
-              <label class="flex items-center gap-2.5 p-3 rounded-2xl bg-[#141210] border border-[#30363d] hover:border-[#D96B43]/50 cursor-pointer transition">
-                <input type="radio" name="web-post-target" value="both" onchange="toggleGroupSelectionUI()" class="accent-[#D96B43]" />
-                <div>
-                  <div class="font-bold text-[#f0f6fc]">⚡ Cả Cá Nhân & Group</div>
-                  <div class="text-[10px] text-[#8b949e]">Phủ sóng tối đa 2 chiều</div>
-                </div>
-              </label>
-            </div>
-
-            <!-- Danh sách checkbox Group (ẩn khi chỉ chọn cá nhân) -->
-            <div id="web-post-groups-panel" class="hidden p-4 rounded-2xl bg-[#141210] border border-[#30363d] space-y-2.5">
-              <div class="flex items-center justify-between text-xs">
-                <span class="font-bold text-[#f0f6fc]">Chọn Group cần đăng:</span>
-                <button type="button" onclick="toggleSelectAllPostGroups()" class="text-[11px] text-[#D96B43] hover:underline font-semibold">Tích chọn tất cả</button>
-              </div>
-              <div id="web-post-groups-checkboxes" class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                <!-- Dynamically loaded from groups list -->
-              </div>
-            </div>
-          </div>
-
-          <!-- Đính kèm hình ảnh -->
-          <div class="space-y-2">
-            <label class="text-xs font-bold text-[#D6D3D1] block">📸 Hình Ảnh Đính Kèm (Tùy chọn):</label>
-            <div class="flex items-center gap-3">
-              <input type="file" id="web-post-file-input" multiple accept="image/*" onchange="handlePostFilesSelect(event)" class="hidden" />
-              <button type="button" onclick="document.getElementById('web-post-file-input').click()"
-                class="px-4 py-2 rounded-xl bg-[#24201C] hover:bg-[#2C2723] text-[#f0f6fc] border border-[#30363d] text-xs font-semibold flex items-center gap-2 transition">
-                <span>📁 Chọn File Ảnh Từ Máy</span>
-              </button>
-              <span id="web-post-files-summary" class="text-xs text-[#8b949e] font-mono">Chưa chọn ảnh</span>
-            </div>
-            <div id="web-post-previews-container" class="flex flex-wrap gap-2.5 pt-1"></div>
-          </div>
-
-          <!-- Tự động bình luận mồi sau khi đăng (First Comment) -->
-          <div class="space-y-2 p-3.5 rounded-2xl bg-[#141210] border border-[#30363d]">
-            <label class="flex items-center gap-2 cursor-pointer select-none">
-              <input type="checkbox" id="web-post-auto-comment-enable" class="accent-[#D96B43] w-4 h-4 rounded" onchange="document.getElementById('web-post-auto-comment-box').classList.toggle('hidden', !this.checked)" checked />
-              <span class="text-xs font-bold text-[#D6D3D1] flex items-center gap-1.5">
-                <span>💬 Tự động bình luận ngay vào bài viết sau khi đăng (First Comment)</span>
-                <span class="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 font-normal">Tự động hóa Group & Cá nhân</span>
-              </span>
-            </label>
-            <div id="web-post-auto-comment-box" class="pt-1.5 space-y-1">
-              <input type="text" id="web-post-auto-comment-text"
-                placeholder="Nhập nội dung bình luận mồi (VD: Dạ em gửi video thực tế và thông tin chi tiết qua inbox cho anh/chị nhé ạ! Hotline/Zalo: 0988...)"
-                value="Dạ em có sẵn quỹ căn đa dạng full đồ đẹp giá tốt nhất tại Ecopark. Anh/chị quan tâm nhắn tin em gửi video thực tế và xem nhà ngay nhé ạ! ✨"
-                class="w-full rounded-xl bg-[#0d1117] border border-[#30363d] px-3.5 py-2.5 text-xs text-[#f0f6fc] focus:border-[#D96B43] focus:outline-none placeholder-[#78716C] transition" />
-              <p class="text-[10px] text-[#8b949e]">Hệ thống sẽ tự động tìm ô bình luận của bài viết trong Group/Cá nhân và gửi bình luận ngay sau khi bài được xuất bản.</p>
-            </div>
-          </div>
-
-          <!-- Các nút hành động chính -->
-          <div class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[#30363d]">
-            <div class="flex items-center gap-2">
-              <button id="btn-web-publish-now" onclick="publishPostDirectFromWeb()"
-                class="px-5 py-2.5 rounded-xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold transition shadow-lg shadow-[#D96B43]/30 flex items-center gap-2">
-                <span>⚡ ĐĂNG NGAY LÊN FACEBOOK</span>
-              </button>
-              
-              <button onclick="schedulePostFromWeb()"
-                class="px-4 py-2.5 rounded-xl bg-[#24201C] hover:bg-[#2C2723] text-[#f0f6fc] border border-[#30363d] text-xs font-semibold flex items-center gap-2 transition">
-                <span>⏰ Lên Lịch / Thêm Hàng Đợi</span>
-              </button>
-            </div>
-
-            <button onclick="clearPostComposerForm()" class="text-xs text-[#8b949e] hover:text-[#f0f6fc] transition">
-              Làm mới form
-            </button>
-          </div>
-
-          <!-- Khung hiển thị kết quả & Ảnh Proof sau khi đăng -->
-          <div id="web-post-result-panel" class="hidden p-4 rounded-2xl bg-[#141210] border border-emerald-500/30 space-y-3">
-            <div class="flex items-center justify-between">
-              <span id="web-post-result-title" class="text-xs font-bold text-emerald-400">🎉 ĐÃ ĐĂNG BÀI THÀNH CÔNG!</span>
-              <span id="web-post-result-time" class="text-[11px] font-mono text-[#8b949e]"></span>
-            </div>
-            <p id="web-post-result-desc" class="text-xs text-[#f0f6fc] leading-relaxed"></p>
-            <div id="web-post-proof-container" class="rounded-xl overflow-hidden border border-[#30363d] max-h-80 bg-black flex items-center justify-center">
-              <img id="web-post-proof-img" src="" class="max-h-80 object-contain" />
-            </div>
-          </div>
-        </div>
-
-        <!-- ======================================================== -->
-        <!-- MODULE MỚI: RADAR TỰ ĐỘNG TÌM KIẾM NHÓM FACEBOOK MỚI    -->
-        <!-- ======================================================== -->
-        <div id="group-discovery-radar-card" class="claude-card rounded-3xl p-6 space-y-5 border border-sky-500/35 bg-[#161b22] shadow-xl transition">
-          <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-[#30363d] pb-4">
-            <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-2xl bg-sky-500/20 text-sky-400 flex items-center justify-center text-xl shadow-inner border border-sky-500/30">
-                🛰️
-              </div>
-              <div>
-                <div class="flex items-center gap-2">
-                  <h3 class="text-sm font-bold text-[#f0f6fc] tracking-tight uppercase">Radar Tự Động Tìm Kiếm Nhóm Mới</h3>
-                  <span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-400 border border-sky-500/30">AI Group Scraper 2026</span>
-                  <span id="disc-radar-scanning-badge" class="hidden text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 animate-pulse">
-                    ⚡ Đang Quét Facebook...
-                  </span>
-                </div>
-                <p class="text-[11px] text-[#8b949e]">Nhập từ khóa hoặc quét tự động bằng AI, tự bóc tách số thành viên, phân loại công khai/kín, tự động tham gia nhóm và nạp vào kho săn khách.</p>
-              </div>
-            </div>
-            <div class="flex items-center gap-2 flex-wrap">
-              <button onclick="autoExpandGroupDiscovery()" id="btn-disc-auto-expand" class="text-xs px-3.5 py-2 rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white font-bold transition flex items-center gap-1.5 shadow-md shadow-sky-500/20" title="Tự động quét mở rộng hàng loạt từ khóa theo ngành">
-                <span>⚡ Quét Mở Rộng 5+ Từ Khóa</span>
-              </button>
-              <button onclick="loadDiscoveredGroups()" class="text-xs px-3 py-2 rounded-xl bg-[#24201C] hover:bg-[#2C2723] text-[#f0f6fc] border border-[#30363d] font-semibold transition flex items-center gap-1.5">
-                <span>🔄 Làm Mới</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- THANH TÌM KIẾM TỪ KHÓA & GỢI Ý NHANH -->
-          <div class="p-4 rounded-2xl bg-black/40 border border-[#30363d] space-y-3">
-            <div class="flex flex-col sm:flex-row gap-2">
-              <div class="relative flex-1">
-                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-sky-400 text-sm">🔍</span>
-                <input type="text" id="disc-search-keyword-input" 
-                       placeholder="Nhập từ khóa tìm kiếm (VD: Bất động sản Ecopark, Cho thuê căn hộ, Cộng đồng Trader...)..." 
-                       class="w-full bg-white/[0.05] border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-xs text-white placeholder-[#86868b] focus:outline-none focus:border-sky-400 transition" 
-                       onkeydown="if(event.key === 'Enter') executeGroupSearch()" />
-              </div>
-              <button onclick="executeGroupSearch()" id="btn-disc-search-submit" class="px-5 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-black font-extrabold text-xs transition shadow-md flex items-center justify-center gap-1.5 shrink-0 cursor-pointer">
-                <span>Tìm Nhóm Mới</span>
-              </button>
-            </div>
-
-            <!-- TAGS GỢI Ý NHANH TỪ KHÓA THỊ TRƯỜNG -->
-            <div class="flex items-center gap-1.5 flex-wrap text-xs">
-              <span class="text-[11px] text-[#8b949e] font-medium mr-1">Từ khóa gợi ý:</span>
-              <button onclick="quickSearchGroupKeyword('Bất động sản Ecopark')" class="px-2.5 py-1 rounded-lg text-[11px] bg-white/[0.05] hover:bg-sky-500/20 text-[#f0f6fc] border border-white/10 hover:border-sky-500/30 transition">🏡 BĐS Ecopark</button>
-              <button onclick="quickSearchGroupKeyword('Cư dân Ecopark')" class="px-2.5 py-1 rounded-lg text-[11px] bg-white/[0.05] hover:bg-sky-500/20 text-[#f0f6fc] border border-white/10 hover:border-sky-500/30 transition">🌲 Cư Dân Ecopark</button>
-              <button onclick="quickSearchGroupKeyword('Thuê căn hộ Ecopark')" class="px-2.5 py-1 rounded-lg text-[11px] bg-white/[0.05] hover:bg-sky-500/20 text-[#f0f6fc] border border-white/10 hover:border-sky-500/30 transition">🔑 Thuê Căn Hộ</button>
-              <button onclick="quickSearchGroupKeyword('Homestay Ecopark')" class="px-2.5 py-1 rounded-lg text-[11px] bg-white/[0.05] hover:bg-sky-500/20 text-[#f0f6fc] border border-white/10 hover:border-sky-500/30 transition">✨ Homestay</button>
-              <button onclick="quickSearchGroupKeyword('Cộng đồng Trader Forex')" class="px-2.5 py-1 rounded-lg text-[11px] bg-white/[0.05] hover:bg-amber-500/20 text-amber-300 border border-white/10 hover:border-amber-500/30 transition">📈 Trader Forex</button>
-              <button onclick="quickSearchGroupKeyword('Giao dịch Vàng XAUUSD')" class="px-2.5 py-1 rounded-lg text-[11px] bg-white/[0.05] hover:bg-amber-500/20 text-amber-300 border border-white/10 hover:border-amber-500/30 transition">🪙 Vàng XAUUSD</button>
-            </div>
-          </div>
-
-          <!-- 4 KPI THỐNG KÊ KHO KHÁM PHÁ -->
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-            <div class="p-3.5 rounded-2xl bg-[#141210] border border-sky-500/30 flex items-center justify-between">
-              <div>
-                <div class="text-[10px] font-mono text-sky-400 uppercase">Tổng Nhóm Phát Hiện</div>
-                <div id="disc-kpi-total" class="text-lg font-bold font-mono text-sky-300 mt-0.5">0</div>
-              </div>
-              <span class="text-2xl opacity-75">🛰️</span>
-            </div>
-
-            <div class="p-3.5 rounded-2xl bg-[#141210] border border-emerald-500/20 flex items-center justify-between">
-              <div>
-                <div class="text-[10px] font-mono text-emerald-400 uppercase">Đã Là Thành Viên</div>
-                <div id="disc-kpi-joined" class="text-lg font-bold font-mono text-emerald-400 mt-0.5">0</div>
-              </div>
-              <span class="text-2xl">✅</span>
-            </div>
-
-            <div class="p-3.5 rounded-2xl bg-[#141210] border border-amber-500/20 flex items-center justify-between">
-              <div>
-                <div class="text-[10px] font-mono text-amber-400 uppercase">Chưa Tham Gia / Sẵn Sàng</div>
-                <div id="disc-kpi-can-join" class="text-lg font-bold font-mono text-amber-400 mt-0.5">0</div>
-              </div>
-              <span class="text-2xl">🚀</span>
-            </div>
-
-            <div class="p-3.5 rounded-2xl bg-[#141210] border border-purple-500/20 flex items-center justify-between">
-              <div>
-                <div class="text-[10px] font-mono text-purple-400 uppercase">Đã Nạp Vào Săn Khách</div>
-                <div id="disc-kpi-added-pool" class="text-lg font-bold font-mono text-purple-400 mt-0.5">0</div>
-              </div>
-              <span class="text-2xl">🎯</span>
-            </div>
-          </div>
-
-          <!-- BẢNG KẾT QUẢ CÁC NHÓM KHÁM PHÁ -->
-          <div class="space-y-3">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <span class="text-xs font-bold text-[#f0f6fc] uppercase tracking-wider block flex items-center gap-1.5">
-                <span>📋</span> Danh Sách Nhóm Khám Phá & Tự Động Phân Loại:
-              </span>
-              <div class="flex items-center gap-1.5 flex-wrap">
-                <button onclick="filterDiscoveredGroups('all')" class="disc-filter-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[#24201C] text-[#f0f6fc] border border-[#30363d]" id="btn-disc-filter-all">Tất cả</button>
-                <button onclick="filterDiscoveredGroups('bds')" class="disc-filter-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#8b949e] hover:text-[#f0f6fc]" id="btn-disc-filter-bds">🏡 BĐS Ecopark</button>
-                <button onclick="filterDiscoveredGroups('forex')" class="disc-filter-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#8b949e] hover:text-[#f0f6fc]" id="btn-disc-filter-forex">📈 Forex Tài Chính</button>
-                <button onclick="filterDiscoveredGroups('public')" class="disc-filter-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#8b949e] hover:text-[#f0f6fc]" id="btn-disc-filter-public">🌐 Công khai</button>
-                <button onclick="filterDiscoveredGroups('unjoined')" class="disc-filter-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#8b949e] hover:text-[#f0f6fc]" id="btn-disc-filter-unjoined">⚡ Chưa tham gia</button>
-              </div>
-            </div>
-
-            <div class="overflow-x-auto rounded-2xl border border-[#30363d] bg-[#141210]">
-              <table class="w-full text-left text-xs font-sans">
-                <thead class="bg-[#1C1815] border-b border-[#30363d] text-[11px] font-mono text-[#8b949e]">
-                  <tr>
-                    <th class="py-3 px-3.5">Group Facebook Khám Phá</th>
-                    <th class="py-3 px-3">Quy Mô & Thành Viên</th>
-                    <th class="py-3 px-3">Quyền Riêng Tư</th>
-                    <th class="py-3 px-3">Tần Suất Hoạt Động</th>
-                    <th class="py-3 px-3 text-center">Trạng Thái Nick</th>
-                    <th class="py-3 px-3 text-right">Hành Động</th>
-                  </tr>
-                </thead>
-                <tbody id="discovered-groups-tbody" class="divide-y divide-[#2E2925] text-[11px]">
-                  <!-- Populated dynamically -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- ======================================================== -->
-        <!-- MODULE: QUẢN LÝ KHO GROUP & TRẠNG THÁI KHẢ DỤNG ĐĂNG BÀI -->
-        <!-- ======================================================== -->
-        <div class="claude-card rounded-3xl p-6 space-y-5 border border-[#30363d] bg-[#161b22]">
-          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#30363d] pb-4">
-            <div class="flex items-center gap-3">
-              <span class="text-2xl">🏛️</span>
-              <div>
-                <h3 class="text-sm font-bold text-[#f0f6fc] tracking-tight flex items-center gap-2">
-                  <span>Kho Group Mục Tiêu & Trạng Thái Đăng Bài</span>
-                  <span class="text-[10px] px-2 py-0.5 rounded-full bg-[#0071e3]/20 text-[#2997ff] border border-[#0071e3]/30 font-mono font-bold">Auto-Notes</span>
-                </h3>
-                <p class="text-[11px] text-[#8b949e]">Tự động ghi chú các nhóm thường lỗi hoặc chờ duyệt, phân loại nhóm đăng trực tiếp và quản lý dạng bài đăng.</p>
-              </div>
-            </div>
-            <div class="flex items-center gap-2 flex-wrap">
-              <button onclick="syncJoinedGroups()" class="text-xs px-3 py-1.5 rounded-xl bg-[#24201C] hover:bg-[#2C2723] text-[#f0f6fc] border border-[#30363d] font-semibold transition flex items-center gap-1.5" title="Đồng bộ các Group đã tham gia thực tế trên Facebook">
-                <span>🔄 Đồng Bộ Group Đã Tham Gia</span>
-              </button>
-              <button onclick="openAddNewGroupModal()" class="text-xs px-3 py-1.5 rounded-xl bg-[#0071e3] hover:bg-[#0077ed] text-white font-bold transition flex items-center gap-1.5 shadow">
-                <span>➕ Thêm Group Mới</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- KPI THỐNG KÊ NHANH TÌNH TRẠNG KHO GROUP -->
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div class="p-3.5 rounded-2xl bg-[#141210] border border-[#30363d] flex items-center justify-between">
-              <div>
-                <div class="text-[10px] font-mono text-[#8b949e] uppercase">Tổng Group Trong Kho</div>
-                <div id="group-stat-total" class="text-lg font-bold font-mono text-[#f0f6fc] mt-0.5">0</div>
-              </div>
-              <span class="text-2xl opacity-70">📁</span>
-            </div>
-
-            <div class="p-3.5 rounded-2xl bg-[#141210] border border-emerald-500/20 flex items-center justify-between">
-              <div>
-                <div class="text-[10px] font-mono text-emerald-400 uppercase">Đăng Ngay Trực Tiếp</div>
-                <div id="group-stat-direct" class="text-lg font-bold font-mono text-emerald-400 mt-0.5">0</div>
-              </div>
-              <span class="text-2xl">🟢</span>
-            </div>
-
-            <div class="p-3.5 rounded-2xl bg-[#141210] border border-amber-500/20 flex items-center justify-between">
-              <div>
-                <div class="text-[10px] font-mono text-amber-400 uppercase">Cần Admin Duyệt</div>
-                <div id="group-stat-pending" class="text-lg font-bold font-mono text-amber-400 mt-0.5">0</div>
-              </div>
-              <span class="text-2xl">⏳</span>
-            </div>
-
-            <div class="p-3.5 rounded-2xl bg-[#141210] border border-rose-500/20 flex items-center justify-between">
-              <div>
-                <div class="text-[10px] font-mono text-rose-400 uppercase">Thường Lỗi / Bị Chặn</div>
-                <div id="group-stat-failed" class="text-lg font-bold font-mono text-rose-400 mt-0.5">0</div>
-              </div>
-              <span class="text-2xl">🔴</span>
-            </div>
-          </div>
-
-          <!-- BẢNG THEO DÕI & NOTE TỪNG GROUP -->
-          <div class="space-y-3">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <span class="text-xs font-bold text-[#f0f6fc] uppercase tracking-wider block">Danh Sách Nhóm & Ghi Chú Đặc Thù:</span>
-              <div class="flex items-center gap-1.5 flex-wrap">
-                <button onclick="filterGroupHealthTable('all')" class="group-filter-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[#24201C] text-[#f0f6fc] border border-[#30363d]" id="btn-grp-filter-all">Tất cả</button>
-                <button onclick="filterGroupHealthTable('direct')" class="group-filter-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#8b949e] hover:text-[#f0f6fc]" id="btn-grp-filter-direct">🟢 Đăng tốt</button>
-                <button onclick="filterGroupHealthTable('pending')" class="group-filter-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#8b949e] hover:text-[#f0f6fc]" id="btn-grp-filter-pending">⏳ Chờ duyệt</button>
-                <button onclick="filterGroupHealthTable('failed')" class="group-filter-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#8b949e] hover:text-[#f0f6fc]" id="btn-grp-filter-failed">🔴 Thường lỗi</button>
-              </div>
-            </div>
-
-            <div class="overflow-x-auto rounded-2xl border border-[#30363d] bg-[#141210]">
-              <table class="w-full text-left text-xs font-sans">
-                <thead class="bg-[#1C1815] border-b border-[#30363d] text-[11px] font-mono text-[#8b949e]">
-                  <tr>
-                    <th class="py-3 px-3.5">Group Facebook</th>
-                    <th class="py-3 px-3">Khả Năng Đăng Bài</th>
-                    <th class="py-3 px-3">Lưu Ý / Ghi Chú Nhóm (Note)</th>
-                    <th class="py-3 px-3 text-center">Thống Kê</th>
-                    <th class="py-3 px-3 text-center">Phân Phối</th>
-                    <th class="py-3 px-3 text-right">Thao Tác</th>
-                  </tr>
-                </thead>
-                <tbody id="groups-health-tbody" class="divide-y divide-[#2E2925] text-[11px]">
-                  <!-- Populated dynamically -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- HÀNG ĐỢI & LỊCH SỬ BÀI ĐĂNG (TOPIC 1 QUEUE) -->
-        <div class="claude-card rounded-3xl p-5 space-y-4">
-          <div class="flex items-center justify-between border-b border-[#30363d] pb-3">
-            <div>
-              <h3 class="text-xs font-bold text-[#f0f6fc] uppercase tracking-wider">Hàng Đợi Bài Đăng & Lịch Phân Phối Group</h3>
-              <p class="text-[11px] text-[#8b949e]">Danh sách các bài đăng đang chờ hoặc đã hoàn tất xuất bản.</p>
-            </div>
-            <button onclick="clearAllPostsFromWeb()" class="text-xs px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 font-semibold transition">
-              🗑️ Xóa Sạch Tất Cả Bài
-            </button>
-          </div>
-
-          <!-- Bộ lọc dạng bài đăng -->
-          <div class="flex items-center gap-1.5 flex-wrap pt-1 border-b border-[#30363d] pb-3">
-            <span class="text-[11px] text-[#8b949e] font-medium mr-1">Lọc dạng bài:</span>
-            <button onclick="filterPostsType('all')" class="post-filter-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-[#24201C] text-[#f0f6fc] border border-[#30363d]" id="btn-post-filter-all">Tất cả bài</button>
-            <button onclick="filterPostsType('personal_post')" class="post-filter-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#8b949e] hover:text-[#f0f6fc]" id="btn-post-filter-personal">👤 Trang cá nhân</button>
-            <button onclick="filterPostsType('group_post')" class="post-filter-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#8b949e] hover:text-[#f0f6fc]" id="btn-post-filter-group">🌐 Group Facebook</button>
-            <button onclick="filterPostsType('both')" class="post-filter-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#8b949e] hover:text-[#f0f6fc]" id="btn-post-filter-both">⚡ Cả hai</button>
-            <button onclick="filterPostsType('pending_approval')" class="post-filter-btn px-2.5 py-1 rounded-lg text-[11px] font-semibold text-[#8b949e] hover:text-[#f0f6fc]" id="btn-post-filter-pending">⏳ Chờ duyệt</button>
-          </div>
-
-          <!-- Posts List Container -->
-          <div id="posts-list-container" class="space-y-3.5">
-            <!-- Dynamically populated -->
-          </div>
-        </div>
-
-      </div>
-
-      <!-- ======================================================== -->
-      <!-- TAB 4: BÌNH LUẬN & QUÉT NHÓM (AUTOCMT / TOPIC 2)         -->
-      <!-- ======================================================== -->
-      <div id="tab-autocmt" class="space-y-5 tab-content hidden">
+          <div id="adv-view-autocmt" class="adv-view-panel hidden">
+            <div id="tab-autocmt" class="space-y-5">
         
         <!-- KHO NGUỒN BĐS & QUỸ CĂN TRONG NGÀY (INVENTORY RADAR) -->
         <div id="bds-inventory-card" class="claude-card rounded-3xl p-6 space-y-5 border border-emerald-500/35 shadow-xl transition">
@@ -1992,11 +2244,9 @@
         </div>
 
       </div>
-
-      <!-- ======================================================== -->
-      <!-- TAB 5: TOPIC 3-5 (GROWTH & QUÉT MEM & TƯƠNG TÁC)         -->
-      <!-- ======================================================== -->
-      <div id="tab-growth" class="space-y-6 tab-content hidden">
+          </div>
+          <div id="adv-view-growth" class="adv-view-panel hidden">
+            <div id="tab-growth" class="space-y-6">
         
         <!-- QUÉT THÀNH VIÊN MỚI TRONG CÁC GROUP MỤC TIÊU (BĐS ECOPARK) -->
         <div id="bds-member-block" class="claude-card rounded-3xl p-6 space-y-5 border border-[#30363d] bg-[#161b22] transition">
@@ -2596,84 +2846,42 @@
         </div>
 
       </div>
-
-      <!-- ======================================================== -->
-      <!-- TAB 6: QUẢN LÝ NICK & PROXY (ACCOUNTS)                   -->
-      <!-- ======================================================== -->
-      <div id="tab-accounts" class="space-y-5 tab-content hidden">
+          </div>
+          <div id="adv-view-inbox" class="adv-view-panel hidden">
+            <div id="tab-inbox" class="space-y-5">
+        <!-- Nút quay về trang chủ -->
+        <div class="flex items-center justify-between">
+          <button onclick="switchTab('overview')" class="px-4 py-2 rounded-full bg-white/10 hover:bg-white/15 border border-white/15 text-xs font-semibold text-white transition flex items-center gap-2">
+            <span>⬅</span> Quay Về Bảng Chức Năng Chính
+          </button>
+        </div>
         
-        <div class="claude-card rounded-3xl p-5 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h3 class="text-xs font-bold text-[#f0f6fc] uppercase tracking-wider">Hồ Sơ Tài Khoản Facebook & Proxy Riêng Biệt</h3>
-            <p class="text-[11px] text-[#8b949e]">Mỗi tài khoản được chạy trên một hồ sơ Chrome độc lập để chống checkpoint.</p>
+        <!-- Filter and Search Header -->
+        <div class="claude-card rounded-3xl p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div class="flex items-center gap-3 w-full sm:w-auto">
+            <div class="relative flex-1 sm:w-80">
+              <input type="text" id="cust-filter-input" oninput="filterCustomerList()" placeholder="🔍 Tìm theo tên khách, UID hoặc Topic ID..." class="w-full bg-[#0d1117] border border-[#30363d] rounded-2xl px-4 py-2.5 text-xs text-[#f0f6fc] placeholder-[#78716C] focus:outline-none focus:border-[#D96B43] font-sans" />
+            </div>
+            <span class="text-xs text-[#8b949e] font-mono whitespace-nowrap"><span id="cust-count-badge" class="font-bold text-[#f0f6fc]">22</span> khách hàng</span>
           </div>
-          <div class="flex items-center gap-2">
-            <button onclick="openBulkImportModal()" class="px-3.5 py-2 rounded-xl bg-purple-600/30 hover:bg-purple-600/50 text-purple-200 border border-purple-500/30 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
-              <span>⚡</span> <span>Nạp Hàng Loạt 40-100 Nick</span>
-            </button>
-            <button onclick="verifyAllProxiesInPool()" id="btn-verify-all-proxies" class="px-3.5 py-2 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/40 text-cyan-200 border border-cyan-500/30 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
-              <span>🛡️</span> <span>Check Tất Cả Proxy</span>
-            </button>
-            <button onclick="openDeployBlueprintModal()" class="px-3.5 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-200 border border-emerald-500/30 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer">
-              <span>☁️</span> <span>Deploy Cloud Free</span>
-            </button>
-            <button onclick="openAddAccountModal()" class="px-4 py-2 rounded-xl bg-[#0071e3] hover:bg-[#0077ed] text-xs font-bold text-white transition shadow-md shadow-[#0071e3]/20 flex items-center gap-1.5 cursor-pointer">
-              <span>➕</span> <span>Thêm Nick</span>
-            </button>
+
+          <div class="flex items-center gap-2 text-xs font-mono">
+            <span class="text-[#8b949e]">Nhãn phân loại:</span>
+            <span class="px-2.5 py-1 rounded-lg bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-[10px]">🏷️ ĐÃ CHỐT</span>
+            <span class="px-2.5 py-1 rounded-lg bg-amber-500/15 text-amber-300 border border-amber-500/30 text-[10px]">⏳ HỎI GIÁ</span>
+            <span class="px-2.5 py-1 rounded-lg bg-purple-500/15 text-purple-300 border border-purple-500/30 text-[10px]">⭐ VIP</span>
           </div>
         </div>
 
-        <!-- BẢNG ĐIỀU PHỐI LUÂN PHIÊN 40 - 100 NICK (50 BĐS + 50 FOREX) -->
-        <div id="pool-telemetry-deck" class="apple-card rounded-3xl p-5 bg-[#12161f] border border-white/10 space-y-4">
-          <div class="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
-            <div class="flex items-center gap-3">
-              <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
-              <div>
-                <h4 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <span>🚀</span> <span>Cụm Điều Phối Luân Phiên Wave Concurrency (40 ➔ 100 Nick)</span>
-                </h4>
-                <p class="text-[11px] text-[#86868b]">Mô hình 3 Cửa Sổ Trình Duyệt Luân Phiên: Tiết kiệm RAM tuyệt đối (~1.4 GB RAM) • An toàn tuyệt đối trên Server Free</p>
-              </div>
-            </div>
-            <div id="pool-ram-badge" class="px-3 py-1 rounded-full text-[11px] font-mono bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-              🛡️ RAM Guard: ~1.4 GB (Tối ưu cho Server Free)
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div class="p-3.5 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1">
-              <div class="text-[10px] text-[#86868b] uppercase font-bold tracking-wider">Tổng Nick Hiện Tại</div>
-              <div id="pool-stat-total" class="text-xl font-extrabold text-white">--</div>
-              <div class="text-[10px] text-purple-300">Khởi đầu 40 ➔ Mục tiêu 100</div>
-            </div>
-            <div class="p-3.5 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1">
-              <div class="text-[10px] text-[#86868b] uppercase font-bold tracking-wider">🏡 Quota BĐS Ecopark</div>
-              <div id="pool-stat-bds" class="text-xl font-extrabold text-amber-400">-- / 50</div>
-              <div class="text-[10px] text-[#86868b]">Đăng bài & khớp cmt GPS</div>
-            </div>
-            <div class="p-3.5 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1">
-              <div class="text-[10px] text-[#86868b] uppercase font-bold tracking-wider">📈 Quota Forex Tài Chính</div>
-              <div id="pool-stat-forex" class="text-xl font-extrabold text-cyan-400">-- / 50</div>
-              <div class="text-[10px] text-[#86868b]">Đăng kèo & phân loại lead</div>
-            </div>
-            <div class="p-3.5 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1">
-              <div class="text-[10px] text-[#86868b] uppercase font-bold tracking-wider">🛡️ Proxy & Cookie Vault</div>
-              <div id="pool-stat-proxy" class="text-xl font-extrabold text-emerald-400">-- Live</div>
-              <div class="text-[10px] text-emerald-300">1 Nick = 1 Proxy Cố Định</div>
-            </div>
-          </div>
-        </div>
-
-        <div id="accounts-cards-container" class="grid grid-cols-1 md:grid-cols-2 gap-5">
-          <!-- Accounts Populated -->
+        <!-- Customer Cards Grid -->
+        <div id="customers-cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Dynamically populated -->
         </div>
 
       </div>
-
-      <!-- ======================================================== -->
-      <!-- TAB 7: CONSOLE LIVE LOGS                                 -->
-      <!-- ======================================================== -->
-      <div id="tab-logs" class="space-y-5 tab-content hidden">
+          </div>
+          <div id="adv-view-logs" class="adv-view-panel hidden">
+            <div id="tab-logs" class="space-y-5">
         
         <div class="claude-card rounded-3xl p-5 flex items-center justify-between">
           <div class="flex items-center gap-2.5">
@@ -2690,8 +2898,13 @@
         </div>
 
       </div>
+          </div>
+        </div>
+
+      </div>
 
     </main>
+
 
   </div>
 
@@ -3338,15 +3551,17 @@ c_user=100089123456791; xs=...|103.152.118.27:8080
 
     let summaryData = null;
     let allCustomers = [];
-    let currentTab = 'overview';
+    let currentTab = 'accounts';
 
     const tabTitles = {
+      accounts: { title: 'Mục 1: Login & Kiểm Tra Các Acc', desc: 'Đăng nhập tài khoản Facebook, gắn proxy và kiểm tra trạng thái hoạt động', icon: '👤' },
+      posts: { title: 'Mục 2: Soạn & Đăng Bài Lên Facebook', desc: 'Soạn nội dung và bấm đăng trực tiếp lên Trang Cá Nhân hoặc Nhóm', icon: '📝' },
+      interactions: { title: 'Mục 3: Thao Tác & Kiểm Tra Tương Tác', desc: 'Đi kết bạn (Thêm bạn bè), nhắn bình luận tự động và kiểm tra nhật ký', icon: '🤝' },
+      advanced: { title: 'Hệ Thống Nâng Cao (Kho Tính Năng Cũ)', desc: 'Toàn bộ tổng quan KPI, radar săn khách BĐS/Forex GPS, và nhật ký chi tiết', icon: '⚙️' },
       overview: { title: 'Tổng Quan Hệ Thống', desc: 'Theo dõi tài khoản, tin nhắn và trạng thái tự động hóa', icon: '📊' },
       inbox: { title: 'Tin Nhắn Khách Hàng', desc: 'Đồng bộ tin nhắn 2 chiều giữa Facebook Messenger và Telegram', icon: '💬' },
-      posts: { title: 'Đăng Bài Lên Group', desc: 'Quản lý lịch đăng bài tự động và danh sách nhóm Facebook', icon: '📝' },
       autocmt: { title: 'Săn Khách & Quỹ Căn', desc: 'Tự động quét nhu cầu khách hàng, tìm căn phù hợp theo vị trí và bình luận', icon: '🤖' },
       growth: { title: 'Tương Tác & Kết Bạn', desc: 'Tương tác theo tệp khách hàng tiềm năng và nhóm mục tiêu', icon: '👥' },
-      accounts: { title: 'Tài Khoản & Proxy', desc: 'Quản lý nick Facebook, IP Proxy và bảo vệ an toàn tài khoản', icon: '👤' },
       logs: { title: 'Nhật Ký Hoạt Động', desc: 'Theo dõi tiến trình chạy và nhật ký hệ thống thời gian thực', icon: '📋' }
     };
 
@@ -5029,6 +5244,12 @@ c_user=100089123456791; xs=...|103.152.118.27:8080
         loadWarehouseLeads();
         loadAutoFriendStatus();
       }
+      if (tabId === 'accounts') {
+        renderAccountsList();
+      }
+      if (tabId === 'interactions') {
+        populateInteractionAccountSelects();
+      }
     }
 
     function formatUptime(seconds) {
@@ -5052,6 +5273,7 @@ c_user=100089123456791; xs=...|103.152.118.27:8080
         summaryData = sumRes;
       updateExecutiveKpiGrid(sumRes);
         allCustomers = custRes || [];
+        populateInteractionAccountSelects();
 
         const activeAcc = sumRes.accounts.items.find(a => a.isDefault) || sumRes.accounts.items[0];
         if (activeAcc) {
@@ -10016,6 +10238,335 @@ async function runAiSimulation() {
         }
       }, 1800);
     });
-  </script>
+  
+    // ========================================================
+    // HELPER FUNCTIONS CHO GIAO DIỆN CỔ ĐIỂN 3 MỤC CHỦ ĐẠO
+    // ========================================================
+
+    function toggleCookieLoginForm() {
+      const credSec = document.getElementById('direct-cred-login-section');
+      const cookieSec = document.getElementById('direct-cookie-login-section');
+      const btn = document.getElementById('btn-toggle-cookie-form');
+      if (cookieSec.classList.contains('hidden')) {
+        cookieSec.classList.remove('hidden');
+        if (btn) btn.textContent = '🔑 Trở Lại Đăng Nhập Mật Khẩu';
+      } else {
+        cookieSec.classList.add('hidden');
+        if (btn) btn.textContent = '📋 Dán Cookie Trực Tiếp';
+      }
+    }
+
+    async function submitDirectCredentialsLogin() {
+      const username = document.getElementById('direct-acc-username')?.value?.trim();
+      const password = document.getElementById('direct-acc-password')?.value?.trim();
+      const twoFactorCode = document.getElementById('direct-acc-2fa')?.value?.trim();
+      const proxy = document.getElementById('direct-acc-proxy')?.value?.trim();
+      const verticalMode = document.getElementById('direct-acc-vertical')?.value || 'bds_ecopark';
+      const makeDefault = document.getElementById('direct-make-active')?.checked;
+      const feedback = document.getElementById('direct-login-feedback');
+      const btn = document.getElementById('btn-submit-direct-login');
+
+      if (!username || !password) {
+        return alert('Vui lòng nhập cả Tài khoản (Email/SĐT/UID) và Mật khẩu Facebook!');
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span> <span>Đang đăng nhập...</span>';
+      if (feedback) {
+        feedback.className = 'p-3 rounded-xl text-xs font-medium border text-amber-300 bg-amber-500/10 border-amber-500/20 block';
+        feedback.textContent = '⏳ Đang khởi chạy Chromium và gửi thông tin đăng nhập vào Facebook...';
+      }
+
+      try {
+        const res = await fetch('/api/accounts/login-credentials', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password, twoFactorCode, makeDefault, proxy, verticalMode })
+        }).then(r => r.json());
+
+        if (res.success) {
+          if (feedback) {
+            feedback.className = 'p-3 rounded-xl text-xs font-medium border text-emerald-300 bg-emerald-500/10 border-emerald-500/20 block';
+            feedback.textContent = '✅ Đăng nhập thành công! Đang tải lại danh sách nick...';
+          }
+          await refreshData();
+          renderAccountsList();
+          populateInteractionAccountSelects();
+          setTimeout(() => {
+            if (feedback) feedback.classList.add('hidden');
+          }, 3500);
+        } else {
+          if (feedback) {
+            feedback.className = 'p-3 rounded-xl text-xs font-medium border text-rose-300 bg-rose-500/10 border-rose-500/20 block';
+            feedback.textContent = '❌ Lỗi: ' + (res.error || 'Đăng nhập không thành công');
+          }
+        }
+      } catch (e) {
+        if (feedback) {
+          feedback.className = 'p-3 rounded-xl text-xs font-medium border text-rose-300 bg-rose-500/10 border-rose-500/20 block';
+          feedback.textContent = '❌ Lỗi kết nối: ' + e.message;
+        }
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>➕</span> <span>ĐĂNG NHẬP & LƯU NICK</span>';
+      }
+    }
+
+    async function submitDirectCookieLogin() {
+      const cookieInput = document.getElementById('direct-acc-cookie')?.value?.trim();
+      const proxy = document.getElementById('direct-acc-proxy')?.value?.trim();
+      const verticalMode = document.getElementById('direct-acc-vertical')?.value || 'bds_ecopark';
+      const feedback = document.getElementById('direct-login-feedback');
+      const btn = document.getElementById('btn-submit-direct-cookie');
+
+      if (!cookieInput) {
+        return alert('Vui lòng dán chuỗi Cookie Facebook vào ô!');
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Đang xác thực cookie...';
+      if (feedback) {
+        feedback.className = 'p-3 rounded-xl text-xs font-medium border text-amber-300 bg-amber-500/10 border-amber-500/20 block';
+        feedback.textContent = '⏳ Đang kiểm tra cookie trực tuyến...';
+      }
+
+      try {
+        const res = await fetch('/api/accounts/login-cookie', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cookie: cookieInput, proxy, verticalMode })
+        }).then(r => r.json());
+
+        if (res.success) {
+          if (feedback) {
+            feedback.className = 'p-3 rounded-xl text-xs font-medium border text-emerald-300 bg-emerald-500/10 border-emerald-500/20 block';
+            feedback.textContent = '✅ Đăng nhập bằng cookie thành công!';
+          }
+          await refreshData();
+          renderAccountsList();
+          populateInteractionAccountSelects();
+        } else {
+          if (feedback) {
+            feedback.className = 'p-3 rounded-xl text-xs font-medium border text-rose-300 bg-rose-500/10 border-rose-500/20 block';
+            feedback.textContent = '❌ Lỗi cookie: ' + (res.error || 'Cookie không hợp lệ');
+          }
+        }
+      } catch (e) {
+        if (feedback) {
+          feedback.className = 'p-3 rounded-xl text-xs font-medium border text-rose-300 bg-rose-500/10 border-rose-500/20 block';
+          feedback.textContent = '❌ Lỗi: ' + e.message;
+        }
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Xác Thực & Thêm Nick Qua Cookie';
+      }
+    }
+
+    async function checkAllAccountsLive() {
+      alert('Đang kiểm tra trạng thái toàn bộ nick trong hệ thống...');
+      try {
+        const res = await fetch('/api/accounts/health-check', { method: 'POST' }).then(r => r.json());
+        await refreshData();
+        renderAccountsList();
+        alert('Kiểm tra hoàn tất: ' + (res.message || 'Các nick đã được cập nhật trạng thái'));
+      } catch (e) {
+        alert('Lỗi kiểm tra: ' + e.message);
+      }
+    }
+
+    function populateInteractionAccountSelects() {
+      const selFriend = document.getElementById('interaction-friend-account-select');
+      const selComment = document.getElementById('interaction-comment-account-select');
+      if (!selFriend && !selComment) return;
+
+      const items = summaryData?.accounts?.items || [];
+      if (!items.length) {
+        const empty = '<option value="">(Chưa có nick nào, vui lòng đăng nhập ở Mục 1)</option>';
+        if (selFriend) selFriend.innerHTML = empty;
+        if (selComment) selComment.innerHTML = empty;
+        return;
+      }
+
+      const opts = items.map(a => {
+        const def = a.isDefault ? ' (Mặc định)' : '';
+        const mode = a.verticalMode === 'forex_finance' ? '[Forex]' : '[BĐS]';
+        return '<option value="' + a.id + '"' + (a.isDefault ? ' selected' : '') + '>' + mode + ' ' + (a.name || 'Nick') + ' (UID: ' + (a.uid || a.id) + ')' + def + '</option>';
+      }).join('');
+
+      if (selFriend) selFriend.innerHTML = opts;
+      if (selComment) selComment.innerHTML = opts;
+    }
+
+    // Thao tác gửi lời mời Thêm bạn bè chuẩn F12: 'Thêm bạn bè'
+    async function submitInteractionAddFriend() {
+      const accId = document.getElementById('interaction-friend-account-select')?.value;
+      const target = document.getElementById('interaction-friend-target-input')?.value?.trim();
+      const feedback = document.getElementById('interaction-friend-feedback');
+      const btn = document.getElementById('btn-interaction-friend');
+
+      if (!target) {
+        return alert('Vui lòng nhập Link Profile hoặc UID Facebook của người cần kết bạn!');
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span> <span>Đang tìm nút "Thêm bạn bè" và gửi lời mời...</span>';
+      if (feedback) {
+        feedback.className = 'p-3 rounded-xl text-xs font-medium border text-amber-300 bg-amber-500/10 border-amber-500/20 block';
+        feedback.textContent = '⏳ Đang truy cập Profile và xác định nhãn F12 "Thêm bạn bè"...';
+      }
+
+      try {
+        let profileUrl = target;
+        if (/^\d+$/.test(target)) {
+          profileUrl = 'https://www.facebook.com/profile.php?id=' + target;
+        }
+
+        const res = await fetch('/api/actions/friend', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ profileUrl, accountId: accId })
+        }).then(r => r.json());
+
+        if (res.success) {
+          if (feedback) {
+            feedback.className = 'p-3 rounded-xl text-xs font-medium border text-emerald-300 bg-emerald-500/10 border-emerald-500/20 block';
+            feedback.textContent = '✅ ' + (res.message || 'Đã gửi lời mời Thêm bạn bè thành công!');
+          }
+          addInteractionHistoryRow('Thêm bạn bè', target, 'Thành công (Đúng nhãn F12)');
+          incrementInteractionStat('friends');
+        } else {
+          if (feedback) {
+            feedback.className = 'p-3 rounded-xl text-xs font-medium border text-rose-300 bg-rose-500/10 border-rose-500/20 block';
+            feedback.textContent = '❌ Lỗi: ' + (res.error || 'Không thể bấm nút Thêm bạn bè');
+          }
+          addInteractionHistoryRow('Thêm bạn bè', target, 'Thất bại: ' + (res.error || 'Lỗi'));
+        }
+      } catch (e) {
+        if (feedback) {
+          feedback.className = 'p-3 rounded-xl text-xs font-medium border text-rose-300 bg-rose-500/10 border-rose-500/20 block';
+          feedback.textContent = '❌ Lỗi kết nối: ' + e.message;
+        }
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>🤝</span> <span>GỬI LỜI MỜI THÊM BẠN BÈ (F12: "Thêm bạn bè")</span>';
+      }
+    }
+
+    // Thao tác gửi bình luận vào bài viết
+    async function submitInteractionComment() {
+      const accId = document.getElementById('interaction-comment-account-select')?.value;
+      const postUrl = document.getElementById('interaction-comment-post-url')?.value?.trim();
+      const commentText = document.getElementById('interaction-comment-text')?.value?.trim();
+      const feedback = document.getElementById('interaction-comment-feedback');
+      const btn = document.getElementById('btn-interaction-comment');
+
+      if (!postUrl || !commentText) {
+        return alert('Vui lòng nhập đầy đủ Link bài viết Facebook và Nội dung bình luận!');
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span> <span>Đang mở bài viết và gõ bình luận...</span>';
+      if (feedback) {
+        feedback.className = 'p-3 rounded-xl text-xs font-medium border text-amber-300 bg-amber-500/10 border-amber-500/20 block';
+        feedback.textContent = '⏳ Đang truy cập bài viết và nhận diện khung soạn thảo bình luận...';
+      }
+
+      try {
+        const res = await fetch('/api/autocmt/comment-now', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ postUrl, commentText, accountId: accId })
+        }).then(r => r.json());
+
+        if (res.success) {
+          if (feedback) {
+            feedback.className = 'p-3 rounded-xl text-xs font-medium border text-emerald-300 bg-emerald-500/10 border-emerald-500/20 block';
+            feedback.textContent = '✅ Bình luận thành công vào bài viết!';
+          }
+          addInteractionHistoryRow('Nhắn bình luận', postUrl, 'Thành công');
+          incrementInteractionStat('comments');
+        } else {
+          if (feedback) {
+            feedback.className = 'p-3 rounded-xl text-xs font-medium border text-rose-300 bg-rose-500/10 border-rose-500/20 block';
+            feedback.textContent = '❌ Lỗi: ' + (res.error || 'Bình luận không thành công');
+          }
+          addInteractionHistoryRow('Nhắn bình luận', postUrl, 'Thất bại: ' + (res.error || 'Lỗi'));
+        }
+      } catch (e) {
+        if (feedback) {
+          feedback.className = 'p-3 rounded-xl text-xs font-medium border text-rose-300 bg-rose-500/10 border-rose-500/20 block';
+          feedback.textContent = '❌ Lỗi: ' + e.message;
+        }
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>💬</span> <span>GỬI BÌNH LUẬN VÀO BÀI VIẾT NGAY</span>';
+      }
+    }
+
+    // Lịch sử tương tác trong phiên
+    let interactionHistory = [];
+    function addInteractionHistoryRow(action, target, status) {
+      const now = new Date().toLocaleTimeString('vi-VN');
+      const accName = document.getElementById('sidebar-name')?.textContent || 'Eco Trang';
+      interactionHistory.unshift({ time: now, acc: accName, action, target, status });
+      refreshInteractionLogTable();
+    }
+
+    function refreshInteractionLogTable() {
+      const tbody = document.getElementById('interaction-history-tbody');
+      if (!tbody) return;
+      if (!interactionHistory.length) {
+        tbody.innerHTML = '<tr><td colspan="5" class="py-6 text-center text-[#86868b] font-sans">Chưa có tương tác nào trong phiên này.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = interactionHistory.map(h => {
+        const isOk = h.status.includes('Thành công');
+        const color = isOk ? 'text-emerald-400' : 'text-rose-400';
+        return '<tr class="hover:bg-white/5 transition">' +
+          '<td class="py-2.5 px-4 text-[#86868b] whitespace-nowrap">' + h.time + '</td>' +
+          '<td class="py-2.5 px-4 text-white font-semibold whitespace-nowrap">' + escapeHtml(h.acc) + '</td>' +
+          '<td class="py-2.5 px-4 text-amber-300 whitespace-nowrap font-bold">' + h.action + '</td>' +
+          '<td class="py-2.5 px-4 text-[#2997ff] truncate max-w-xs" title="' + escapeHtml(h.target) + '">' + escapeHtml(h.target) + '</td>' +
+          '<td class="py-2.5 px-4 ' + color + ' font-bold whitespace-nowrap">' + h.status + '</td>' +
+        '</tr>';
+      }).join('');
+    }
+
+    function incrementInteractionStat(type) {
+      const el = document.getElementById('stat-interactions-' + type);
+      if (el) {
+        const val = parseInt(el.textContent || '0', 10) + 1;
+        el.textContent = val;
+      }
+    }
+
+    // Chuyển tab con bên trong Tab 4: Hệ thống nâng cao
+    function switchAdvancedSubTab(subTabId) {
+      document.querySelectorAll('.adv-sub-btn').forEach(b => {
+        b.className = 'adv-sub-btn px-4 py-2 rounded-xl font-medium transition text-[#86868b] hover:text-white hover:bg-white/5 cursor-pointer';
+      });
+      const activeBtn = document.getElementById('adv-btn-' + subTabId);
+      if (activeBtn) {
+        activeBtn.className = 'adv-sub-btn active px-4 py-2 rounded-xl font-bold transition bg-[#0071e3] text-white cursor-pointer';
+      }
+
+      document.querySelectorAll('.adv-view-panel').forEach(p => p.classList.add('hidden'));
+      const activePanel = document.getElementById('adv-view-' + subTabId);
+      if (activePanel) activePanel.classList.remove('hidden');
+
+      if (subTabId === 'growth') {
+        loadSavedScannedMembers();
+        loadWarehouseLeads();
+        loadAutoFriendStatus();
+      }
+      if (subTabId === 'autocmt') {
+        loadInventoryProperties();
+        loadAiConfig();
+      }
+      if (subTabId === 'overview') {
+        if (summaryData) updateExecutiveKpiGrid(summaryData);
+      }
+    }
+</script>
 </body>
 </html>
