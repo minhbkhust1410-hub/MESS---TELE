@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FB EXTEN v4.3 — Hybrid Meta AI + AI Film &amp; Job Agent</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <!-- Top Header -->
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-badge">FE</div>
+        <div>
+          <div class="brand-title">FB EXTEN <span class="tag-private">v4.3 META AI</span></div>
+          <div id="tab-status-text" class="brand-sub">Đang kết nối tab Facebook...</div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <span id="session-pill" class="badge-mono" title="Phiên Facebook hiện tại trên Chrome">FB: ...</span>
+        <button id="btn-reload-ext" class="icon-btn hidden" title="Có bản build mới — Bấm để Reload Extension">⟳</button>
+        <button id="btn-refresh-tab" class="icon-btn" title="Kết nối lại tab Facebook">↻</button>
+        <button id="btn-toggle-pill" class="icon-btn" title="Ẩn/hiện bảng trạng thái nổi trên Facebook">⚡</button>
+      </div>
+    </header>
+
+    <!-- 4 Focused Tabs -->
+    <nav class="nav-tabs nav-tabs-4" role="tablist">
+      <button class="nav-tab active" data-tab="teach">🎬 Làm Mẫu</button>
+      <button class="nav-tab" data-tab="runner">🎯 Quét Group</button>
+      <button class="nav-tab" data-tab="learning">🧠 AI &amp; Kho</button>
+      <button class="nav-tab" data-tab="logs">📜 CRM &amp; Sync</button>
+    </nav>
+
+    <!-- Live Status Banner -->
+    <div id="status-banner" class="status-banner">
+      <span id="status-dot" class="dot"></span>
+      <span id="status-msg">Bấm "🔴 Bắt Đầu Ghi Mẫu" để làm mẫu trực tiếp trên Facebook — tự lưu Group, nút F12 &amp; kịch bản.</span>
+    </div>
+
+    <main class="main-content">
+      <!-- TAB 1: CHẾ ĐỘ LÀM MẪU, TỰ HỌC F12 & MỌI TÁC VỤ MXH -->
+      <section id="panel-teach" class="tab-panel active">
+        <!-- Khối 1: Ghi mẫu trực tiếp -->
+        <div class="card">
+          <div class="row-between">
+            <span class="section-label">🎬 Ghi Mẫu Thao Tác MXH (Tự học theo máy bạn)</span>
+            <span id="rec-badge" class="badge-mono">Sẵn sàng</span>
+          </div>
+          <div class="hint-box" style="font-size:11px;">
+            Bấm <strong>Bắt Đầu Ghi Mẫu</strong> rồi cứ thao tác tự nhiên trên Facebook/Messenger. Hệ thống lưu <strong>Link Group + F12 riêng máy bạn</strong>, sau đó <strong>AI sẽ nhận xét &amp; rút chiến lược tối ưu theo từng tệp nhóm</strong> (KHÔNG lặp máy móc y chang).
+          </div>
+
+          <div class="btn-row">
+            <button id="btn-rec-start" class="btn btn-danger btn-big">🔴 BẮT ĐẦU GHI MẪU</button>
+            <button id="btn-rec-stop" class="btn btn-emerald btn-big hidden">⏹ DỪNG GHI MẪU</button>
+            <button id="btn-rec-clear" class="btn btn-ghost" style="flex:0 0 auto;width:auto;">🧹 Nháp</button>
+          </div>
+
+          <div class="row-between">
+            <span class="section-label">📋 Các bước vừa ghi (<span id="rec-steps-count">0</span> bước)</span>
+            <span style="font-size:10px;color:#94a3b8;">Hỗ trợ gõ <code>{{AI}}</code> hoặc <code>{A|B}</code></span>
+          </div>
+          <div id="recorded-steps-list" class="results-list compact-list"></div>
+
+          <div class="grid-2">
+            <label class="field">
+              <span>Tên kịch bản MXH</span>
+              <input id="input-wf-name" type="text" placeholder="VD: Tương tác Job Phim AI / Hỏi Workflow AI..." />
+            </label>
+            <label class="field">
+              <span>Nhóm tác vụ</span>
+              <select id="select-wf-category">
+                <option value="group_engage">🎯 Tương tác Group</option>
+                <option value="post_publish">📝 Đăng bài Group/Tường</option>
+                <option value="inbox_dm">💌 Nhắn tin / Inbox</option>
+                <option value="add_friend">🤝 Kết bạn / Mở rộng</option>
+                <option value="feed_nurture">🔥 Nuôi nick / Lướt Feed</option>
+                <option value="custom">✨ Tác vụ MXH khác</option>
+              </select>
+            </label>
+          </div>
+          <div class="btn-row">
+            <button id="btn-ai-critique-draft" class="btn btn-emerald">🧠 AI Nhận Xét Mẫu Này</button>
+            <button id="btn-save-workflow" class="btn btn-primary">💾 Lưu Mẫu &amp; Chiến Lược</button>
+          </div>
+          <div id="demo-critique-box" class="coach-box hidden"></div>
+        </div>
+
+        <!-- Khối 2: Chấm Mẫu F12 1-Click -->
+        <div class="card">
+          <div class="row-between">
+            <span class="section-label">🎯 Dạy Vị Trí Nút F12 Riêng Cho Máy Này</span>
+            <span id="learned-roles-count" class="badge-mono">0 nút</span>
+          </div>
+
+          <label class="field">
+            <span>Chọn nút / ô MXH cần dạy cấu trúc F12</span>
+            <select id="select-f12-role">
+              <option value="like_btn">👍 Nút Thích bài viết</option>
+              <option value="love_btn">❤️ Biểu tượng Yêu thích (Thả tim)</option>
+              <option value="comment_trigger">💬 Nút Mở Bình luận</option>
+              <option value="comment_editor">✍️ Ô Nhập Bình luận bài chính</option>
+              <option value="comment_submit">📨 Nút Gửi Bình luận</option>
+              <option value="reply_btn">↩️ Nút Trả lời bình luận</option>
+              <option value="reply_editor">✍️ Ô Nhập Trả lời bình luận</option>
+              <option value="share_btn">↗️ Nút Chia sẻ bài viết</option>
+              <option value="create_post_trigger">📝 Ô Mở Tạo bài viết mới</option>
+              <option value="create_post_editor">📄 Ô Soạn nội dung đăng bài</option>
+              <option value="create_post_submit">🚀 Nút Đăng bài (Post)</option>
+              <option value="add_friend_btn">🤝 Nút Thêm bạn bè / Kết bạn</option>
+              <option value="message_btn">💌 Nút Nhắn tin (Profile/Card)</option>
+              <option value="messenger_editor">💬 Ô Nhập tin nhắn Messenger</option>
+              <option value="messenger_send">📨 Nút Gửi tin nhắn Messenger</option>
+              <option value="join_group_btn">👥 Nút Tham gia nhóm</option>
+              <option value="search_input">🔍 Ô Tìm kiếm Facebook</option>
+            </select>
+          </label>
+          <div class="btn-row">
+            <button id="btn-pick-f12" class="btn btn-emerald">🎯 Chấm nút trên màn hình FB</button>
+            <button id="btn-test-learned-role" class="btn btn-ghost">🧪 Test trỏ thử</button>
+          </div>
+          <div id="learned-roles-list" class="tags-wrap"></div>
+        </div>
+
+        <!-- Khối 3: Thư viện Đường dẫn Groups / Trang đã học -->
+        <div class="card">
+          <div class="row-between">
+            <span class="section-label">📂 Thư Viện Groups &amp; Xếp Hạng ROI (<span id="learned-groups-count">0</span>)</span>
+            <div style="display:flex;gap:8px;">
+              <button id="btn-toggle-bulk-groups" class="link-btn">📥 Dán nhiều Group</button>
+              <button id="btn-add-cur-group" class="link-btn">➕ Lưu tab này</button>
+            </div>
+          </div>
+          <div id="bulk-groups-box" class="hidden" style="display:flex;flex-direction:column;gap:6px;">
+            <textarea id="bulk-groups-textarea" rows="3" placeholder="Dán toàn bộ danh sách link Groups Facebook (mỗi dòng 1 link)..."></textarea>
+            <button id="btn-import-bulk-groups" class="btn btn-emerald">✅ Nạp Danh Sách Groups Vào Thư Viện</button>
+          </div>
+          <div id="learned-groups-list" class="results-list compact-list"></div>
+          <button id="btn-send-groups-to-runner" class="btn btn-ghost">📋 Đưa tất cả Group sang Tab Quét Tự Động</button>
+        </div>
+
+        <!-- Khối 4: Kịch bản MXH đã lưu -->
+        <div class="card">
+          <div class="row-between">
+            <span class="section-label">⚡ Kịch Bản MXH Đã Làm Mẫu (<span id="saved-workflows-count">0</span>)</span>
+            <button id="btn-stop-workflow" class="mini-btn hidden" style="color:#fda4af;">⏹ Dừng</button>
+          </div>
+          <div id="saved-workflows-list" class="results-list"></div>
+          <div class="btn-row">
+            <button id="btn-export-kb" class="btn btn-ghost">⬇️ Xuất Profile (.json)</button>
+            <button id="btn-import-kb" class="btn btn-ghost">⬆️ Nhập Profile (.json)</button>
+            <input id="file-import-kb" type="file" accept=".json,application/json" class="hidden" />
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: CHẠY GROUP TỔNG & BÀI VIẾT -->
+      <section id="panel-runner" class="tab-panel">
+        <!-- Smart Auto-Pilot & Safety Bar -->
+        <div class="card">
+          <div class="row-between">
+            <span class="section-label">🤖 Auto-Pilot Xoay Vòng Danh Sách Groups</span>
+            <span id="badge-gql-count" class="badge-mono" title="Số bài đã bắt sạch qua GraphQL Tap">📡 GQL: 0</span>
+          </div>
+          <label class="checkbox-row">
+            <input id="chk-autopilot-enabled" type="checkbox" />
+            <span>Bật lịch tự quét xoay vòng ưu tiên <strong>Tier A → B → C</strong></span>
+          </label>
+          <div class="grid-3">
+            <label class="field">
+              <span>Chu kỳ (phút)</span>
+              <select id="select-autopilot-interval">
+                <option value="15">15 phút</option>
+                <option value="30" selected>30 phút</option>
+                <option value="60">60 phút</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Group / lượt</span>
+              <input id="input-autopilot-groups" type="number" min="1" max="10" value="2" />
+            </label>
+            <label class="field">
+              <span>Bài mới (&le; giờ)</span>
+              <input id="input-max-post-age" type="number" min="0" max="168" value="24" title="0 = không giới hạn" />
+            </label>
+          </div>
+          <div id="budget-live-strip" class="stats-bar">
+            <span>🛡️ Cmt giờ: <strong id="budget-hour-txt" class="text-emerald">0/8</strong></span>
+            <span>Ngày: <strong id="budget-day-txt" class="text-emerald">0/35</strong></span>
+            <span>🚫 Blacklist: <strong id="blacklist-cnt-mini" class="text-danger">0</strong></span>
+          </div>
+          <button id="btn-run-autopilot-now" class="btn btn-primary">⚡ Chạy Ngay 1 Lượt Thông Minh (Group Hạng A/B ưu tiên)</button>
+        </div>
+
+        <div class="card">
+          <div class="row-between">
+            <span class="section-label">📌 Link Group Tổng hoặc Bài Viết Facebook</span>
+            <button id="btn-grab-current-url" class="link-btn">Lấy link tab đang mở</button>
+          </div>
+
+          <textarea
+            id="input-target-links"
+            rows="3"
+            placeholder="Dán Link Group AI / Dựng Phim AI / Job AI / Trường ĐH (mỗi dòng 1 link)&#10;Hoặc bấm nút 'Đưa tất cả Group' từ Tab Làm Mẫu..."
+          ></textarea>
+
+          <div class="grid-2">
+            <label class="field">
+              <span>🤖 Chọn Mode</span>
+              <select id="select-thread-mode">
+                <option value="auto" selected>🤖 AI Tự Nhận Diện (AI / Phim / Job)</option>
+                <option value="ai_job">💼 Săn Job AI / Job Phim AI</option>
+                <option value="ai_film">🎬 Dựng Phim AI &amp; Video AI</option>
+                <option value="ai_edu">🎓 Trường Học / SV &amp; CLB AI</option>
+                <option value="custom">✨ Chủ Đề Tùy Chỉnh (Custom)</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>⚙️ Động cơ chạy</span>
+              <select id="select-exec-engine">
+                <option value="extension" selected>⚡ Chrome Extension (F12 Tự Học)</option>
+                <option value="playwright">🎭 Playwright Server (On-Screen)</option>
+              </select>
+            </label>
+          </div>
+
+          <label class="field">
+            <span>💬 Chỉ thị mục tiêu cho AI (tùy chọn)</span>
+            <input id="input-natural-goal" type="text" placeholder="VD: Ưu tiên bài tuyển dựng phim AI, hỏi workflow Veo/Kling/ComfyUI, bỏ qua bán acc/khóa học..." />
+          </label>
+
+          <div class="grid-3">
+            <label class="field">
+              <span>Số bài / Group</span>
+              <input id="input-max-posts" type="number" min="1" max="30" value="8" />
+            </label>
+            <label class="field">
+              <span>Nghỉ min (s)</span>
+              <input id="input-min-delay" type="number" min="3" max="120" value="5" />
+            </label>
+            <label class="field">
+              <span>Nghỉ max (s)</span>
+              <input id="input-max-delay" type="number" min="5" max="180" value="11" />
+            </label>
+          </div>
+
+          <div class="check-grid">
+            <label class="checkbox-row">
+              <input id="chk-sort-newest" type="checkbox" checked />
+              <span>🕒 Xếp bài mới nhất</span>
+            </label>
+            <label class="checkbox-row">
+              <input id="chk-skip-processed" type="checkbox" checked />
+              <span>⏭ Bỏ bài đã tương tác (cả bấm tay)</span>
+            </label>
+            <label class="checkbox-row">
+              <input id="chk-do-love" type="checkbox" checked />
+              <span>❤️ Thả tim</span>
+            </label>
+            <label class="checkbox-row">
+              <input id="chk-do-comment-post" type="checkbox" checked />
+              <span>💬 Bình luận bài chính</span>
+            </label>
+            <label class="checkbox-row">
+              <input id="chk-do-reply-buyers" type="checkbox" checked />
+              <span>↩️ Rep người hỏi (bỏ Spam)</span>
+            </label>
+            <label class="checkbox-row">
+              <input id="chk-use-ai" type="checkbox" checked />
+              <span>🧠 AI đọc hiểu &amp; Tự học</span>
+            </label>
+          </div>
+
+          <label class="checkbox-row cdp-box">
+            <input id="chk-enter-to-send" type="checkbox" checked />
+            <span>↵ <strong>Soát lỗi trước khi dán &amp; Nhấn Enter gửi</strong> (tự fallback nút Gửi xanh)</span>
+          </label>
+
+          <label class="checkbox-row cdp-box">
+            <input id="chk-use-cdp" type="checkbox" />
+            <span>⚡ Dùng <strong>CDP Real Input</strong> (Tùy chọn: nhấn Enter/gõ phím thật qua debugger)</span>
+          </label>
+
+          <div class="btn-row">
+            <button id="btn-run-links" class="btn btn-emerald btn-big">🚀 BẮT ĐẦU QUÉT &amp; TƯƠNG TÁC</button>
+            <button id="btn-stop-links" class="btn btn-danger btn-big hidden">⏹ DỪNG AGENT NGAY</button>
+          </div>
+
+          <div class="btn-row">
+            <button id="btn-test-f12" class="btn btn-ghost">🎯 Soi Ô F12</button>
+            <button id="btn-copy-link-meta-ai" class="btn btn-emerald" title="Copy link bài viết hiện tại &amp; hỏi thẳng Tab Meta AI bằng giọng mộc mạc chân thực">🔗 Link → Meta AI</button>
+            <button id="btn-analyze-preview" class="btn btn-primary">🔍 Đọc Thử</button>
+            <button id="btn-test-vision" class="btn btn-ghost">📸 Vision</button>
+          </div>
+
+          <div id="f12-inspect-box" class="hint-box hidden"></div>
+
+          <div id="runner-stats-bar" class="stats-bar">
+            <span>Đã quét: <strong id="stat-scanned" class="text-emerald">0</strong></span>
+            <span>❤️ Tim: <strong id="stat-loved" class="text-emerald">0</strong></span>
+            <span>💬 Cmt: <strong id="stat-commented" class="text-emerald">0</strong></span>
+            <span>🚫 Spam: <strong id="stat-skipped" class="text-danger">0</strong></span>
+          </div>
+          <div id="mini-live-log" class="activity-log mini-log">
+            <div class="log-line">Sẵn sàng — Ưu tiên dùng F12 đã học từ máy của bạn...</div>
+          </div>
+        </div>
+
+        <div id="analysis-card" class="card hidden">
+          <div class="row-between">
+            <span class="section-label">📊 AI đọc hiểu &amp; Lọc nhu cầu bài đang chọn</span>
+            <span id="badge-analysis-engine" class="badge-mono">AI</span>
+          </div>
+          <div id="post-analysis-box" class="analysis-post-box"></div>
+          <div class="row-between">
+            <span class="section-label">💬 Bình luận (<span id="cmt-total-cnt">0</span> | Đúng tệp: <span id="cmt-buyer-cnt" class="text-emerald">0</span> | Spam bỏ qua: <span id="cmt-seller-cnt" class="text-danger">0</span>)</span>
+          </div>
+          <div id="comments-eval-list" class="results-list"></div>
+        </div>
+      </section>
+
+      <!-- TAB 3: TỰ HỌC AI & CẤU HÌNH MODE -->
+      <section id="panel-learning" class="tab-panel">
+        <div class="card">
+          <div class="row-between">
+            <span class="section-label">🌀 Não AI Thông Minh &amp; Cầu Nối Tab Meta AI</span>
+            <span id="meta-ai-status-pill" class="badge-mono">Đang kiểm tra...</span>
+          </div>
+          <div class="hint-box" style="font-size:11px;">
+            Mở sẵn 1 tab <strong>meta.ai</strong> (đoạn chat đã train giọng của bạn) — <strong>FB EXTEN</strong> tự gửi bài sang Meta AI viết bình luận chuẩn <em>20% kiến thức trình cao + gợi mở FOMO</em> rồi mang về Facebook nhấn Enter (0 cần API Key, tự dự phòng API Groq/Gemini nếu có).
+          </div>
+          <label class="field">
+            <span>Nguồn Não AI ưu tiên</span>
+            <select id="select-ai-brain">
+              <option value="auto_smart" selected>🌀 Tự động thông minh (Meta AI Tab → API Key → Offline)</option>
+              <option value="meta_ai_tab">💬 Chỉ dùng Tab Meta AI (Bộ nhớ sẵn, Free)</option>
+              <option value="api_pool">⚡ Chỉ dùng API Key (Groq Meta Llama / Gemini)</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Link đoạn chat Meta AI đã train sẵn (tùy chọn — để trống tự nối tab meta.ai đang mở)</span>
+            <input id="input-meta-ai-url" type="text" placeholder="VD: https://www.meta.ai/prompt/..." />
+          </label>
+          <div class="btn-row">
+            <button id="btn-open-meta-ai" class="btn btn-ghost">🌐 Mở Meta AI</button>
+            <button id="btn-train-meta-ai" class="btn btn-emerald">🎓 Nạp Quy Luật</button>
+            <button id="btn-test-meta-ai" class="btn btn-primary">🧪 Test Meta AI</button>
+          </div>
+          <div id="meta-ai-preview-box" class="hint-box hidden" style="font-size:11px;color:#e0f2fe;"></div>
+        </div>
+
+        <div class="card">
+          <div class="row-between">
+            <span class="section-label">🧭 AI Cố Vấn Chiến Lược &amp; Tệp Nhóm</span>
+            <span id="coach-engine-badge" class="badge-mono">Sẵn sàng</span>
+          </div>
+          <div class="hint-box" style="font-size:11px;">
+            AI đọc toàn bộ <strong>thói quen Làm Mẫu + Danh sách Groups + dữ liệu bài viết &amp; CRM</strong> để nhận xét cách làm việc hiệu quả nhất, đúng tệp từng nhóm và tự áp dụng khi chạy tự động.
+          </div>
+          <button id="btn-ai-coach-all" class="btn btn-emerald">🧠 AI Nhận Xét Toàn Bộ Cách Làm &amp; Tệp Groups</button>
+          <div id="strategy-coach-box" class="coach-box hidden"></div>
+        </div>
+
+        <div class="card">
+          <div class="row-between">
+            <span class="section-label">📚 Hồ Sơ Năng Lực / Portfolio &amp; Thế Mạnh AI (AI Mini-RAG)</span>
+            <button id="btn-save-product-kb" class="mini-btn emerald">💾 Lưu</button>
+          </div>
+          <textarea
+            id="input-product-kb"
+            rows="3"
+            placeholder="Nhập thế mạnh / dự án / dịch vụ / phong cách trao đổi thật của bạn để AI bình luận chuẩn nghề (VD: Chuyên dựng phim AI, TVC AI bằng Veo/Kling/Runway/ComfyUI + Premiere, nhận job freelance &amp; hỗ trợ đồ án SV, xưng mình/bác thân thiện)..."
+          ></textarea>
+        </div>
+
+        <div class="card">
+          <div class="row-between">
+            <span class="section-label">🚫 Blacklist Spam / Bán Acc-Khóa Học — Bỏ Qua 0ms (<span id="blacklist-cnt-full">0</span>)</span>
+            <button id="btn-clear-blacklist" class="link-btn">Xóa hết</button>
+          </div>
+          <div id="seller-blacklist-tags" class="tags-wrap"></div>
+        </div>
+
+        <div class="card">
+          <div class="row-between">
+            <span class="section-label">🤖 Bể API Key AI (Gemini / Groq / OpenRouter)</span>
+            <select id="select-ai-provider" class="select-sm">
+              <option value="gemini">Gemini</option>
+              <option value="groq">Groq</option>
+              <option value="openrouter">OpenRouter</option>
+            </select>
+          </div>
+          <label class="field">
+            <span>Dán API Key (mỗi dòng 1 key — tự nhận diện AIza / gsk_ / sk-or-)</span>
+            <textarea id="input-ai-keys" rows="2" placeholder="AIzaSy...&#10;gsk_..."></textarea>
+          </label>
+          <div class="btn-row">
+            <button id="btn-add-keys" class="btn btn-emerald">➕ Nạp Key</button>
+            <button id="btn-test-ai" class="btn btn-ghost">🧪 Test AI</button>
+          </div>
+          <div id="ai-keys-list" class="keys-list"></div>
+        </div>
+
+        <div class="card">
+          <div class="row-between">
+            <span class="section-label">🧠 Bộ Nhớ Tự Học Cộng Đồng AI</span>
+            <button id="btn-reset-memory" class="link-btn">Reset bộ nhớ</button>
+          </div>
+          <div class="stats-bar">
+            <span>Đã học: <strong id="mem-total-analyzed" class="text-emerald">0</strong> bài</span>
+            <span>Giọng mẫu: <strong id="mem-style-cnt" class="text-emerald">0</strong></span>
+            <span>Chống lặp: <strong id="mem-sent-cnt" class="text-emerald">0</strong></span>
+            <span>Job/Hỏi: <strong id="mem-buyer-cnt" class="text-emerald">0</strong></span>
+            <span>Spam: <strong id="mem-seller-cnt" class="text-danger">0</strong></span>
+          </div>
+          <label class="field">
+            <span>Dấu hiệu SPAM / BÁN ACC-KHÓA HỌC đã học (tự động bỏ qua)</span>
+            <div id="mem-seller-tags" class="tags-wrap"></div>
+          </label>
+          <label class="field">
+            <span>Dấu hiệu JOB AI / NGƯỜI HỎI WORKFLOW đã học</span>
+            <div id="mem-buyer-tags" class="tags-wrap"></div>
+          </label>
+          <label class="field">
+            <span>Bài học AI rút ra gần đây</span>
+            <div id="mem-lessons-list" class="activity-log"></div>
+          </label>
+        </div>
+
+        <div class="card">
+          <span class="section-label">✨ Tùy chỉnh Mode "Chủ Đề Tùy Chỉnh (Custom)"</span>
+          <label class="field">
+            <span>Tên lĩnh vực / ngách AI</span>
+            <input id="input-rule-name" type="text" placeholder="VD: Dựng phim AI / Job Video AI / Cộng đồng SV Điện ảnh - CNTT..." />
+          </label>
+          <label class="field">
+            <span>Từ khóa Job / Người hỏi nhu cầu (cách nhau dấu phẩy)</span>
+            <textarea id="input-rule-include" rows="2" placeholder="tuyển freelancer, cần dựng video ai, job phim ai, hỏi tool, workflow, đồ án, tìm team"></textarea>
+          </label>
+          <label class="field">
+            <span>Từ khóa Spam / Bán acc-khóa học cần bỏ qua (cách nhau dấu phẩy)</span>
+            <input id="input-rule-exclude" type="text" placeholder="bán acc, cấp tài khoản, khai giảng khóa, tuyển học viên, seeding" />
+          </label>
+          <label class="field">
+            <span>Mẫu câu trả lời dự phòng (Spintax <code>{A|B}</code>)</span>
+            <textarea id="input-rule-template" rows="2" placeholder="{Chào bạn|Hello bác}, mảng phim AI/workflow này mình làm thực tế khá nhiều, cần trao đổi thêm cứ nhắn mình nhé!"></textarea>
+          </label>
+          <label class="field">
+            <span>Hướng dẫn phong cách riêng cho AI (System Prompt)</span>
+            <textarea id="input-rule-prompt" rows="2" placeholder="Trả lời tự nhiên như người làm nghề AI/dựng phim thật, tối đa 2 câu, không spam link..."></textarea>
+          </label>
+          <button id="btn-save-rule" class="btn btn-primary">💾 Lưu Cấu Hình Mode Tùy Chỉnh</button>
+        </div>
+      </section>
+
+      <!-- TAB 4: MINI-CRM LEAD, AN TOÀN NICK & SESSION SYNC -->
+      <section id="panel-logs" class="tab-panel">
+        <div class="card">
+          <div class="row-between">
+            <span class="section-label">🔥 Mini-CRM Job AI &amp; Cơ Hội Tiềm Năng (<span id="crm-leads-count">0</span>)</span>
+            <span style="font-size:10px;color:#34d399;">Tự báo Telegram khi ≥75đ</span>
+          </div>
+          <div id="leads-crm-list" class="results-list compact-list"></div>
+        </div>
+
+        <div class="card">
+          <div class="row-between">
+            <span class="section-label">🛡️ Ngân Sách Bảo Vệ Nick &amp; Chống Trùng Đa Group</span>
+            <button id="btn-save-budget" class="mini-btn emerald">💾 Lưu</button>
+          </div>
+          <div class="grid-3">
+            <label class="field">
+              <span>Max Cmt/giờ</span>
+              <input id="input-budget-hour" type="number" min="1" max="50" value="8" />
+            </label>
+            <label class="field">
+              <span>Max Cmt/ngày</span>
+              <input id="input-budget-day" type="number" min="1" max="200" value="35" />
+            </label>
+            <label class="field">
+              <span>Chống trùng (ngày)</span>
+              <input id="input-dedup-days" type="number" min="0" max="60" value="7" />
+            </label>
+          </div>
+          <div class="grid-2">
+            <label class="field">
+              <span>Giờ chạy từ (0-23h)</span>
+              <input id="input-active-start" type="number" min="0" max="23" value="7" />
+            </label>
+            <label class="field">
+              <span>Đến giờ (0-23h)</span>
+              <input id="input-active-end" type="number" min="0" max="23" value="23" />
+            </label>
+          </div>
+          <label class="checkbox-row">
+            <input id="chk-notify-telegram" type="checkbox" checked />
+            <span>🔔 Bắn cảnh báo Lead Nóng (≥75đ) tức thì về Telegram Bot</span>
+          </label>
+          <label class="checkbox-row">
+            <input id="chk-human-warmup" type="checkbox" checked />
+            <span>🌱 Trộn hành vi đọc bài tự nhiên (Human Warmup)</span>
+          </label>
+        </div>
+
+        <div class="card">
+          <div class="row-between">
+            <span class="section-label">🖥️ Nhật ký chi tiết</span>
+            <button id="btn-clear-log" class="link-btn">Xóa log</button>
+          </div>
+          <div id="activity-log" class="activity-log"></div>
+        </div>
+
+        <div class="card">
+          <div class="row-between">
+            <span class="section-label">📜 Lịch sử Bài viết &amp; Kịch bản đã chạy</span>
+            <div style="display:flex;gap:10px;">
+              <button id="btn-reset-processed" class="link-btn">Quét lại bài cũ</button>
+              <button id="btn-clear-history" class="link-btn">Xóa lịch sử</button>
+            </div>
+          </div>
+          <div id="history-list" class="results-list"></div>
+        </div>
+
+        <div class="card">
+          <div class="row-between">
+            <span class="section-label">🔄 Tự Động Cập Nhật Session &amp; Extension</span>
+            <button id="btn-sync-session-now" class="mini-btn emerald">Đồng bộ ngay</button>
+          </div>
+          <div id="session-status-box" class="hint-box">Đang kiểm tra cookie Facebook trên Chrome...</div>
+          <label class="checkbox-row">
+            <input id="chk-auto-sync-session" type="checkbox" checked />
+            <span>Tự động đẩy Session (Cookie FB Chrome) sang Playwright Server khi đăng nhập/đổi nick</span>
+          </label>
+          <label class="checkbox-row">
+            <input id="chk-auto-reload-ext" type="checkbox" />
+            <span>Tự động Reload Extension khi phát hiện bản build mới trên Server</span>
+          </label>
+        </div>
+
+        <div class="card">
+          <span class="section-label">🔗 Kết nối Hybrid Server (Tùy chọn)</span>
+          <div class="btn-row">
+            <input id="input-server-url" type="text" value="http://127.0.0.1:3300" />
+            <button id="btn-ping-server" class="mini-btn">Kiểm tra</button>
+          </div>
+          <div id="server-status-box" class="hint-box">Extension tự chạy trực tiếp trên Chrome, tự lưu backup Profile F12 lên Server nếu server đang bật.</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
