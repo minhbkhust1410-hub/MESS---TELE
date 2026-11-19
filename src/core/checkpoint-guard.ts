@@ -1,9 +1,11 @@
 import type { Page } from 'playwright';
+import { autoSolveFacebookCaptcha, detectFacebookCaptcha } from './captcha-solver.js';
 
 export interface CheckpointStatus {
   isCheckpoint: boolean;
-  type?: 'CHECKPOINT' | 'SUSPENDED' | 'TWO_FACTOR' | 'LOGIN_REQUIRED' | 'RATE_LIMITED' | 'ACTION_BLOCKED' | 'OK';
+  type?: 'CHECKPOINT' | 'CAPTCHA' | 'SUSPENDED' | 'TWO_FACTOR' | 'LOGIN_REQUIRED' | 'RATE_LIMITED' | 'ACTION_BLOCKED' | 'OK';
   reason?: string;
+  hasCaptcha?: boolean;
 }
 
 const CHECKPOINT_PATTERNS = [
@@ -24,7 +26,29 @@ const ACTION_BLOCK_BODY_PATTERNS = [
 export async function detectCheckpoint(page: Page): Promise<CheckpointStatus> {
   const currentUrl = page.url();
 
-  // 1. Kiểm tra URL Checkpoint thực sự
+  // 1. Kiểm tra màn hình CAPTCHA ("Confirm that you're human" / "Enter the text from the image")
+  try {
+    const isCaptchaPage = await page.evaluate(() => {
+      const text = document.body ? document.body.innerText : '';
+      return (
+        /Confirm that you're human|Enter the text from the image/i.test(text) ||
+        /Xác nhận bạn là con người|Nhập các ký tự bạn nhìn thấy trong hình/i.test(text) ||
+        /Security Check|Kiểm tra bảo mật/i.test(text) ||
+        /Can't read this text\? Hear this code/i.test(text)
+      );
+    });
+
+    if (isCaptchaPage) {
+      return {
+        isCheckpoint: true,
+        type: 'CAPTCHA',
+        reason: 'Facebook yêu cầu giải mã CAPTCHA ("Confirm that you\'re human")',
+        hasCaptcha: true,
+      };
+    }
+  } catch {}
+
+  // 2. Kiểm tra URL Checkpoint thực sự
   if (currentUrl.includes('/checkpoint/')) {
     return {
       isCheckpoint: true,
@@ -33,7 +57,7 @@ export async function detectCheckpoint(page: Page): Promise<CheckpointStatus> {
     };
   }
 
-  // 2. Kiểm tra xem có cookie đăng nhập c_user trong BrowserContext không
+  // 3. Kiểm tra xem có cookie đăng nhập c_user trong BrowserContext không
   try {
     const context = page.context();
     const cookies = await context.cookies('https://www.facebook.com');
@@ -49,7 +73,7 @@ export async function detectCheckpoint(page: Page): Promise<CheckpointStatus> {
     }
   } catch {}
 
-  // 3. Chỉ coi là LOGIN_REQUIRED khi đang ở thẳng trang /login/ và tiêu đề có chữ đăng nhập
+  // 4. Chỉ coi là LOGIN_REQUIRED khi đang ở thẳng trang /login/ và tiêu đề có chữ đăng nhập
   if (currentUrl.includes('/login') || currentUrl.includes('/login.php')) {
     return {
       isCheckpoint: true,
@@ -102,10 +126,24 @@ export async function detectCheckpoint(page: Page): Promise<CheckpointStatus> {
 
 /**
  * Kiểm tra an toàn tài khoản trước và sau mỗi thao tác.
- * Nếu phát hiện dấu hiệu Checkpoint / Rate-limit / Action Block -> Ném lỗi dừng khẩn cấp để bảo vệ Nick.
+ * Nếu phát hiện CAPTCHA -> Tự động kích hoạt module giải CAPTCHA (2Captcha / Gemini / Tesseract) để vượt qua!
+ * Nếu phát hiện Checkpoint nguy hiểm / Rate-limit / Action Block -> Ném lỗi dừng khẩn cấp để bảo vệ Nick.
  */
-export async function assertAccountSafeOrAbort(page: Page, actionContext = 'Thao tác Facebook'): Promise<void> {
+export async function assertAccountSafeOrAbort(page: Page, actionContext = 'Thao tác Facebook', accountName?: string): Promise<void> {
   const status = await detectCheckpoint(page);
+
+  // Xử lý tự động khi gặp CAPTCHA
+  if (status.isCheckpoint && status.type === 'CAPTCHA') {
+    console.log(`🧩 [Captcha Handler] Bắt gặp CAPTCHA tại "${actionContext}". Đang cố gắng tự động giải...`);
+    const solveRes = await autoSolveFacebookCaptcha(page, accountName);
+    if (solveRes.solved) {
+      console.log(`🎉 [Captcha Handler] Đã vượt qua CAPTCHA thành công (Đáp án: ${solveRes.solution})! Tiếp tục thực thi "${actionContext}".`);
+      return;
+    } else {
+      throw new Error(`🚨 [YÊU CẦU CAPTCHA] Facebook yêu cầu xác minh "Confirm that you're human". Tự động giải chưa thành công (${solveRes.error || 'Cần thao tác thủ công'}).`);
+    }
+  }
+
   if (status.isCheckpoint) {
     throw new Error(`🛡️ [CHẾ ĐỘ BẢO VỆ NICK - ${status.type}] Dừng khẩn cấp tại bước "${actionContext}": ${status.reason}`);
   }

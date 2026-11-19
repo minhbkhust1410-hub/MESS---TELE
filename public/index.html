@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FalconX — Autonomous Stealth Bridge & Facebook Automation</title>
+  <title>FB EXTEN — Private Chrome Extension & Automation Suite</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -167,7 +167,7 @@
     }
   </style>
 </head>
-<body class="bg-[#000000] text-[#f5f5f7] min-h-screen flex selection:bg-[#0071e3] selection:text-white relative">
+<body class="bg-[#000000] text-[#f5f5f7] min-h-screen flex flex-col selection:bg-[#0071e3] selection:text-white relative">
 
   <!-- GitHub-Style Ambient Aurora Glow Orbs -->
   <div class="fixed inset-0 pointer-events-none overflow-hidden z-0" aria-hidden="true">
@@ -180,253 +180,159 @@
   <canvas id="cute-confetti-canvas" class="fixed inset-0 pointer-events-none z-50"></canvas>
 
   <!-- ======================================================== -->
-  <!-- 1. LEFT SIDEBAR (Anthropic Human-Crafted Aesthetic)       -->
+  <!-- TOP HORIZONTAL HEADER & NAVIGATION BAR (HÀNG NGANG, BALANCE)-->
   <!-- ======================================================== -->
-  <aside class="w-64 bg-[#161617]/85 backdrop-blur-2xl border-r border-white/10 flex flex-col justify-between p-4 sticky top-0 h-screen z-40 hidden md:flex">
-    
-    <!-- Top Branding & Navigation -->
-    <div class="space-y-4">
-      
-      <!-- Brand Logo - Apple Minimalist Aesthetic -->
-      <div class="flex items-center gap-3 px-1.5 py-1">
-        <div class="w-8 h-8 rounded-xl bg-gradient-to-b from-[#2c2c2e] to-[#1c1c1e] border border-white/15 flex items-center justify-center text-white text-xs font-bold shadow-inner">
-          <svg class="w-4 h-4 fill-current text-white/90" viewBox="0 0 24 24">
-            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-          </svg>
-        </div>
-        <div>
-          <div class="flex items-center gap-1.5">
-            <span class="text-sm font-semibold tracking-tight text-white">Falcon<span class="text-[#2997ff]">X</span></span>
-            <span class="text-[9px] font-medium px-2 py-0.5 rounded-full bg-white/10 text-[#86868b] border border-white/10">PRO</span>
+  <header class="sticky top-0 z-40 bg-[#0d1117]/95 backdrop-blur-xl border-b border-white/10 shadow-xl">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16 gap-3">
+        
+        <!-- Left: Brand Logo & Operating Mode Switcher -->
+        <div class="flex items-center gap-3 flex-shrink-0">
+          <div class="flex items-center gap-2.5">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-b from-[#2c2c2e] to-[#1c1c1e] border border-white/15 flex items-center justify-center text-white text-xs font-bold shadow-inner">
+              <svg class="w-5 h-5 fill-current text-white/90" viewBox="0 0 24 24">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+              </svg>
+            </div>
+            <div>
+              <div class="flex items-center gap-1.5">
+                <span class="text-sm font-bold tracking-tight text-white">FB<span class="text-[#2997ff]"> EXTEN</span></span>
+                <span class="text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-white/10 text-[#86868b] border border-white/10 font-bold">PRO</span>
+              </div>
+              <p class="text-[9px] text-[#86868b] leading-tight">Automation &amp; Private Extension</p>
+            </div>
           </div>
-          <p class="text-[9px] text-[#86868b]">BĐS Automation</p>
-        </div>
-      </div>
 
-      <!-- Active Profile Card - Apple Frosted Style -->
-      <div class="p-3 rounded-2xl bg-white/[0.04] border border-white/10 relative space-y-2.5">
-        <div class="flex items-center gap-3">
-          <div class="relative cursor-pointer group/avatar" onclick="openAvatarModal()" title="Nhấp để xem hoặc đổi ảnh đại diện">
-            <img id="sidebar-avatar" src="https://graph.facebook.com/61577949601039/picture?type=large" class="w-10 h-10 rounded-xl object-cover border border-white/15 shadow-sm flex-shrink-0 group-hover/avatar:border-[#2997ff] transition" />
-            <button onclick="syncAvatarNow(event)" title="Đồng bộ avatar từ Facebook" class="absolute -bottom-1 -right-1 w-4 h-4 bg-[#0071e3] hover:bg-[#0077ed] rounded-full text-[8px] flex items-center justify-center text-white border border-[#161617] shadow transition">
-              🔄
+          <!-- Dual Operating Mode Switcher Pill -->
+          <div id="sidebar-mode-switcher-container" class="hidden md:flex items-center p-0.5 rounded-xl bg-black/50 border border-white/10 ml-1">
+            <button id="sidebar-btn-mode-bds" onclick="switchOperatingMode('bds_ecopark')" 
+                    class="px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition bg-emerald-500 text-white shadow-sm border border-emerald-400 cursor-pointer">
+              <span class="text-xs">🏡</span>
+              <span>BĐS ECOPARK</span>
+            </button>
+            <button id="sidebar-btn-mode-forex" onclick="switchOperatingMode('forex_finance')" 
+                    class="px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1 transition text-[#86868b] hover:text-white border border-transparent cursor-pointer">
+              <span class="text-xs">📈</span>
+              <span>FOREX TÀI CHÍNH</span>
             </button>
           </div>
-          <div class="min-w-0 flex-1">
-            <div class="flex items-center justify-between">
-              <button onclick="openSidebarActiveProfilePage()" class="text-xs font-semibold text-white hover:text-[#2997ff] transition truncate flex items-center gap-1 text-left" title="Mở trang cá nhân Facebook">
-                <span id="sidebar-name">Eco Trang</span>
-                <span class="text-[10px] text-[#2997ff]">↗</span>
-              </button>
-              <span class="w-2 h-2 rounded-full bg-[#30d158] animate-warm-pulse flex-shrink-0" title="Trạng thái: Đang kết nối"></span>
+          <span id="sidebar-mode-pill" class="hidden">🌿 BĐS</span>
+        </div>
+
+        <!-- Center: 4 Horizontal Navigation Tabs (HÀNG NGANG) -->
+        <nav class="flex items-center gap-1 bg-black/40 p-1 rounded-2xl border border-white/10 flex-shrink-0">
+          
+          <button onclick="switchTab('accounts')" id="nav-btn-accounts" 
+                  class="nav-item active flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition bg-[#0071e3] text-white shadow-md border border-[#0071e3]">
+            <span>👤</span>
+            <span>1. Login & Kiểm Tra Acc</span>
+            <span id="nav-badge-accounts" class="text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-emerald-400 text-black font-bold">Live</span>
+          </button>
+
+          <button onclick="switchTab('posts')" id="nav-btn-posts" 
+                  class="nav-item flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium transition text-[#86868b] hover:text-white hover:bg-white/5 border border-transparent">
+            <span>📝</span>
+            <span>2. Đăng Bài</span>
+          </button>
+
+          <button onclick="switchTab('interactions')" id="nav-btn-interactions" 
+                  class="nav-item flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium transition text-[#86868b] hover:text-white hover:bg-white/5 border border-transparent">
+            <span>🤝</span>
+            <span>3. Kiểm Tra Tương Tác</span>
+          </button>
+
+          <button onclick="switchTab('advanced')" id="nav-btn-advanced" 
+                  class="nav-item flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium transition text-purple-400 hover:text-purple-200 hover:bg-purple-500/10 border border-purple-500/20">
+            <span>⚙️</span>
+            <span>Kho Cũ</span>
+          </button>
+        </nav>
+
+        <!-- Right: Active Account Profile & Quick Control Buttons -->
+        <div class="flex items-center gap-2 flex-shrink-0">
+          
+          <!-- Active Account Pill -->
+          <div class="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-white/[0.04] border border-white/10">
+            <div class="relative cursor-pointer group/navavatar" onclick="openAvatarModal()" title="Nhấp đổi avatar">
+              <img id="sidebar-avatar" src="https://graph.facebook.com/100033213825091/picture?type=large" class="w-7 h-7 rounded-lg object-cover border border-white/15 group-hover/navavatar:border-[#2997ff] transition" />
             </div>
-            <span id="sidebar-uid" class="text-[10px] text-[#86868b] font-mono block truncate">UID: 61577949601039</span>
-            <div class="flex items-center gap-1 mt-0.5">
-              <span class="text-[9px] text-[#30d158] font-medium flex items-center gap-1">
-                <span>●</span> Facebook Live
-              </span>
+            <div class="hidden lg:block text-left leading-tight">
+              <div class="flex items-center gap-1">
+                <span id="sidebar-name" class="text-xs font-bold text-white truncate max-w-[110px]">Anh Minh Trading</span>
+                <span class="w-1.5 h-1.5 rounded-full bg-[#30d158] inline-block" title="Facebook Live"></span>
+              </div>
+              <span id="sidebar-uid" class="text-[9px] text-[#86868b] font-mono block">UID: verified_session</span>
             </div>
           </div>
-        </div>
 
-        <!-- Live Proxy Status Pill -->
-        <div id="sidebar-proxy-pill" onclick="checkSidebarProxyModal()" 
-             class="flex items-center justify-between text-[10px] py-1 px-2.5 rounded-full bg-white/[0.04] border border-white/10 cursor-pointer hover:border-[#2997ff]/50 transition group/proxy"
-             title="Nhấp để kiểm tra chi tiết Proxy bảo vệ">
-          <span id="sidebar-proxy-status-tag" class="flex items-center gap-1.5 text-[#86868b] truncate">
-            <span>🛡️</span> <span id="sidebar-proxy-brief">Đang kiểm tra...</span>
-          </span>
-          <span class="text-[9px] text-[#2997ff] font-medium group-hover/proxy:underline flex-shrink-0">Check ↗</span>
-        </div>
+          <!-- Proxy Status Mini-Pill -->
+          <div id="sidebar-proxy-pill" onclick="checkSidebarProxyModal()" 
+               class="hidden xl:flex items-center gap-1 text-[10px] py-1 px-2 rounded-lg bg-white/[0.04] border border-white/10 cursor-pointer hover:border-[#2997ff]/50 transition text-[#86868b]"
+               title="Kiểm tra IP Proxy">
+            <span id="sidebar-proxy-status-tag">🛡️</span>
+            <span id="sidebar-proxy-brief">Local IP</span>
+          </div>
 
-        <!-- Action Buttons -->
-        <div class="pt-2 border-t border-white/10 flex items-center gap-1.5">
+          <!-- FB 2026 Diagnostic Status -->
+          <button id="sidebar-diagnostic-btn" onclick="openSystemDiagnosticModal()" 
+                  class="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-xl border border-emerald-500/35 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-xs font-semibold transition" 
+                  title="Báo cáo kiểm định khớp Facebook 2026">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+            <span id="sidebar-diagnostic-text">FB 2026</span>
+            <span id="sidebar-diagnostic-badge" class="font-mono text-[9px] bg-emerald-500/20 px-1 rounded font-bold">7/7</span>
+          </button>
+
+          <!-- Nút Vào FB Của Nick Đang Chọn -->
           <button id="sidebar-fb-btn" onclick="openSidebarActiveAccountBrowser()" 
-                  class="flex-1 py-1.5 px-2 rounded-full bg-[#0071e3]/15 hover:bg-[#0071e3]/25 text-[#2997ff] border border-[#0071e3]/30 text-[10px] font-medium flex items-center justify-center gap-1 transition"
+                  class="hidden sm:flex py-1 px-2.5 rounded-xl bg-[#0071e3]/15 hover:bg-[#0071e3]/25 text-[#2997ff] border border-[#0071e3]/30 text-xs font-medium items-center gap-1 transition"
                   title="Mở Facebook bảo vệ qua Proxy">
-            <svg class="w-3 h-3 fill-current" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-            <span>Vào FB ↗</span>
+            <span>🌐 FB ↗</span>
           </button>
-          <button onclick="checkSidebarProxyModal()" 
-                  class="py-1.5 px-3 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-[#f5f5f7] border border-white/10 text-[10px] font-medium flex items-center justify-center gap-1 transition"
-                  title="Kiểm tra IP Proxy">
-            <span>⚡ Proxy</span>
+
+          <!-- Màn Hình FB -->
+          <button onclick="viewScreenModal()" class="px-2.5 py-1 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-medium text-white transition flex items-center gap-1" title="Xem màn hình Facebook">
+            <span>🖥️</span>
+            <span class="hidden md:inline">Màn Hình</span>
           </button>
+
+          <!-- Nút Theme -->
+          <button onclick="toggleThemeMode()" id="theme-toggle-btn" class="p-1 px-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-xs font-semibold text-amber-300 transition" title="Giao diện Sáng Vàng / Tối">
+            <span id="theme-toggle-icon">☀️</span>
+            <span id="theme-toggle-label" class="hidden">Sáng Vàng</span>
+          </button>
+
+          <!-- Refresh -->
+          <button onclick="refreshData()" class="p-1 px-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-[#86868b] hover:text-white transition cursor-pointer" title="Làm mới dữ liệu">
+            <span id="refresh-icon" class="inline-block text-xs">🔄</span>
+          </button>
+
+          <!-- Logout -->
+          <button onclick="logoutAdmin()" class="p-1 px-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-xs text-red-400 transition" title="Đăng xuất">
+            <span>🔒</span>
+          </button>
+
         </div>
+
       </div>
-
-      <!-- DUAL OPERATING MODE SWITCHER (BĐS ECOPARK vs FOREX TÀI CHÍNH) -->
-      <div id="sidebar-mode-switcher-container" class="p-2 rounded-2xl bg-white/[0.04] border border-white/10 relative space-y-1.5">
-        <div class="flex items-center justify-between px-1">
-          <span class="text-[9px] uppercase tracking-wider font-bold text-[#86868b]">Chế Độ Hoạt Động</span>
-          <span id="sidebar-mode-pill" class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 transition">
-            🌿 BĐS
-          </span>
-        </div>
-        <div class="grid grid-cols-2 gap-1 p-0.5 bg-black/50 rounded-xl border border-white/10">
-          <button id="sidebar-btn-mode-bds" onclick="switchOperatingMode('bds_ecopark')" 
-                  class="py-2 px-1.5 rounded-lg text-[10px] font-bold flex flex-col items-center justify-center gap-1 transition bg-emerald-500 text-white shadow-lg shadow-emerald-500/30 border border-emerald-400">
-            <span class="text-xs">🏡</span>
-            <span class="truncate">BĐS ECOPARK</span>
-          </button>
-          <button id="sidebar-btn-mode-forex" onclick="switchOperatingMode('forex_finance')" 
-                  class="py-2 px-1.5 rounded-lg text-[10px] font-bold flex flex-col items-center justify-center gap-1 transition text-[#86868b] hover:text-white hover:bg-white/5 border border-transparent">
-            <span class="text-xs">📈</span>
-            <span class="truncate">FOREX TÀI CHÍNH</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Navigation Menu Items - Classical Minimalist 4-Item Menu -->
-      <nav class="space-y-2">
-        
-        <!-- Mục 1: Login & Kiểm Tra Acc (Mặc định) -->
-        <button onclick="switchTab('accounts')" id="nav-btn-accounts" class="nav-item active w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-xs font-semibold transition bg-[#0071e3]/15 text-[#2997ff] border border-[#0071e3]/30">
-          <div class="flex items-center gap-2.5">
-            <span class="text-base">👤</span>
-            <span class="font-bold">1. Login & Kiểm Tra Acc</span>
-          </div>
-          <span id="nav-badge-accounts" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold">Live</span>
-        </button>
-
-        <!-- Mục 2: Đăng Bài -->
-        <button onclick="switchTab('posts')" id="nav-btn-posts" class="nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-xs font-medium transition text-[#86868b] hover:text-white hover:bg-white/[0.05]">
-          <div class="flex items-center gap-2.5">
-            <span class="text-base">📝</span>
-            <span class="font-bold">2. Đăng Bài</span>
-          </div>
-        </button>
-
-        <!-- Mục 3: Kiểm Tra Tương Tác (Kết Bạn & Bình Luận) -->
-        <button onclick="switchTab('interactions')" id="nav-btn-interactions" class="nav-item w-full flex items-center justify-between px-3.5 py-3 rounded-xl text-xs font-medium transition text-[#86868b] hover:text-white hover:bg-white/[0.05]">
-          <div class="flex items-center gap-2.5">
-            <span class="text-base">🤝</span>
-            <span class="font-bold">3. Kiểm Tra Tương Tác</span>
-          </div>
-        </button>
-
-        <!-- Mục 4: Ẩn toàn bộ những cái đã làm trong 1 Tab -->
-        <div class="pt-4 border-t border-white/10 mt-3">
-          <button onclick="switchTab('advanced')" id="nav-btn-advanced" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition text-purple-400 hover:text-purple-200 hover:bg-purple-500/10 border border-purple-500/20">
-            <div class="flex items-center gap-2.5">
-              <span class="text-sm">⚙️</span>
-              <span>Hệ Thống Nâng Cao (Kho Cũ)</span>
-            </div>
-            <span class="text-[9px] font-mono px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300">Gốc</span>
-          </button>
-        </div>
-
-      </nav>
-
     </div>
-
-    <!-- Nút Kiểm Trạng Thái Chức Năng FB 2026 Ngắn Gọn Tại Sidebar (Theo yêu cầu) -->
-    <div class="px-0.5 pb-1">
-      <button id="sidebar-diagnostic-btn" onclick="openSystemDiagnosticModal()" 
-              class="w-full flex items-center justify-between px-3 py-2.5 rounded-xl border border-emerald-500/35 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 transition cursor-pointer group shadow-sm" 
-              title="Nhấp để xem Báo Cáo Kiểm Định Khớp Facebook 2026">
-        <div class="flex items-center gap-2 min-w-0">
-          <span class="relative flex h-2 w-2 flex-shrink-0">
-            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-          </span>
-          <span class="text-xs font-semibold tracking-tight text-white group-hover:text-emerald-300 truncate" id="sidebar-diagnostic-text">Trạng Thái FB 2026</span>
-        </div>
-        <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex-shrink-0 ml-1.5" id="sidebar-diagnostic-badge">7/7 PASS</span>
-      </button>
-    </div>
-
-    <!-- Sidebar Bottom Info Panel -->
-    <div class="p-3 rounded-2xl bg-white/[0.04] border border-white/10 space-y-2">
-      <div class="flex items-center justify-between text-xs">
-        <span class="text-[#86868b]">Telegram Bot</span>
-        <span class="text-[#2997ff] font-mono font-medium text-[11px]" id="sidebar-bot-tag">@ecotrang_mess_bot</span>
-      </div>
-      <div class="flex items-center justify-between text-xs">
-        <span class="text-[#86868b]">Thời Gian Chạy</span>
-        <span class="text-[#30d158] font-mono font-medium text-[11px]" id="sidebar-uptime">--:--</span>
-      </div>
-      <a href="https://web.telegram.org" target="_blank" class="w-full mt-1 py-1.5 px-3 rounded-full bg-white/[0.06] hover:bg-white/[0.12] text-[#f5f5f7] border border-white/10 text-xs font-medium flex items-center justify-center gap-1.5 transition">
-        <span>✈️</span> Mở Telegram
-      </a>
-    </div>
-
-  </aside>
+  </header>
 
   <!-- ======================================================== -->
-  <!-- 2. MAIN WORKSPACE CANVAS                                 -->
+  <!-- 2. MAIN WORKSPACE CANVAS (BALANCE, SANG TRỌNG, THOÁNG ĐÃNG) -->
   <!-- ======================================================== -->
   <div class="flex-1 flex flex-col min-w-0">
-    
-    <!-- Top Warm Header Bar -->
-    <header class="h-14 border-b border-white/10 bg-[#000000]/80 backdrop-blur-2xl px-6 flex items-center justify-between sticky top-0 z-30">
-      
-      <!-- Current Section Title -->
-      <div class="flex items-center gap-3 min-w-0 flex-1 pr-4">
-        <h2 id="section-title" class="text-sm font-semibold text-white flex items-center gap-2 flex-shrink-0">
-          <span>📊</span>
-          <span class="tracking-tight">Tổng Quan Hệ Thống</span>
-        </h2>
-        <span class="h-4 w-[1px] bg-white/15 hidden sm:block flex-shrink-0"></span>
-        <span class="text-xs text-[#86868b] hidden md:inline truncate max-w-md" id="section-desc">Theo dõi tài khoản, tin nhắn và trạng thái tự động hóa</span>
-        
-        <!-- Live User Badge -->
-        <div id="header-user-pill" class="hidden sm:inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.06] border border-white/15 text-xs text-[#f5f5f7] flex-shrink-0">
-          <span class="text-sm">👤</span>
-          <span id="header-user-name" class="font-semibold text-white whitespace-nowrap truncate max-w-[150px]">Admin</span>
-          <span id="header-user-badge" class="text-[10px] font-mono px-2 py-0.2 rounded-full bg-[#2997ff]/20 text-[#2997ff] border border-[#2997ff]/30 whitespace-nowrap">Quản lý</span>
-        </div>
-
-        <!-- Topbar Mode Switcher Toggle Pill (Hiển thị trên 2xl, dưới 2xl dùng Thanh Chuyển Mảng ngay bên dưới Header) -->
-        <div class="hidden 2xl:inline-flex items-center p-0.5 rounded-full bg-white/[0.06] border border-white/15 flex-shrink-0">
-          <button id="topbar-btn-mode-bds" onclick="switchOperatingMode('bds_ecopark')" 
-                  class="px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition bg-emerald-500 text-white shadow-sm border border-emerald-400 cursor-pointer whitespace-nowrap">
-            <span>🏡</span>
-            <span>BĐS Ecopark</span>
-          </button>
-          <button id="topbar-btn-mode-forex" onclick="switchOperatingMode('forex_finance')" 
-                  class="px-2.5 py-1 rounded-full text-[11px] font-bold flex items-center gap-1.5 transition text-[#86868b] hover:text-white border border-transparent cursor-pointer whitespace-nowrap">
-            <span>📈</span>
-            <span>Forex Tài Chính</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Action Buttons - Apple Pill Style -->
-      <div class="flex items-center gap-2 flex-shrink-0">
-
-        <button onclick="viewScreenModal()" class="px-3.5 py-1.5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-xs font-medium text-[#f5f5f7] transition flex items-center gap-1.5">
-          <span>🖥️</span>
-          <span class="hidden sm:inline">Màn Hình FB</span>
-        </button>
-
-        <button onclick="openAddAccountModal()" class="px-4 py-1.5 rounded-full bg-[#0071e3] hover:bg-[#0077ed] text-xs font-medium text-white transition flex items-center gap-1.5 shadow-sm">
-          <span>➕</span>
-          <span>Thêm Nick</span>
-        </button>
-
-        <button onclick="openCloudShareModal()" class="px-3.5 py-1.5 rounded-full bg-emerald-500 hover:bg-emerald-600 text-xs font-bold text-white transition flex items-center gap-1.5 shadow-md shadow-emerald-500/25 cursor-pointer" title="Mời bạn bè dùng chung qua Web & Quản lý Cloud DB Online 100% (0 Byte Local)">
-          <span>☁️</span>
-          <span class="hidden sm:inline">Cloud DB & Mời Bạn Bè</span>
-        </button>
-
-        <!-- Nút Chuyển Đổi Giao Diện Sáng Vàng Năng Lượng / Nền Tối -->
-        <button onclick="toggleThemeMode()" id="theme-toggle-btn" class="py-1.5 px-3 rounded-full bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-xs font-semibold text-amber-800 transition flex items-center gap-1.5 shadow-sm" title="Chuyển đổi giao diện Sáng Vàng Năng Lượng / Nền Tối">
-          <span id="theme-toggle-icon">☀️</span>
-          <span id="theme-toggle-label" class="hidden sm:inline">Sáng Vàng</span>
-        </button>
-
-        <button onclick="refreshData()" class="p-1.5 px-2.5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-[#86868b] hover:text-white transition" title="Làm mới dữ liệu">
-          <span id="refresh-icon" class="inline-block text-xs">🔄</span>
-        </button>
-
-        <button onclick="logoutAdmin()" class="py-1.5 px-3 rounded-full bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-xs font-medium text-red-400 hover:text-red-300 transition flex items-center gap-1.5" title="Đăng xuất khỏi phiên làm việc">
-          <span>🔒</span>
-          <span class="hidden sm:inline">Đăng Xuất</span>
-        </button>
-
-      </div>
-    </header>
+    <div id="section-title" class="hidden"></div>
+    <div id="section-desc" class="hidden"></div>
+    <div id="header-user-pill" class="hidden">
+      <span id="header-user-name">Admin</span>
+      <span id="header-user-badge">Quản lý</span>
+    </div>
+    <div class="hidden">
+      <button id="topbar-btn-mode-bds"></button>
+      <button id="topbar-btn-mode-forex"></button>
+      <span id="sidebar-bot-tag">@ecotrang_mess_bot</span>
+      <span id="sidebar-uptime">--:--</span>
+    </div>
 
     <!-- Main Dynamic Content Container -->
     
@@ -456,98 +362,170 @@
           </div>
         </div>
 
-        <!-- KHỐI ĐĂNG NHẬP TRỰC TIẾP (CỔ ĐIỂN, RÕ RÀNG, KHÔNG CẦN BẬT MODAL) -->
-        <div class="claude-card rounded-2xl p-6 bg-[#161a26] border border-white/10 space-y-4 shadow-sm">
-          <div class="flex items-center justify-between border-b border-white/10 pb-3">
-            <div class="flex items-center gap-2.5">
-              <span class="text-xl">➕</span>
-              <div>
-                <h3 class="text-sm font-bold text-white">Đăng Nhập Tài Khoản Facebook</h3>
-                <p class="text-[11px] text-[#86868b]">Nhập thông tin bên dưới và bấm nút để khởi chạy đăng nhập</p>
-              </div>
-            </div>
-            <div class="flex items-center gap-2">
-              <button type="button" onclick="toggleCookieLoginForm()" id="btn-toggle-cookie-form" class="text-xs text-[#2997ff] hover:underline font-medium cursor-pointer">
-                📋 Dán Cookie Trực Tiếp
-              </button>
-            </div>
-          </div>
+        <!-- BỐ CỤC CÂN ĐỐI (BALANCE): 2 CỘT CÂN XỨNG -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
-          <!-- Form Đăng Nhập Mật Khẩu -->
-          <div id="direct-cred-login-section" class="space-y-4">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-              <div class="space-y-1.5">
-                <label class="font-bold text-slate-300">Tài khoản Facebook (UID / Email / SĐT): <span class="text-rose-400">*</span></label>
-                <input type="text" id="direct-acc-username" placeholder="VD: 1000892837... hoặc email@gmail.com" class="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/15 text-white font-mono" />
-              </div>
-              <div class="space-y-1.5">
-                <label class="font-bold text-slate-300">Mật khẩu Facebook: <span class="text-rose-400">*</span></label>
-                <input type="password" id="direct-acc-password" placeholder="Nhập mật khẩu tài khoản Facebook" class="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/15 text-white" />
-              </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-              <div class="space-y-1.5">
-                <label class="font-bold text-slate-300">Mã 2FA (Nếu có):</label>
-                <input type="text" id="direct-acc-2fa" placeholder="VD: 123456 (Bỏ trống nếu không bật 2FA)" class="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/15 text-white font-mono" />
-              </div>
-              <div class="space-y-1.5 md:col-span-2">
-                <label class="font-bold text-slate-300">Proxy Riêng Của Nick (Không bắt buộc):</label>
-                <input type="text" id="direct-acc-proxy" placeholder="IP:Port:User:Pass (VD: 103.153.22.40:8080:user:pass)" class="w-full px-3.5 py-2.5 rounded-xl bg-black/40 border border-white/15 text-white font-mono" />
-              </div>
-            </div>
-
-            <div class="flex flex-wrap items-center justify-between gap-3 pt-2">
-              <div class="flex items-center gap-4 text-xs">
+          <!-- CỘT TRÁI (5 CỘT): FORM ĐĂNG NHẬP & BẢO MẬT HỆ THỐNG -->
+          <div class="lg:col-span-5 space-y-4">
+            
+            <!-- KHỐI ĐĂNG NHẬP TRỰC TIẾP -->
+            <div class="claude-card rounded-2xl p-5 bg-[#161a26] border border-white/10 space-y-4 shadow-sm">
+              <div class="flex items-center justify-between border-b border-white/10 pb-3">
                 <div class="flex items-center gap-2">
-                  <label class="text-slate-400 font-medium">Mảng hoạt động:</label>
-                  <select id="direct-acc-vertical" class="px-2.5 py-1.5 rounded-lg bg-black/50 border border-white/15 text-xs text-white">
-                    <option value="bds_ecopark">🏡 BĐS Ecopark</option>
-                    <option value="forex_finance">📈 Forex Tài Chính</option>
-                  </select>
+                  <span class="text-lg">➕</span>
+                  <div>
+                    <h3 class="text-sm font-bold text-white">Đăng Nhập Tài Khoản FB</h3>
+                    <p class="text-[11px] text-[#86868b]">Thêm tài khoản mới vào hệ thống</p>
+                  </div>
                 </div>
-                <label class="flex items-center gap-2 cursor-pointer text-slate-300">
-                  <input type="checkbox" id="direct-make-active" checked class="accent-[#0071e3] rounded" />
-                  <span>Đặt làm nick chính ngay</span>
-                </label>
+                <button type="button" onclick="toggleCookieLoginForm()" id="btn-toggle-cookie-form" class="text-xs text-[#2997ff] hover:underline font-medium cursor-pointer">
+                  📋 Dán Cookie
+                </button>
               </div>
 
-              <button type="button" onclick="submitDirectCredentialsLogin()" id="btn-submit-direct-login" class="px-6 py-2.5 rounded-xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold transition shadow-lg shadow-[#0071e3]/25 flex items-center gap-2 cursor-pointer">
-                <span>➕</span> <span>ĐĂNG NHẬP & LƯU NICK</span>
-              </button>
+              <!-- Form Đăng Nhập Mật Khẩu -->
+              <div id="direct-cred-login-section" class="space-y-3.5">
+                <div class="space-y-1 text-xs">
+                  <label class="font-bold text-slate-300">Tài khoản (UID / Email / SĐT): <span class="text-rose-400">*</span></label>
+                  <input type="text" id="direct-acc-username" placeholder="VD: 1000892837... hoặc email@gmail.com" class="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-white font-mono text-xs" />
+                </div>
+                <div class="space-y-1 text-xs">
+                  <label class="font-bold text-slate-300">Mật khẩu Facebook: <span class="text-rose-400">*</span></label>
+                  <input type="password" id="direct-acc-password" placeholder="Nhập mật khẩu" class="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-white text-xs" />
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  <div class="space-y-1">
+                    <label class="font-bold text-slate-300">Mã 2FA / Secret Key:</label>
+                    <input type="text" id="direct-acc-2fa" placeholder="6 số hoặc Secret Key (VD: 3X2SR4L...)" class="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/15 text-white font-mono text-xs" title="Hệ thống tự động giải mã 6 số nếu bạn nhập Secret Key" />
+                  </div>
+                  <div class="space-y-1">
+                    <label class="font-bold text-slate-300">Mảng hoạt động:</label>
+                    <select id="direct-acc-vertical" class="w-full px-3 py-2 rounded-xl bg-black/50 border border-white/15 text-xs text-white">
+                      <option value="bds_ecopark">🏡 BĐS Ecopark</option>
+                      <option value="forex_finance">📈 Forex Tài Chính</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="space-y-1 text-xs">
+                  <label class="font-bold text-slate-200">Proxy Riêng Của Nick: <span class="text-rose-400 font-bold">* (BẮT BUỘC - Chống Dính IP Máy)</span></label>
+                  <input type="text" id="direct-acc-proxy" placeholder="Bắt buộc: IP:Port:User:Pass (Ví dụ: 198.23.243.226:6361:user:pass)" class="w-full px-3 py-2 rounded-xl bg-black/40 border border-white/20 text-white font-mono text-xs focus:border-[#2997ff]" required />
+                </div>
+
+                <div class="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-[11px] flex items-center gap-2 text-emerald-400">
+                  <span class="text-sm">🛡️</span>
+                  <span><b>Khóa Bảo Vệ Tuyệt Đối (Proxy Lock):</b> Bắt buộc phải có Proxy thì mới cho phép đăng nhập để không dính IP máy.</span>
+                </div>
+
+                <div class="flex items-center justify-between gap-2 pt-1 text-xs">
+                  <label class="flex items-center gap-2 cursor-pointer text-slate-300">
+                    <input type="checkbox" id="direct-make-active" checked class="accent-[#0071e3] rounded" />
+                    <span>Đặt làm nick chính ngay</span>
+                  </label>
+
+                  <button type="button" onclick="submitDirectCredentialsLogin()" id="btn-submit-direct-login" class="px-5 py-2 rounded-xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold transition shadow-md flex items-center gap-1.5 cursor-pointer">
+                    <span>➕</span> <span>ĐĂNG NHẬP</span>
+                  </button>
+                </div>
+
+                <!-- Phản hồi trạng thái đăng nhập -->
+                <div id="direct-login-feedback" class="hidden p-3 rounded-xl text-xs font-medium border"></div>
+              </div>
+
+              <!-- Form Đăng Nhập Cookie Trực Tiếp (ẩn mặc định, toggle) -->
+              <div id="direct-cookie-login-section" class="hidden space-y-3 pt-3 border-t border-white/10">
+                <div class="space-y-1 text-xs">
+                  <label class="font-bold text-slate-300">Dán Cookie Facebook (JSON hoặc text):</label>
+                  <textarea id="direct-acc-cookie" rows="3" placeholder="Dán cookie tại đây..." class="w-full p-2.5 rounded-xl bg-black/40 border border-white/15 text-white font-mono text-xs"></textarea>
+                </div>
+                <div class="flex items-center justify-between">
+                  <span class="text-[10px] text-[#86868b]">JSON J2TEAM hoặc c_user=...; xs=...</span>
+                  <button type="button" onclick="submitDirectCookieLogin()" id="btn-submit-direct-cookie" class="px-4 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition cursor-pointer">
+                    Xác Thực Cookie
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <!-- Phản hồi trạng thái đăng nhập -->
-            <div id="direct-login-feedback" class="hidden p-3 rounded-xl text-xs font-medium border"></div>
-          </div>
-
-          <!-- Form Đăng Nhập Cookie Trực Tiếp (ẩn mặc định, toggle) -->
-          <div id="direct-cookie-login-section" class="hidden space-y-3 pt-3 border-t border-white/10">
-            <div class="space-y-1.5 text-xs">
-              <label class="font-bold text-slate-300">Dán Cookie Facebook (JSON hoặc chuỗi c_user=...; xs=...):</label>
-              <textarea id="direct-acc-cookie" rows="3" placeholder="Dán chuỗi cookie hoặc JSON tại đây..." class="w-full p-3 rounded-xl bg-black/40 border border-white/15 text-white font-mono text-xs"></textarea>
+            <!-- CARD TRẠNG THÁI MẠNG & BẢO MẬT HỆ THỐNG (BALANCE) -->
+            <div class="rounded-2xl p-4 bg-[#161a26]/80 border border-white/10 space-y-3">
+              <div class="flex items-center justify-between text-xs font-bold text-white border-b border-white/10 pb-2">
+                <span class="flex items-center gap-1.5"><span>🛡️</span> Môi Trường Thực Thi</span>
+                <span class="text-emerald-400 font-mono text-[11px]">Giai đoạn 1 (0đ / Local IP)</span>
+              </div>
+              <div class="grid grid-cols-2 gap-2 text-xs">
+                <div class="p-2.5 rounded-xl bg-black/30 border border-white/5 space-y-1">
+                  <span class="text-[#86868b] text-[10px] block">IP MÁY HIỆN TẠI</span>
+                  <span class="font-mono text-white text-xs font-bold truncate block">14.244.21.186 (VN)</span>
+                </div>
+                <div class="p-2.5 rounded-xl bg-black/30 border border-white/5 space-y-1">
+                  <span class="text-[#86868b] text-[10px] block">HỒ SƠ TRÌNH DUYỆT</span>
+                  <span class="font-mono text-emerald-400 text-xs font-bold truncate block">Cách ly từng nick</span>
+                </div>
+              </div>
+              <div class="flex items-center justify-between text-xs pt-1">
+                <span class="text-[#86868b]">Telegram Bot: <span class="text-[#2997ff] font-mono">@ecotrang_mess_bot</span></span>
+                <a href="https://web.telegram.org" target="_blank" class="text-xs text-[#2997ff] hover:underline font-medium">Mở Telegram ↗</a>
+              </div>
             </div>
-            <div class="flex items-center justify-between">
-              <span class="text-[11px] text-[#86868b]">Hỗ trợ cookie dạng JSON xuất từ J2TEAM hoặc chuỗi cookie thô.</span>
-              <button type="button" onclick="submitDirectCookieLogin()" id="btn-submit-direct-cookie" class="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition cursor-pointer">
-                Xác Thực & Thêm Nick Qua Cookie
-              </button>
+
+          </div>
+
+          <!-- CỘT PHẢI (7 CỘT): DANH SÁCH CÁC NICK ĐANG QUẢN LÝ (HÀNG NGANG) -->
+          <div class="lg:col-span-7 space-y-3">
+            <div class="flex items-center justify-between p-1">
+              <div class="flex items-center gap-2">
+                <h3 class="text-sm font-bold text-white tracking-tight flex items-center gap-2">
+                  <span>📋</span> <span>Danh Sách Các Nick Đang Quản Lý</span>
+                </h3>
+                <span id="accounts-total-badge" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-white/10 text-slate-300 font-bold">-- Nick</span>
+              </div>
+              <span class="text-xs text-[#86868b]">Mỗi nick là một hàng ngang cân đối</span>
+            </div>
+
+            <!-- THANH ĐIỀU HƯỚNG NHANH: MỞ TỪNG NICK QUA PROXY RIÊNG (CHỐNG DÍNH IP) -->
+            <div class="p-4 rounded-2xl bg-[#131620] border border-white/10 space-y-3 shadow-sm">
+              <div class="flex items-center justify-between flex-wrap gap-2.5">
+                <div class="flex items-center gap-2.5">
+                  <span class="text-lg">🚀</span>
+                  <div>
+                    <h4 class="text-xs font-bold text-white tracking-wide">Quản Lý Cửa Sổ Chrome Độc Lập & Proxy Riêng Từng Nick</h4>
+                    <p class="text-[11px] text-[#86868b]">Mỗi nick chạy bằng 1 Google Chrome độc lập, hồ sơ session riêng và Proxy riêng chống dính IP 100%</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <button type="button" onclick="openAllProxiedBrowsers()" id="btn-open-all-browsers"
+                          class="px-3.5 py-1.5 rounded-xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95">
+                    <span>🌐</span> <span>Mở Tất Cả Cửa Sổ</span>
+                  </button>
+                  <button type="button" onclick="closeAllProxiedBrowsers()"
+                          class="px-3 py-1.5 rounded-xl bg-white/5 hover:bg-rose-500/20 text-[#86868b] hover:text-rose-400 border border-white/10 hover:border-rose-500/30 text-xs font-semibold transition flex items-center gap-1 cursor-pointer active:scale-95">
+                    <span>⏹️</span> <span>Đóng Tất Cả</span>
+                  </button>
+                  <button type="button" onclick="autoUnlockAllCaptchas()" id="btn-unlock-all-captchas"
+                          class="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-yellow-500/20 hover:from-amber-500/30 hover:to-yellow-500/30 text-amber-300 border border-amber-500/40 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+                          title="Tự động quét và giải mã toàn bộ CAPTCHA của các trình duyệt Chrome đang mở">
+                    <span>🔓</span> <span>Giải Tự Động Mọi CAPTCHA</span>
+                  </button>
+                  <button type="button" onclick="openCaptchaModal()"
+                          class="px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 text-xs font-semibold transition flex items-center gap-1 cursor-pointer"
+                          title="Cấu hình API Key (Gemini Vision / 2Captcha) và kiểm tra giải mã">
+                    <span>🧩</span> <span>Cài Đặt CAPTCHA</span>
+                  </button>
+                </div>
+              </div>
+              <div id="quick-proxied-accounts-bar" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 pt-1">
+                <!-- Dynamically rendered pills -->
+              </div>
+            </div>
+
+            <!-- CONTAINER CÁC HÀNG NGANG TÀI KHOẢN -->
+            <div id="accounts-cards-container" class="space-y-2.5">
+              <!-- Populated dynamically by renderAccountsList() with sleek horizontal rows -->
             </div>
           </div>
-        </div>
 
-        <!-- BẢNG DANH SÁCH ACC HIỆN CÓ -->
-        <div class="space-y-3">
-          <div class="flex items-center justify-between">
-            <h3 class="text-sm font-bold text-white tracking-tight flex items-center gap-2">
-              <span>📋</span> <span>Danh Sách Các Nick Đang Quản Lý</span>
-            </h3>
-            <span class="text-xs text-[#86868b]">Nhấp vào tên nick để mở trình duyệt hoặc bấm nút kiểm tra</span>
-          </div>
-
-          <div id="accounts-cards-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <!-- Populated dynamically by renderAccountsList() -->
-          </div>
         </div>
 
       </div>
@@ -571,10 +549,55 @@
               </div>
             </div>
             <div class="flex items-center gap-2">
-              <span class="text-[10px] font-mono px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-bold flex items-center gap-1.5">
+              <span id="post-header-active-nick-badge" class="text-[10px] font-mono px-3 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-bold flex items-center gap-1.5">
                 <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
-                <span>Nick: Eco Trang • Sẵn sàng</span>
+                <span id="post-header-active-nick-text">Đa Nick BĐS • Sẵn Sàng</span>
               </span>
+            </div>
+          </div>
+
+          <!-- MODULE CHỌN NICK ĐĂNG BÀI: TỪNG NICK HOẶC HÀNG LOẠT -->
+          <div class="space-y-2.5 p-4 rounded-2xl bg-[#141210] border border-[#30363d]">
+            <div class="flex items-center justify-between text-xs">
+              <label class="font-bold text-[#D6D3D1] flex items-center gap-1.5">
+                <span>👥 Chọn Nick Đăng Bài:</span>
+                <span class="text-[#2997ff]">*</span>
+              </label>
+              <span id="post-account-summary-badge" class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-[#0071e3]/20 text-[#2997ff] border border-[#0071e3]/30 font-bold">
+                1 nick đang chọn
+              </span>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div>
+                <label class="text-[10px] text-[#8b949e] block mb-1">Chế độ phân bổ:</label>
+                <select id="web-post-account-mode" onchange="handlePostAccountModeChange()"
+                        class="w-full px-3 py-2 rounded-xl bg-[#0d1117] border border-[#30363d] text-xs font-bold text-white focus:border-[#2997ff] focus:outline-none">
+                  <option value="single">🎯 Đăng qua 1 Nick cụ thể</option>
+                  <option value="broadcast_all">🚀 ĐĂNG HÀNG LOẠT (Tất cả nick BĐS lần lượt)</option>
+                  <option value="custom_multi">☑️ Tự chọn nhiều nick tuỳ ý</option>
+                </select>
+              </div>
+
+              <!-- Dropdown chọn 1 nick -->
+              <div id="web-post-single-account-wrapper">
+                <label class="text-[10px] text-[#8b949e] block mb-1">Nick thực hiện:</label>
+                <select id="web-post-single-account-select"
+                        class="w-full px-3 py-2 rounded-xl bg-[#0d1117] border border-[#30363d] text-xs text-[#2997ff] font-bold focus:border-[#2997ff] focus:outline-none">
+                  <!-- Dynamically populated from accounts -->
+                </select>
+              </div>
+            </div>
+
+            <!-- Panel Checkboxes khi chọn custom_multi -->
+            <div id="web-post-multi-accounts-panel" class="hidden pt-3 border-t border-white/10 space-y-2">
+              <div class="flex items-center justify-between text-[11px]">
+                <span class="text-[#8b949e] font-semibold">Tích chọn các nick bạn muốn đăng bài:</span>
+                <button type="button" onclick="toggleSelectAllPostAccounts()" class="text-[#2997ff] hover:underline font-bold text-[11px]">Tích chọn tất cả</button>
+              </div>
+              <div id="web-post-multi-accounts-checkboxes" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 text-xs">
+                <!-- Dynamically populated from accounts -->
+              </div>
             </div>
           </div>
 
@@ -3439,6 +3462,100 @@ c_user=100089123456791; xs=...|103.152.118.27:8080
   </div>
 
   <!-- ======================================================== -->
+  <!-- MODAL: CẤU HÌNH & TỰ ĐỘNG MỞ KHÓA CAPTCHA FACEBOOK       -->
+  <!-- ======================================================== -->
+  <div id="captcha-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-[#0d1117] border border-[#30363d] rounded-3xl max-w-2xl w-full p-6 space-y-5 shadow-2xl max-h-[92vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-[#30363d] pb-3.5">
+        <div class="flex items-center gap-2.5">
+          <span class="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-base">🧩</span>
+          <div>
+            <h3 class="text-xs font-bold text-[#f0f6fc] uppercase tracking-wider">Hệ Thống Tự Động Mở Khóa CAPTCHA</h3>
+            <p class="text-[10px] text-[#8b949e]">Tự động phát hiện qua Chrome DevTools & giải mã đa tầng (AI Vision / Audio / 2Captcha / OCR)</p>
+          </div>
+        </div>
+        <button onclick="closeCaptchaModal()" class="w-7 h-7 rounded-xl bg-[#24201C] hover:bg-[#2F2924] text-[#8b949e] hover:text-white text-xs flex items-center justify-center transition">✕</button>
+      </div>
+
+      <!-- Live Chrome Browser Scanner Box -->
+      <div class="p-4 rounded-2xl bg-[#161b22] border border-[#30363d] space-y-3">
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+            <h4 class="text-xs font-bold text-white uppercase tracking-wider">Trình Duyệt Chrome Đang Mở & Trạng Thái CAPTCHA</h4>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="scanLiveCaptchasInModal()" class="px-2.5 py-1 rounded-xl bg-[#24201C] hover:bg-[#2F2924] border border-[#30363d] text-xs text-slate-300 font-semibold flex items-center gap-1 transition">
+              <span>🔄</span> Quét Lại
+            </button>
+            <button onclick="autoUnlockAllCaptchas()" class="px-3 py-1 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:opacity-90 text-black text-xs font-bold flex items-center gap-1 transition shadow-sm">
+              <span>🔓</span> Mở Khóa Tất Cả
+            </button>
+          </div>
+        </div>
+        <div id="captcha-modal-live-list" class="space-y-2">
+          <div class="text-[11px] text-[#8b949e] text-center py-3">Đang quét trình duyệt Chrome...</div>
+        </div>
+      </div>
+
+      <!-- API Keys Configuration -->
+      <div class="p-4 rounded-2xl bg-[#161b22] border border-[#30363d] space-y-3 text-xs">
+        <h4 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+          <span>🔑</span> Cấu Hình Khóa Giải Mã (API Keys)
+        </h4>
+
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-[11px] text-amber-300 font-semibold">Gemini 1.5 Flash API Key (Khuyên Dùng - Tốc độ ~1s, 100% Chính Xác):</label>
+            <a href="https://aistudio.google.com/app/apikey" target="_blank" class="text-[10px] text-blue-400 hover:underline">Lấy Free tại Google AI Studio ↗</a>
+          </div>
+          <input type="text" id="captcha-gemini-key" placeholder="AIzaSy..." class="w-full bg-[#100E0C] border border-[#30363d] rounded-xl px-3.5 py-2 text-[#f0f6fc] font-mono text-[11px] focus:outline-none focus:border-amber-500" />
+          <p class="text-[10px] text-[#8b949e] mt-1">Google cung cấp hoàn toàn miễn phí 15 lượt gọi/phút. Hỗ trợ đọc ảnh méo và nghe phát âm Audio Captcha trực tiếp.</p>
+        </div>
+
+        <div>
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-[11px] text-slate-300 font-semibold">2Captcha API Key (Tùy chọn - Dịch vụ giải mã chuyên nghiệp):</label>
+            <a href="https://2captcha.com" target="_blank" class="text-[10px] text-blue-400 hover:underline">2captcha.com ↗</a>
+          </div>
+          <input type="text" id="captcha-2captcha-key" placeholder="Nhập API key 2Captcha..." class="w-full bg-[#100E0C] border border-[#30363d] rounded-xl px-3.5 py-2 text-[#f0f6fc] font-mono text-[11px] focus:outline-none focus:border-amber-500" />
+        </div>
+
+        <div class="pt-1 flex justify-end">
+          <button onclick="saveCaptchaSettingsFromModal()" id="btn-save-captcha-keys" class="px-4 py-2 rounded-xl bg-[#0071e3] hover:bg-[#0077ed] text-white font-bold text-xs transition flex items-center gap-1.5">
+            <span>💾</span> Lưu Cài Đặt API Key
+          </button>
+        </div>
+      </div>
+
+      <!-- Engine Status & Technical Specs -->
+      <div class="p-4 rounded-2xl bg-[#161b22] border border-[#30363d] space-y-2 text-xs">
+        <h4 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+          <span>📦</span> Thư Viện Đã Tích Hợp Sẵn Trong Hệ Thống
+        </h4>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-mono" id="captcha-libs-grid">
+          <div class="p-2.5 rounded-xl bg-black/30 border border-white/5 flex items-center justify-between">
+            <div><span class="text-white font-semibold">tesseract.js</span> <span class="text-[#8b949e]">v7.0.0</span><div class="text-[10px] text-[#8b949e]">Local OCR Engine (Offline 100%)</div></div>
+            <span class="text-emerald-400 font-bold">READY</span>
+          </div>
+          <div class="p-2.5 rounded-xl bg-black/30 border border-white/5 flex items-center justify-between">
+            <div><span class="text-white font-semibold">2captcha-ts</span> <span class="text-[#8b949e]">v2.4.1</span><div class="text-[10px] text-[#8b949e]">Cloud Solver SDK</div></div>
+            <span id="lib-2captcha-status" class="text-slate-400 font-bold">STANDBY</span>
+          </div>
+          <div class="p-2.5 rounded-xl bg-black/30 border border-white/5 flex items-center justify-between">
+            <div><span class="text-white font-semibold">jimp</span> <span class="text-[#8b949e]">v1.6.1</span><div class="text-[10px] text-[#8b949e]">Khử nhiễu & tăng tương phản</div></div>
+            <span class="text-emerald-400 font-bold">READY</span>
+          </div>
+          <div class="p-2.5 rounded-xl bg-black/30 border border-white/5 flex items-center justify-between">
+            <div><span class="text-white font-semibold">gemini-vision & audio</span> <span class="text-[#8b949e]">1.5-flash</span><div class="text-[10px] text-[#8b949e]">AI Vision & Speech Reader</div></div>
+            <span id="lib-gemini-status" class="text-slate-400 font-bold">STANDBY</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
   <!-- MODAL: KIỂM TRA & RÀNG BUỘC BẢO VỆ PROXY (STRICT PROXY)   -->
   <!-- ======================================================== -->
   <div id="proxy-inspect-modal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
@@ -5219,12 +5336,12 @@ c_user=100089123456791; xs=...|103.152.118.27:8080
 
       document.querySelectorAll('.nav-item').forEach(btn => {
         btn.classList.remove('active');
-        btn.className = 'nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-medium transition text-[#86868b] hover:text-white hover:bg-white/[0.05]';
+        btn.className = 'nav-item flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium transition text-[#86868b] hover:text-white hover:bg-white/5 border border-transparent';
       });
       const activeBtn = document.getElementById(`nav-btn-${tabId}`);
       if (activeBtn) {
         activeBtn.classList.add('active');
-        activeBtn.className = 'nav-item active w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-semibold transition bg-[#0071e3]/15 text-[#2997ff] border border-[#0071e3]/30';
+        activeBtn.className = 'nav-item active flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition bg-[#0071e3] text-white shadow-md border border-[#0071e3]';
       }
 
       const meta = tabTitles[tabId] || tabTitles.overview;
@@ -5234,6 +5351,7 @@ c_user=100089123456791; xs=...|103.152.118.27:8080
       if (tabId === 'posts') {
         loadGroupPostingHealth();
         loadDiscoveredGroups();
+        populatePostAccountSelect();
       }
       if (tabId === 'autocmt') {
         loadInventoryProperties();
@@ -5298,11 +5416,11 @@ c_user=100089123456791; xs=...|103.152.118.27:8080
         if (kpiLiveEl) kpiLiveEl.textContent = sumRes.accounts.live;
         const kpiCustEl = document.getElementById('kpi-customers-count');
         if (kpiCustEl) kpiCustEl.textContent = allCustomers.length;
-        document.getElementById('sidebar-badge-customers').textContent = allCustomers.length;
+        const badgeCust = document.getElementById('sidebar-badge-customers'); if (badgeCust) badgeCust.textContent = allCustomers.length;
         const postsCount = sumRes.dailyPosts?.total ?? (Array.isArray(sumRes.dailyPosts) ? sumRes.dailyPosts.length : (sumRes.dailyPosts?.items?.length || 0));
         const kpiPostsEl = document.getElementById('kpi-posts-count');
         if (kpiPostsEl) kpiPostsEl.textContent = postsCount;
-        document.getElementById('sidebar-badge-posts').textContent = postsCount;
+        const badgePosts = document.getElementById('sidebar-badge-posts'); if (badgePosts) badgePosts.textContent = postsCount;
 
         const isAuto = sumRes.autoComment && sumRes.autoComment.enabled;
         const kpiAutoEl = document.getElementById('kpi-autocmt-status');
@@ -5313,6 +5431,7 @@ c_user=100089123456791; xs=...|103.152.118.27:8080
         renderCustomersList();
         renderDailyPostsList();
         renderAccountsList();
+        populatePostAccountSelect();
         renderAutoCommentSection();
         populateSavedGroupsDropdown();
         loadGroupPostingHealth();
@@ -6981,10 +7100,35 @@ async function runAiSimulation() {
         const autoCommentEnable = document.getElementById('web-post-auto-comment-enable')?.checked;
         const autoCommentText = autoCommentEnable ? (document.getElementById('web-post-auto-comment-text')?.value?.trim() || '') : '';
 
+        const postMode = document.getElementById('web-post-account-mode')?.value || 'single';
+        let accountId = undefined;
+        let accountIds = [];
+
+        if (postMode === 'single') {
+          accountId = document.getElementById('web-post-single-account-select')?.value;
+        } else if (postMode === 'custom_multi') {
+          const checkedBoxes = Array.from(document.querySelectorAll('input[name="post-target-account"]:checked'));
+          accountIds = checkedBoxes.map(cb => cb.value);
+          if (accountIds.length === 0) {
+            btn.disabled = false;
+            btn.innerHTML = '<span>⚡ ĐĂNG NGAY LÊN FACEBOOK</span>';
+            return alert('Vui lòng tích chọn ít nhất 1 nick để đăng bài!');
+          }
+        }
+
         const res = await fetch('/api/posts/publish-direct', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content, targetType, groupUrls, photoDataUrls, autoCommentText })
+          body: JSON.stringify({
+            content,
+            targetType,
+            groupUrls,
+            photoDataUrls,
+            autoCommentText,
+            postMode,
+            accountId,
+            accountIds
+          })
         }).then(r => r.json());
 
         const resultPanel = document.getElementById('web-post-result-panel');
@@ -6992,6 +7136,21 @@ async function runAiSimulation() {
         const resultDesc = document.getElementById('web-post-result-desc');
         const proofImg = document.getElementById('web-post-proof-img');
         const resultTime = document.getElementById('web-post-result-time');
+
+        if (res.isBatch) {
+          resultPanel.classList.remove('hidden');
+          resultTitle.textContent = `🚀 ĐÃ ĐĂNG HÀNG LOẠT (${res.totalPublished} lượt thành công / ${res.totalAccounts} nick)!`;
+          resultTitle.className = res.success ? 'text-xs font-bold text-emerald-400' : 'text-xs font-bold text-amber-400';
+          resultTime.textContent = new Date().toLocaleTimeString('vi-VN');
+          const batchList = (res.batchResults || [])
+            .map(b => `${b.success ? '✅' : '❌'} ${b.accountName}: ${b.success ? `Thành công (${b.result?.publishedCount || 1} đích)` : (b.result?.error || 'Lỗi')}`)
+            .join('\n');
+          resultDesc.innerHTML = `<div class="p-3 rounded-xl bg-black/60 font-mono text-[11px] space-y-1">${batchList.replace(/\n/g, '<br/>')}</div>`;
+          logActivity(`[Post] Đăng hàng loạt hoàn tất qua ${res.totalAccounts} nick.`);
+          refreshData();
+          alert(`🎉 Hoàn tất đăng bài hàng loạt!\n\n${batchList}`);
+          return;
+        }
 
         if (res.success && res.result) {
           resultPanel.classList.remove('hidden');
@@ -8158,10 +8317,144 @@ async function runAiSimulation() {
       } catch {}
     }
 
+    function copyTextToClipboard(text, event) {
+      if (!text) return;
+      const targetBtn = event ? (event.target.closest('button') || event.target) : null;
+      const showFeedback = (btn) => {
+        if (!btn || btn.tagName !== 'BUTTON') return;
+        const oldHtml = btn.innerHTML;
+        btn.innerHTML = '<span>✅</span> <span>Đã chép!</span>';
+        btn.classList.add('bg-emerald-500/30', 'text-emerald-300', 'border-emerald-500/50');
+        setTimeout(() => {
+          btn.innerHTML = oldHtml;
+          btn.classList.remove('bg-emerald-500/30', 'text-emerald-300', 'border-emerald-500/50');
+        }, 2000);
+      };
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          showFeedback(targetBtn);
+        }).catch(() => {
+          fallbackCopyText(text, targetBtn, showFeedback);
+        });
+      } else {
+        fallbackCopyText(text, targetBtn, showFeedback);
+      }
+    }
+
+    function fallbackCopyText(text, targetBtn, showFeedback) {
+      try {
+        const temp = document.createElement('textarea');
+        temp.value = text;
+        temp.style.position = 'fixed';
+        temp.style.opacity = '0';
+        document.body.appendChild(temp);
+        temp.focus();
+        temp.select();
+        document.execCommand('copy');
+        document.body.removeChild(temp);
+        showFeedback(targetBtn);
+      } catch (e) {
+        console.warn('Clipboard copy error:', e);
+      }
+    }
+
+    async function promptRenameAccount(accId, currentName) {
+      const newName = prompt(`Nhập tên mới cho nick Facebook (hiện tại: ${currentName}):`, currentName);
+      if (!newName || !newName.trim() || newName.trim() === currentName) return;
+
+      try {
+        const res = await fetch(`/api/accounts/${accId}/rename`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: newName.trim() })
+        }).then(r => r.json());
+
+        if (res.success) {
+          alert(`🎉 Đã đổi tên nick thành "${res.account.name}" thành công!`);
+          await refreshData();
+        } else {
+          alert('❌ Lỗi đổi tên: ' + (res.error || 'Không thể đổi tên'));
+        }
+      } catch (e) {
+        alert('❌ Lỗi kết nối: ' + e.message);
+      }
+    }
+
+    function openFacebookNameCenter(accId, uid) {
+      const targetUrl = (uid && /^\d+$/.test(uid))
+        ? `https://accountscenter.facebook.com/profiles/${uid}/name/?entrypoint=fb_account_center`
+        : `https://accountscenter.facebook.com/profiles`;
+      openProxiedBrowser(accId, 'Đổi Tên FB', targetUrl);
+    }
+
+    function populatePostAccountSelect() {
+      const singleSelect = document.getElementById('web-post-single-account-select');
+      const multiContainer = document.getElementById('web-post-multi-accounts-checkboxes');
+      if (!summaryData || !summaryData.accounts) return;
+      const accs = summaryData.accounts.items || [];
+      if (!accs.length) return;
+
+      const currentVal = singleSelect ? singleSelect.value : '';
+      if (singleSelect) {
+        singleSelect.innerHTML = accs.map(a => `
+          <option value="${a.id}" ${a.id === currentVal || a.isDefault ? 'selected' : ''}>
+            👤 ${escapeHtml(a.name)} (${a.verticalMode === 'forex_finance' ? 'Forex' : 'BĐS'})
+          </option>
+        `).join('');
+      }
+
+      if (multiContainer) {
+        multiContainer.innerHTML = accs.map(a => `
+          <label class="flex items-center gap-2 p-2.5 rounded-xl bg-[#0d1117] border border-white/10 hover:border-[#2997ff]/40 cursor-pointer text-xs transition">
+            <input type="checkbox" name="post-target-account" value="${a.id}" checked class="accent-[#2997ff] w-4 h-4 rounded" />
+            <span class="truncate font-medium text-white">${escapeHtml(a.name)}</span>
+          </label>
+        `).join('');
+      }
+
+      const activeNick = accs.find(a => a.isDefault) || accs[0];
+      const headerNickText = document.getElementById('post-header-active-nick-text');
+      if (headerNickText && activeNick) {
+        headerNickText.textContent = `Nick: ${activeNick.name} • Sẵn Sàng`;
+      }
+    }
+
+    function handlePostAccountModeChange() {
+      const mode = document.getElementById('web-post-account-mode')?.value;
+      const singleWrapper = document.getElementById('web-post-single-account-wrapper');
+      const multiPanel = document.getElementById('web-post-multi-accounts-panel');
+      const badge = document.getElementById('post-account-summary-badge');
+
+      if (mode === 'single') {
+        if (singleWrapper) singleWrapper.classList.remove('hidden');
+        if (multiPanel) multiPanel.classList.add('hidden');
+        if (badge) badge.textContent = '1 nick đang chọn';
+      } else if (mode === 'broadcast_all') {
+        if (singleWrapper) singleWrapper.classList.add('hidden');
+        if (multiPanel) multiPanel.classList.add('hidden');
+        const count = summaryData?.accounts?.items?.length || 5;
+        if (badge) badge.textContent = `Tất cả ${count} nick lần lượt`;
+      } else if (mode === 'custom_multi') {
+        if (singleWrapper) singleWrapper.classList.add('hidden');
+        if (multiPanel) multiPanel.classList.remove('hidden');
+        if (badge) badge.textContent = 'Tự chọn danh sách';
+      }
+    }
+
+    function toggleSelectAllPostAccounts() {
+      const cbs = document.querySelectorAll('input[name="post-target-account"]');
+      const allChecked = Array.from(cbs).every(cb => cb.checked);
+      cbs.forEach(cb => cb.checked = !allChecked);
+    }
+
     function renderAccountsList() {
       const container = document.getElementById('accounts-cards-container');
       if (!container || !summaryData) return;
       const accs = summaryData.accounts.items || [];
+
+      const badgeCount = document.getElementById('accounts-total-badge');
+      if (badgeCount) badgeCount.textContent = `${accs.length} Nick`;
 
       if (summaryData.poolSummary) {
         const ps = summaryData.poolSummary;
@@ -8175,93 +8468,163 @@ async function runAiSimulation() {
         if (statProxy) statProxy.textContent = `${ps.proxyVerifiedCount} / ${ps.proxyAssignedCount || ps.totalAccounts} Live`;
       }
 
+      const quickBar = document.getElementById('quick-proxied-accounts-bar');
+      if (quickBar) {
+        quickBar.innerHTML = accs.map(a => {
+          const uidNum = (a.uid && /^\d+$/.test(a.uid)) 
+            ? a.uid 
+            : (a.id === 'acc_main' ? '100033213825091' : (a.fbUsername && /^\d+$/.test(a.fbUsername) ? a.fbUsername : ''));
+          const pUrl = uidNum ? `https://www.facebook.com/profile.php?id=${uidNum}` : 'https://www.facebook.com/me';
+          const ipPart = a.proxy ? a.proxy.split(':')[0] : 'IP Máy';
+          return `
+            <button type="button" onclick="openProxiedBrowser('${a.id}', '${escapeHtml(a.name)}', '${pUrl}')"
+                    class="px-3 py-2 rounded-xl bg-white/[0.04] hover:bg-[#0071e3]/20 hover:border-[#0071e3]/40 text-slate-200 hover:text-white border border-white/10 text-xs font-semibold transition flex items-center justify-between gap-1.5 cursor-pointer shadow-sm active:scale-95 group truncate"
+                    title="Mở Chrome riêng bọc Proxy ${a.proxy || 'Chưa gắn'} vào nick ${escapeHtml(a.name)}">
+              <div class="flex items-center gap-1.5 min-w-0 truncate">
+                <span class="w-2 h-2 rounded-full ${a.proxy ? 'bg-emerald-400 shadow-sm shadow-emerald-400/50' : 'bg-amber-400'} flex-shrink-0"></span>
+                <span class="truncate font-sans font-bold text-xs">${escapeHtml(a.name)}</span>
+              </div>
+              <span class="text-[10px] text-[#2997ff] group-hover:translate-x-0.5 transition flex-shrink-0">↗</span>
+            </button>
+          `;
+        }).join('');
+      }
+
       container.innerHTML = accs.map(a => {
+        const uidNum = (a.uid && /^\d+$/.test(a.uid)) 
+          ? a.uid 
+          : (a.id === 'acc_main' ? '100033213825091' : (a.fbUsername && /^\d+$/.test(a.fbUsername) ? a.fbUsername : ''));
+        const fbProfileUrl = uidNum ? `https://www.facebook.com/profile.php?id=${uidNum}` : `https://www.facebook.com/profile.php?id=${a.uid || a.id}`;
+        const displayUid = uidNum || a.uid || a.id;
+
         let proxyBadge = '';
+        let proxyDisplay = 'Chưa gắn Proxy (Dùng IP máy)';
         if (a.proxy) {
+          const ipOnly = a.proxy.includes('@') ? a.proxy.split('@')[1].split(':')[0] : a.proxy.split(':')[0];
+          const country = a.proxyCountry ? ` (${a.proxyCountry})` : '';
+          proxyDisplay = `Proxy: ${ipOnly}${country}`;
           if (a.proxyStatus === 'live') {
-            proxyBadge = '<span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-mono font-bold flex items-center gap-1"><span>🛡️</span> AN TOÀN (2 LỚP)</span>';
+            proxyBadge = '<span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold">🟢 LIVE</span>';
           } else if (a.proxyStatus === 'dead') {
-            proxyBadge = '<span class="px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/30 text-[10px] font-mono font-bold flex items-center gap-1"><span>🚨</span> LỖI / CHẾT</span>';
+            proxyBadge = '<span class="px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/30 text-[10px] font-bold">🚨 DIE</span>';
           } else {
-            proxyBadge = '<span class="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[10px] font-mono font-bold flex items-center gap-1"><span>⏳</span> CHƯA TEST</span>';
+            proxyBadge = '<span class="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 text-[10px] font-medium">⏳ CHƯA TEST</span>';
           }
         } else {
-          proxyBadge = '<span class="px-2 py-0.5 rounded-full bg-stone-500/15 text-stone-400 border border-stone-500/30 text-[10px] font-mono font-medium">IP TRỰC TIẾP</span>';
+          proxyBadge = '<span class="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/25 text-[10px]">⚠️ IP MÁY</span>';
         }
 
         const modeBadge = a.verticalMode === 'forex_finance'
-          ? '<span class="text-[9px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-bold">📈 FOREX</span>'
-          : '<span class="text-[9px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">🏡 BĐS</span>';
+          ? '<span class="text-[9px] font-sans px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-bold">📈 FOREX</span>'
+          : '<span class="text-[9px] font-sans px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold">🏡 BĐS</span>';
 
         return `
-        <div class="claude-card rounded-3xl p-5 space-y-4 transition">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center gap-3.5">
-              <div class="relative cursor-pointer group/cardavatar" onclick="openAvatarModal('${a.id}')" title="Nhấp để đổi avatar">
-                <img src="${a.avatar || 'https://graph.facebook.com/' + a.uid + '/picture?type=large'}" class="w-12 h-12 rounded-2xl object-cover border border-[#30363d] shadow group-hover/cardavatar:border-[#D96B43] transition" />
-                <span class="absolute inset-0 bg-black/40 rounded-2xl opacity-0 group-hover/cardavatar:opacity-100 flex items-center justify-center text-[10px] text-white transition">📸</span>
+        <div class="p-4 rounded-2xl bg-[#131620] border border-white/10 hover:border-white/20 transition shadow-sm space-y-3">
+          <!-- HÀNG 1: THÔNG TIN TÀI KHOẢN & TRẠNG THÁI -->
+          <div class="flex items-center justify-between gap-3 flex-wrap">
+            <div class="flex items-center gap-3 min-w-0">
+              <div class="relative cursor-pointer group/cardavatar flex-shrink-0" onclick="openAvatarModal('${a.id}')" title="Nhấp đổi avatar">
+                <img src="${a.avatar || 'https://graph.facebook.com/' + a.uid + '/picture?type=large'}" 
+                     class="w-10 h-10 rounded-xl object-cover border border-white/15 group-hover/cardavatar:border-[#2997ff] transition shadow-sm" />
+                <span class="absolute inset-0 bg-black/40 rounded-xl opacity-0 group-hover/cardavatar:opacity-100 flex items-center justify-center text-[10px] text-white transition">📸</span>
               </div>
-              <div>
-                <div class="flex items-center gap-2">
-                  <button onclick="openProxiedBrowser('${a.id}', '${escapeHtml(a.name)}')" class="text-sm font-bold text-[#f0f6fc] hover:text-[#4599FF] transition flex items-center gap-1 text-left" title="Mở Facebook trực tiếp qua Proxy riêng an toàn">
-                    <span>${escapeHtml(a.name)}</span>
-                    <span class="text-xs text-[#4599FF]">↗</span>
+              <div class="min-w-0">
+                <div class="flex items-center gap-2 flex-wrap">
+                  <span class="text-sm font-bold text-white truncate">${escapeHtml(a.name)}</span>
+                  <button onclick="promptRenameAccount('${a.id}', '${escapeHtml(a.name)}')" 
+                          class="text-[10px] text-[#86868b] hover:text-[#2997ff] transition cursor-pointer" title="Đổi tên nick trên Dashboard">
+                    ✏️
                   </button>
                   ${modeBadge}
-                  ${a.isDefault ? '<span class="text-[9px] font-mono px-2 py-0.5 rounded-full bg-[#0071e3]/20 text-[#2997ff] border border-[#0071e3]/30 font-bold">MẶC ĐỊNH</span>' : ''}
+                  ${a.isDefault ? '<span class="text-[9px] font-bold px-2 py-0.5 rounded-full bg-[#0071e3]/20 text-[#2997ff] border border-[#0071e3]/30">CHÍNH</span>' : ''}
+                  <span data-acc-browser-badge="${a.id}"></span>
                 </div>
-                <span class="text-xs text-[#8b949e] font-mono">UID: ${a.uid || a.id}</span>
+                <div class="flex items-center gap-2 text-xs text-[#86868b] font-mono mt-0.5 flex-wrap">
+                  <span>UID: ${displayUid}</span>
+                  <span>•</span>
+                  <span class="text-slate-300 font-sans">${proxyDisplay}</span>
+                  ${proxyBadge}
+                </div>
               </div>
             </div>
-            ${!a.isDefault ? `
-              <button onclick="switchAccount('${a.id}')" class="text-xs bg-[#24201C] hover:bg-[#2C2723] text-[#f0f6fc] border border-[#30363d] px-3 py-1.5 rounded-xl transition font-semibold">
-                Chuyển sang nick này
-              </button>
-            ` : '<span class="text-emerald-400 text-xs font-mono font-bold flex items-center gap-1"><span>●</span> Đang hoạt động</span>'}
-          </div>
 
-          <div class="p-3.5 rounded-2xl bg-[#0d1117] border border-[#30363d] text-xs font-mono text-[#D6D3D1] space-y-2">
-            <div class="flex items-center justify-between flex-wrap gap-1">
-              <span class="text-[#78716C]">Proxy Cấu Hình:</span>
-              <div class="flex items-center gap-2">
-                <span class="text-[#2997ff] truncate max-w-[200px]">${a.proxy || 'Trực tiếp (Local IP)'}</span>
-                ${proxyBadge}
-              </div>
-            </div>
-            ${a.verifiedProxyIp ? `
-              <div class="flex items-center justify-between flex-wrap gap-1">
-                <span class="text-[#78716C]">IP Ngoại Mạng (Out):</span>
-                <span class="text-emerald-400 font-bold">${a.verifiedProxyIp} ${a.proxyCountry ? `(${a.proxyCountry})` : ''} ${a.proxyLatencyMs ? `⚡ ${a.proxyLatencyMs}ms` : ''}</span>
-              </div>
-            ` : ''}
-            <div class="flex items-center justify-between">
-              <span class="text-[#78716C]">Hồ Sơ Cách Ly:</span>
-              <span class="text-[#8b949e] truncate max-w-[220px]">${a.profileDir || '.user-data'}</span>
+            <div class="flex items-center gap-2 flex-shrink-0">
+              ${!a.isDefault ? `
+                <button onclick="switchAccount('${a.id}')" 
+                        class="px-2.5 py-1 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-[#86868b] hover:text-white border border-white/10 transition cursor-pointer font-medium">
+                  Đặt làm nick chính
+                </button>
+              ` : `
+                <span class="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-1 rounded-xl flex items-center gap-1">
+                  <span>🟢</span> Đang chạy chính
+                </span>
+              `}
             </div>
           </div>
 
-          <!-- Action Buttons Bar for this Account -->
-          <div class="flex items-center gap-2 pt-1 flex-wrap">
-            <button onclick="testSingleAccountProxy('${a.id}')" id="btn-test-acc-${a.id}" class="py-1.5 px-3 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 border border-amber-500/30 text-xs font-bold flex items-center gap-1.5 transition">
-              <span>⚡</span> Test Proxy 2 Lớp
-            </button>
-            <button onclick="openEditProxyModal('${a.id}', '${escapeHtml(a.proxy || '')}', '${escapeHtml(a.name)}')" class="py-1.5 px-3 rounded-xl bg-[#24201C] hover:bg-[#2C2723] text-[#f0f6fc] border border-[#30363d] text-xs font-semibold flex items-center gap-1.5 transition">
-              <span>✏️</span> Cấu Hình Proxy
-            </button>
-            <button onclick="openProxiedBrowser('${a.id}', '${escapeHtml(a.name)}')" 
-               class="py-1.5 px-3 rounded-xl bg-[#1877F2]/15 hover:bg-[#1877F2]/25 text-[#4599FF] border border-[#1877F2]/30 text-xs font-bold flex items-center justify-center gap-1.5 transition"
-               title="Mở cửa sổ Chrome độc lập bọc sẵn Proxy riêng của nick này (Tuyệt đối không lộ IP máy)">
-              <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
-              <span>Mở FB (Proxy) ↗</span>
-            </button>
-            <button onclick="openAvatarModal('${a.id}')" class="py-1.5 px-3 rounded-xl bg-[#24201C] hover:bg-[#2C2723] text-[#f0f6fc] border border-[#30363d] text-xs font-semibold flex items-center gap-1.5 transition" title="Đổi hoặc đồng bộ ảnh đại diện">
-              <span>📸</span> Avatar
-            </button>
-            ${a.isDefault ? `
-              <button onclick="syncAvatarNow()" class="py-1.5 px-3 rounded-xl bg-[#0071e3]/15 hover:bg-[#0071e3]/25 text-[#2997ff] border border-[#0071e3]/30 text-xs font-bold flex items-center gap-1 transition" title="Trích xuất trực tiếp từ trình duyệt">
-                <span>🔄</span> Sync FB
+          <!-- HÀNG 2: THANH CÔNG CỤ THAO TÁC CÂN ĐỐI (1 HÀNG THẲNG TẮP) -->
+          <div class="pt-2 border-t border-white/5 flex flex-col lg:flex-row lg:items-center justify-between gap-2">
+            <!-- Trái: Ô Link FB rút gọn + Copy (co giãn linh hoạt) -->
+            <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-black/40 border border-white/10 hover:border-[#2997ff]/40 transition text-xs min-w-0 max-w-full lg:max-w-xs">
+              <span class="text-[#86868b] text-[10px] font-mono select-none flex items-center gap-1 flex-shrink-0">
+                <span>🔗</span> <span>Link:</span>
+              </span>
+              <input type="text" readonly value="${fbProfileUrl}" 
+                     class="bg-transparent text-[#2997ff] font-mono text-[10.5px] w-full min-w-0 truncate focus:outline-none cursor-pointer select-all" 
+                     onclick="this.select(); copyTextToClipboard('${fbProfileUrl}', event)" 
+                     title="Nhấp để copy link trang cá nhân" />
+              <button type="button" onclick="copyTextToClipboard('${fbProfileUrl}', event)" 
+                      class="px-2 py-0.5 rounded-lg bg-[#0071e3]/20 hover:bg-[#0071e3]/35 text-[#2997ff] hover:text-white text-[10px] font-bold transition cursor-pointer flex-shrink-0 active:scale-95">
+                Copy
               </button>
-            ` : ''}
+            </div>
+
+            <!-- Phải: 1 Hàng Thẳng Tắp các nút bấm chức năng (Không bao giờ rớt dòng) -->
+            <div class="flex items-center gap-1.5 flex-nowrap overflow-x-auto pb-0.5 justify-start lg:justify-end flex-shrink-0">
+              <!-- Nút chính: Mở Chrome FB -->
+              <button onclick="openProxiedBrowser('${a.id}', '${escapeHtml(a.name)}')" 
+                      class="px-2.5 py-1.5 rounded-xl bg-[#0071e3] hover:bg-[#0077ed] text-white text-xs font-bold transition flex items-center gap-1 shadow-sm active:scale-95 cursor-pointer flex-shrink-0 whitespace-nowrap"
+                      title="Mở cửa sổ Chrome độc lập bọc sẵn Proxy US">
+                <span>🚀 Mở Chrome FB ↗</span>
+              </button>
+
+              <!-- Auto-Login (nếu có pass) -->
+              ${a.fbPassword ? `
+                <button onclick="autoLoginAccount('${a.id}', '${escapeHtml(a.name)}')" 
+                        class="px-2 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-xs font-semibold flex items-center gap-1 transition cursor-pointer active:scale-95 flex-shrink-0 whitespace-nowrap"
+                        title="Tự động đăng nhập lại và tính 2FA TOTP qua Proxy">
+                  <span>🔑 Auto-Login</span>
+                </button>
+              ` : ''}
+
+              <!-- Đổi Tên Facebook -->
+              <button onclick="openFacebookNameCenter('${a.id}', '${displayUid}')" 
+                      class="px-2 py-1.5 rounded-xl bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 text-xs font-semibold flex items-center gap-1 transition cursor-pointer active:scale-95 flex-shrink-0 whitespace-nowrap"
+                      title="Mở trang Đổi Tên Facebook qua Proxy riêng">
+                <span>🪪 Đổi Tên FB ↗</span>
+              </button>
+
+              <!-- Giải CAPTCHA Tự Động -->
+              <button onclick="unlockCaptchaForAccount('${a.id}', '${escapeHtml(a.name)}')" 
+                      class="px-2 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-xs font-semibold flex items-center gap-1 transition cursor-pointer active:scale-95 flex-shrink-0 whitespace-nowrap"
+                      title="Tự động phát hiện và giải mã màn hình CAPTCHA của nick này qua Chrome DevTools">
+                <span>🔓 Mở CAPTCHA</span>
+              </button>
+
+              <!-- Cài đặt Proxy -->
+              <button onclick="openEditProxyModal('${a.id}', '${escapeHtml(a.proxy || '')}', '${escapeHtml(a.name)}')" 
+                      class="px-2 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10 text-xs font-medium flex items-center gap-1 transition cursor-pointer flex-shrink-0 whitespace-nowrap"
+                      title="Xem / Gắn / Đổi Proxy">
+                <span>🛡️ Proxy</span>
+              </button>
+
+              <!-- Đóng Chrome -->
+              <button onclick="closeProxiedBrowser('${a.id}', '${escapeHtml(a.name)}')" 
+                      class="px-2 py-1.5 rounded-xl bg-white/5 hover:bg-rose-500/20 text-[#86868b] hover:text-rose-400 border border-white/10 text-xs transition cursor-pointer flex-shrink-0"
+                      title="Đóng cửa sổ Chrome của nick này khi dùng xong">
+                <span>⏹️</span>
+              </button>
+            </div>
           </div>
         </div>
         `;
@@ -8423,6 +8786,11 @@ async function runAiSimulation() {
         return alert('Vui lòng nhập cả Tài khoản (Email/SĐT/UID) và Mật khẩu Facebook!');
       }
 
+      // RÀNG BUỘC BẢO VỆ CHỐNG DÍNH IP (STRICT PROXY LOCK)
+      if (!proxy) {
+        return alert('🚨 BẢO VỆ CHỐNG DÍNH IP MÁY:\n\nBạn chưa nhập Proxy riêng cho nick!\n\nChế độ bảo vệ nghiêm ngặt yêu cầu BẮT BUỘC phải có Proxy (định dạng IP:Port:User:Pass) thì mới cho phép bắt đầu đăng nhập Facebook.');
+      }
+
       btn.disabled = true;
       btn.innerHTML = '<span class="w-3.5 h-3.5 border-2 border-black border-t-transparent rounded-full animate-spin"></span> <span>Đang đăng nhập Facebook tự động...</span>';
       if (feedback) {
@@ -8496,26 +8864,152 @@ async function runAiSimulation() {
       }
     }
 
+    function showToast(message, type = 'info') {
+      let toastContainer = document.getElementById('global-toast-container');
+      if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.id = 'global-toast-container';
+        toastContainer.className = 'fixed top-5 right-5 z-[99999] flex flex-col gap-2 max-w-sm pointer-events-none';
+        document.body.appendChild(toastContainer);
+      }
+
+      const toast = document.createElement('div');
+      const isSuccess = type === 'success';
+      const isError = type === 'error';
+      toast.className = `p-3.5 rounded-2xl shadow-2xl border text-xs font-medium pointer-events-auto transition-all transform duration-300 translate-y-[-10px] opacity-0 flex items-start gap-2.5 ${
+        isSuccess ? 'bg-[#062419] border-emerald-500/40 text-emerald-200' :
+        isError ? 'bg-[#2b1111] border-rose-500/40 text-rose-200' :
+        'bg-[#10192e] border-[#2997ff]/40 text-[#c7e0ff]'
+      }`;
+
+      const icon = isSuccess ? '✅' : isError ? '🚨' : 'ℹ️';
+      toast.innerHTML = `<span class="text-base flex-shrink-0">${icon}</span><div class="flex-1 leading-snug">${message}</div>`;
+      toastContainer.appendChild(toast);
+
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-[-10px]', 'opacity-0');
+      });
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-[-10px]');
+        setTimeout(() => toast.remove(), 300);
+      }, 5000);
+    }
+
+    
+    let activeBrowserIds = new Set();
+
+    async function syncActiveBrowserStates() {
+      try {
+        const res = await fetch('/api/accounts/active-browsers').then(r => r.json());
+        if (res.success && Array.isArray(res.activeIds)) {
+          activeBrowserIds = new Set(res.activeIds);
+          updateBrowserStateBadges();
+        }
+      } catch {}
+    }
+
+    function updateBrowserStateBadges() {
+      document.querySelectorAll('[data-acc-browser-badge]').forEach(el => {
+        const accId = el.getAttribute('data-acc-browser-badge');
+        if (activeBrowserIds.has(accId)) {
+          el.innerHTML = '<span class="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold flex items-center gap-1 animate-pulse"><span>🟢</span> Đang Mở Chrome</span>';
+        } else {
+          el.innerHTML = '';
+        }
+      });
+    }
+
+    async function closeProxiedBrowser(accId, accName) {
+      try {
+        const res = await fetch(`/api/accounts/${accId}/close-browser`, { method: 'POST' }).then(r => r.json());
+        showToast(res.message || 'Đã đóng cửa sổ Chrome.', 'info');
+        activeBrowserIds.delete(accId);
+        updateBrowserStateBadges();
+      } catch (err) {
+        showToast(`Lỗi đóng Chrome: ${err.message}`, 'error');
+      }
+    }
+
+    async function openAllProxiedBrowsers() {
+      const btn = document.getElementById('btn-open-all-browsers');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span> <span>Đang mở các cửa sổ...</span>';
+      }
+      try {
+        showToast('🚀 Đang khởi chạy song song các cửa sổ Chrome riêng cho từng nick bọc Proxy...', 'info');
+        const res = await fetch('/api/accounts/open-all-browsers', { method: 'POST' }).then(r => r.json());
+        if (res.success) {
+          showToast(`🎉 ${res.message}`, 'success');
+          await syncActiveBrowserStates();
+        } else {
+          showToast(`❌ ${res.error || 'Lỗi mở hàng loạt'}`, 'error');
+        }
+      } catch (err) {
+        showToast(`❌ Lỗi kết nối: ${err.message}`, 'error');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '<span>🌐</span> <span>Mở Tất Cả Cửa Sổ (Mỗi Nick 1 Cửa Sổ)</span>';
+        }
+      }
+    }
+
+    async function closeAllProxiedBrowsers() {
+      if (!confirm('Xác nhận đóng TOÀN BỘ các cửa sổ Chrome của tất cả các nick?')) return;
+      try {
+        const res = await fetch('/api/accounts/close-all-browsers', { method: 'POST' }).then(r => r.json());
+        showToast(res.message || 'Đã đóng tất cả cửa sổ Chrome.', 'success');
+        activeBrowserIds.clear();
+        updateBrowserStateBadges();
+      } catch (err) {
+        showToast(`Lỗi: ${err.message}`, 'error');
+      }
+    }
+
+    async function autoLoginAccount(accId, accName) {
+      if (!confirm(`Tự động đăng nhập lại cho nick "${accName}" bằng mật khẩu và mã 2FA TOTP qua Proxy riêng?`)) return;
+      showToast(`⏳ Đang tự động đăng nhập qua Proxy cho nick "${accName}"...`, 'info');
+      try {
+        const res = await fetch(`/api/accounts/${accId}/auto-login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ visual: false })
+        }).then(r => r.json());
+
+        if (res.success) {
+          showToast(`✅ ${res.message}`, 'success');
+          await refreshData();
+          renderAccountsList();
+        } else {
+          showToast(`🚨 Lỗi: ${res.error || 'Đăng nhập không thành công'}. Đang mở Chrome để bạn tự thao tác...`, 'error');
+          openProxiedBrowser(accId, accName);
+        }
+      } catch (err) {
+        showToast(`Lỗi: ${err.message}`, 'error');
+      }
+    }
+
     async function openProxiedBrowser(accId, accName, targetUrl) {
       const acc = summaryData?.accounts?.items?.find(a => a.id === accId);
       const displayName = acc ? acc.name : (accName || 'Tài khoản');
 
-      // 1. RÀNG BUỘC CẢNH BÁO NẾU NICK CHƯA GẮN PROXY
+      // 1. RÀNG BUỘC BẢO VỆ NGHIÊM NGẶT (CHỐNG DÍNH IP MÁY THẬT)
       if (acc && !acc.proxy) {
-        const proceed = confirm(
-          `⚠️ CẢNH BÁO BẢO VỆ TÀI KHOẢN:\n\n` +
-          `Nick "${displayName}" CHƯA ĐƯỢC GẮN PROXY RIÊNG BIỆT!\n\n` +
-          `Nếu bạn mở trình duyệt ngay bây giờ, Facebook sẽ ghi nhận địa chỉ IP MẠNG MÁY THẬT của bạn. Nếu bạn nuôi hoặc chạy nhiều nick, điều này rất dễ làm Facebook quét trùng IP và checkpoint cả dàn nick.\n\n` +
-          `• Bấm [OK] nếu bạn vẫn chấp nhận mở bằng mạng máy trực tiếp.\n` +
-          `• Bấm [Cancel] để dừng lại và gắn Proxy riêng cho nick trước.`
-        );
-        if (!proceed) return;
+        showToast(`🚨 ĐÃ CHẶN MỞ FB: Nick "${displayName}" chưa gắn Proxy! Vui lòng bấm [🛡️ Gắn Proxy] trước để bảo vệ IP máy.`, 'error');
+        return;
+      }
+
+      const btn = event?.currentTarget;
+      const originalHtml = btn ? btn.innerHTML : '';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span>⏳ Đang mở...</span>';
       }
 
       try {
-        const btn = event?.currentTarget;
-        if (btn) btn.classList.add('opacity-50');
-        logActivity(`[Trình Duyệt] Đang yêu cầu khởi chạy trình duyệt an toàn cho nick "${displayName}"...`);
+        logActivity(`[Trình Duyệt] Đang khởi chạy Chrome an toàn cho nick "${displayName}"...`);
 
         const res = await fetch(`/api/accounts/${accId}/open-browser`, {
           method: 'POST',
@@ -8523,27 +9017,25 @@ async function runAiSimulation() {
           body: JSON.stringify({ targetUrl })
         }).then(r => r.json());
 
-        if (btn) btn.classList.remove('opacity-50');
-
         if (res.success) {
-          if (res.isDirect) {
-            alert(`ℹ️ ĐÃ MỞ FACEBOOK (IP MÁY THẬT):\n\n${res.message}\n\nLưu ý: Nick này chưa gắn Proxy, đang chạy trên mạng nội bộ.`);
-          } else {
-            alert(
-              `🛡️ ĐÃ MỞ FACEBOOK BỌC PROXY AN TOÀN 100%:\n\n` +
-              `${res.message}\n\n` +
-              `• Proxy bọc ngoài: ${res.proxy}\n` +
-              `• Ràng buộc: BẮT BUỘC QUA PROXY BAN ĐẦU\n` +
-              `• Chống rò rỉ WebRTC & DNS: 100% cách ly, tuyệt đối KHÔNG lộ IP máy thật của bạn!`
-            );
-          }
+          showToast(`🛡️ <b>${displayName}</b>: Đã mở cửa sổ Chrome bọc Proxy US! Mời bạn xem cửa sổ Chrome trên màn hình.`, 'success');
+          activeBrowserIds.add(accId);
+          updateBrowserStateBadges();
           logActivity(`[Trình Duyệt OK] Đã mở cửa sổ an toàn cho nick: ${displayName}`);
         } else {
-          alert(`🚨 KHÔNG THỂ MỞ TRÌNH DUYỆT:\n\n${res.error}`);
-          logActivity(`[Trình Duyệt Chặn] ${res.error}`);
+          const cleanErr = (res.error || '').split('Call log:')[0].trim();
+          showToast(`🚨 Lỗi mở trình duyệt: ${cleanErr}`, 'error');
+          logActivity(`[Trình Duyệt Chặn] ${cleanErr}`);
         }
       } catch (err) {
-        alert(`❌ Lỗi kết nối server: ${err.message}`);
+        showToast(`❌ Lỗi kết nối server: ${err.message}`, 'error');
+      } finally {
+        if (btn) {
+          setTimeout(() => {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+          }, 3000);
+        }
       }
     }
 
@@ -9270,6 +9762,162 @@ async function runAiSimulation() {
           btn.disabled = false;
           btn.innerHTML = '<span>🛡️</span> <span>Check Tất Cả Proxy</span>';
         }
+      }
+    }
+
+    // ==========================================
+    // QUẢN LÝ & TỰ ĐỘNG MỞ KHÓA CAPTCHA (KUDOX 2.5)
+    // ==========================================
+    function openCaptchaModal() {
+      document.getElementById('captcha-modal').classList.remove('hidden');
+      loadCaptchaStatus();
+      scanLiveCaptchasInModal();
+    }
+
+    function closeCaptchaModal() {
+      document.getElementById('captcha-modal').classList.add('hidden');
+    }
+
+    async function loadCaptchaStatus() {
+      try {
+        const res = await fetch('/api/captcha/status').then(r => r.json());
+        if (res.success) {
+          if (res.keys) {
+            if (res.keys.geminiKeyMasked) {
+              document.getElementById('captcha-gemini-key').placeholder = `Đã lưu (${res.keys.geminiKeyMasked}) - Nhập mới để đổi`;
+            }
+            if (res.keys.twoCaptchaKeyMasked) {
+              document.getElementById('captcha-2captcha-key').placeholder = `Đã lưu (${res.keys.twoCaptchaKeyMasked}) - Nhập mới để đổi`;
+            }
+          }
+          const geminiStatus = document.getElementById('lib-gemini-status');
+          if (geminiStatus) {
+            geminiStatus.textContent = res.configuredProviders?.gemini ? 'READY (KEY ON)' : 'NO KEY';
+            geminiStatus.className = res.configuredProviders?.gemini ? 'text-emerald-400 font-bold' : 'text-slate-400 font-bold';
+          }
+          const twoCapStatus = document.getElementById('lib-2captcha-status');
+          if (twoCapStatus) {
+            twoCapStatus.textContent = res.configuredProviders?.twoCaptcha ? 'READY (KEY ON)' : 'NO KEY';
+            twoCapStatus.className = res.configuredProviders?.twoCaptcha ? 'text-emerald-400 font-bold' : 'text-slate-400 font-bold';
+          }
+        }
+      } catch (e) {}
+    }
+
+    async function saveCaptchaSettingsFromModal() {
+      const geminiKey = document.getElementById('captcha-gemini-key').value.trim();
+      const twoCaptchaKey = document.getElementById('captcha-2captcha-key').value.trim();
+      const btn = document.getElementById('btn-save-captcha-keys');
+      btn.disabled = true;
+      btn.textContent = 'Đang lưu...';
+
+      try {
+        const res = await fetch('/api/captcha/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ geminiKey, twoCaptchaKey })
+        }).then(r => r.json());
+
+        if (res.success) {
+          showToast('✅ ' + res.message, 'success');
+          loadCaptchaStatus();
+        } else {
+          showToast('❌ Lỗi: ' + res.error, 'error');
+        }
+      } catch (err) {
+        showToast('❌ Lỗi lưu cài đặt: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<span>💾</span> Lưu Cài Đặt API Key';
+      }
+    }
+
+    async function scanLiveCaptchasInModal() {
+      const container = document.getElementById('captcha-modal-live-list');
+      container.innerHTML = '<div class="text-[11px] text-[#8b949e] text-center py-3 font-mono">⏳ Đang kết nối CDP DevTools quét toàn bộ trình duyệt Chrome...</div>';
+
+      try {
+        const res = await fetch('/api/captcha/live-active').then(r => r.json());
+        if (!res.success || !res.profiles || res.profiles.length === 0) {
+          container.innerHTML = '<div class="text-[11px] text-[#8b949e] text-center py-3">⚪ Hiện chưa có trình duyệt Chrome nào đang mở. Hãy mở trình duyệt nick trước.</div>';
+          return;
+        }
+
+        container.innerHTML = res.profiles.map(p => {
+          return `
+            <div class="p-3 rounded-xl ${p.hasCaptcha ? 'bg-amber-950/30 border-amber-600/50' : 'bg-black/30 border-white/5'} border flex items-center justify-between gap-3">
+              <div class="flex items-center gap-2.5 min-w-0">
+                <span class="w-2.5 h-2.5 rounded-full ${p.hasCaptcha ? 'bg-amber-400 animate-ping' : 'bg-emerald-400'} flex-shrink-0"></span>
+                <div class="min-w-0">
+                  <div class="text-xs font-bold text-white truncate">${escapeHtml(p.accountName)} <span class="font-mono text-[10px] text-[#8b949e]">(Port: ${p.port})</span></div>
+                  <div class="text-[10px] ${p.hasCaptcha ? 'text-amber-300 font-semibold' : 'text-[#8b949e]'} truncate">${escapeHtml(p.statusText)}</div>
+                </div>
+              </div>
+              <div class="flex items-center gap-1.5 flex-shrink-0">
+                ${p.hasCaptcha ? `
+                  ${p.captchaImageBase64 ? `<img src="${p.captchaImageBase64}" class="h-7 border border-amber-500/40 rounded bg-white px-1" />` : ''}
+                  <button onclick="unlockCaptchaForAccount('${p.accountId}', '${escapeHtml(p.accountName)}')" class="px-2.5 py-1 rounded-xl bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold transition flex items-center gap-1">
+                    <span>🔓</span> Giải Ngay
+                  </button>
+                ` : `
+                  <button onclick="unlockCaptchaForAccount('${p.accountId}', '${escapeHtml(p.accountName)}')" class="px-2.5 py-1 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 text-xs font-medium transition flex items-center gap-1">
+                    <span>🔍</span> Mở Khóa
+                  </button>
+                `}
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (err) {
+        container.innerHTML = `<div class="text-[11px] text-rose-400 text-center py-3">❌ Lỗi quét trình duyệt: ${err.message}</div>`;
+      }
+    }
+
+    async function unlockCaptchaForAccount(accId, accName) {
+      const code = prompt(`Nhập mã CAPTCHA 6 số cho nick "${accName || accId}":\n(Hoặc ĐỂ TRỐNG để hệ thống tự động nhận dạng bằng AI Vision & Audio):`);
+      if (code === null) return;
+
+      showToast(`⏳ Đang kết nối Chrome và mở khóa CAPTCHA cho "${accName || accId}"...`, 'info');
+      try {
+        const res = await fetch(`/api/captcha/unlock/${encodeURIComponent(accId)}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: code.trim() || undefined })
+        }).then(r => r.json());
+
+        if (res.success) {
+          showToast(`🎉 MỞ KHÓA THÀNH CÔNG! Mã đã giải: "${res.solution || code}" cho nick ${accName || accId}`, 'success');
+          logActivity(`[Captcha OK] Đã vượt CAPTCHA thành công cho nick ${accName} (Mã: ${res.solution || code})`);
+          if (document.getElementById('captcha-modal') && !document.getElementById('captcha-modal').classList.contains('hidden')) {
+            scanLiveCaptchasInModal();
+          }
+        } else {
+          showToast(`🚨 Mở khóa chưa thành công: ${res.error || 'Vui lòng kiểm tra lại màn hình Chrome'}`, 'error');
+          logActivity(`[Captcha Thất Bại] ${res.error}`);
+        }
+      } catch (err) {
+        showToast(`❌ Lỗi: ${err.message}`, 'error');
+      }
+    }
+
+    async function autoUnlockAllCaptchas() {
+      showToast('⏳ Đang quét và tự động giải mã CAPTCHA cho toàn bộ nick...', 'info');
+      try {
+        const res = await fetch('/api/captcha/unlock-all', { method: 'POST' }).then(r => r.json());
+        if (res.success) {
+          if (res.unlockedCount > 0) {
+            showToast(`🎉 ĐÃ GIẢI VÀ MỞ KHÓA THÀNH CÔNG ${res.unlockedCount} NICK!`, 'success');
+          } else {
+            showToast('✅ Đã kiểm tra: Không có nick nào đang bị kẹt CAPTCHA!', 'success');
+          }
+          if (document.getElementById('captcha-modal') && !document.getElementById('captcha-modal').classList.contains('hidden')) {
+            scanLiveCaptchasInModal();
+          }
+        } else {
+          showToast('❌ Lỗi mở khóa hàng loạt: ' + (res.error || 'Server không phản hồi'), 'error');
+        }
+      } catch (err) {
+        showToast('❌ Lỗi kết nối: ' + err.message, 'error');
       }
     }
 
@@ -10259,7 +10907,7 @@ async function runAiSimulation() {
     async function submitDirectCredentialsLogin() {
       const username = document.getElementById('direct-acc-username')?.value?.trim();
       const password = document.getElementById('direct-acc-password')?.value?.trim();
-      const twoFactorCode = document.getElementById('direct-acc-2fa')?.value?.trim();
+      const twoFaRaw = document.getElementById('direct-acc-2fa')?.value?.trim();
       const proxy = document.getElementById('direct-acc-proxy')?.value?.trim();
       const verticalMode = document.getElementById('direct-acc-vertical')?.value || 'bds_ecopark';
       const makeDefault = document.getElementById('direct-make-active')?.checked;
@@ -10270,18 +10918,33 @@ async function runAiSimulation() {
         return alert('Vui lòng nhập cả Tài khoản (Email/SĐT/UID) và Mật khẩu Facebook!');
       }
 
+      // RÀNG BUỘC BẢO VỆ CHỐNG DÍNH IP (STRICT PROXY LOCK)
+      if (!proxy) {
+        return alert('🚨 BẢO VỆ CHỐNG DÍNH IP MÁY:\n\nBạn chưa nhập Proxy riêng cho nick!\n\nChế độ bảo vệ nghiêm ngặt yêu cầu BẮT BUỘC phải có Proxy (định dạng IP:Port:User:Pass) thì mới cho phép bắt đầu đăng nhập Facebook.');
+      }
+
+      let twoFactorCode = '';
+      let twoFactorSecret = '';
+      if (twoFaRaw) {
+        if (/^\d{6}$/.test(twoFaRaw)) {
+          twoFactorCode = twoFaRaw;
+        } else {
+          twoFactorSecret = twoFaRaw;
+        }
+      }
+
       btn.disabled = true;
       btn.innerHTML = '<span class="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></span> <span>Đang đăng nhập...</span>';
       if (feedback) {
         feedback.className = 'p-3 rounded-xl text-xs font-medium border text-amber-300 bg-amber-500/10 border-amber-500/20 block';
-        feedback.textContent = '⏳ Đang khởi chạy Chromium và gửi thông tin đăng nhập vào Facebook...';
+        feedback.textContent = '⏳ Đang khởi chạy Chrome riêng qua Proxy và tự động xác thực Facebook...';
       }
 
       try {
         const res = await fetch('/api/accounts/login-credentials', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username, password, twoFactorCode, makeDefault, proxy, verticalMode })
+          body: JSON.stringify({ username, password, twoFactorCode, twoFactorSecret, makeDefault, proxy, verticalMode })
         }).then(r => r.json());
 
         if (res.success) {
@@ -10321,6 +10984,11 @@ async function runAiSimulation() {
 
       if (!cookieInput) {
         return alert('Vui lòng dán chuỗi Cookie Facebook vào ô!');
+      }
+
+      // RÀNG BUỘC BẢO VỆ CHỐNG DÍNH IP (STRICT PROXY LOCK)
+      if (!proxy) {
+        return alert('🚨 BẢO VỆ CHỐNG DÍNH IP MÁY:\n\nVui lòng nhập Proxy riêng ở ô trên trước khi xác thực Cookie!');
       }
 
       btn.disabled = true;

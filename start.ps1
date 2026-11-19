@@ -1,6 +1,6 @@
-<#
+﻿<#
 .SYNOPSIS
-  FalconX Mess x Tele - Professional PowerShell Automation Launcher
+  FB EXTEN - Professional PowerShell Automation Launcher
   Cấp mọi quyền thực thi (Bypass ExecutionPolicy) và khởi chạy hệ thống
 #>
 
@@ -11,7 +11,7 @@ $ProjectRoot = Split-Path -Parent $MyInvocation.MyCommand.Definition
 Set-Location $ProjectRoot
 
 Write-Host "`n=========================================================================" -ForegroundColor Cyan
-Write-Host "🚀 KHỞI ĐỘNG HỆ THỐNG FALCONX MESS x TELE (PRO POWERSHELL WORKFLOW)" -ForegroundColor Green
+Write-Host "🚀 KHỞI ĐỘNG HỆ THỐNG FB EXTEN (HYBRID CORE + PRIVATE EXTENSION)" -ForegroundColor Green
 Write-Host "=========================================================================" -ForegroundColor Cyan
 Write-Host "🌐 Web Dashboard: http://localhost:3300" -ForegroundColor Yellow
 Write-Host "☁️ Cơ Sở Dữ Liệu: 100% Online Cloud Database (0 Byte Local Disk)" -ForegroundColor Cyan

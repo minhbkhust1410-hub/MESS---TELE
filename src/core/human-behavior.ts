@@ -1,52 +1,15 @@
 import type { Page, Locator } from 'playwright';
+import {
+  spinText,
+  ensureUniqueHumanText,
+  segmentGraphemes,
+} from '../shared/fb-exten-core.js';
+
+export { spinText, ensureUniqueHumanText };
 
 export async function randomSleep(minMs: number, maxMs: number): Promise<void> {
   const duration = Math.floor(minMs + Math.random() * (maxMs - minMs));
   await new Promise((resolve) => setTimeout(resolve, duration));
-}
-
-/**
- * Xử lý Spintax dạng {A|B|C} để tạo biến thể tự nhiên, không bao giờ bị trùng lặp spam
- */
-export function spinText(template: string): string {
-  if (!template) return '';
-  const regex = /\{([^{}]+)\}/g;
-  let text = template;
-  while (regex.test(text)) {
-    text = text.replace(regex, (_match, group) => {
-      const choices = group.split('|');
-      return choices[Math.floor(Math.random() * choices.length)].trim();
-    });
-  }
-  return text;
-}
-
-/**
- * Đảm bảo nội dung bình luận/bài viết luôn có độ biến thiên tự nhiên (chống trùng lặp 100% hash của Facebook Anti-Spam)
- * Ngay cả khi người dùng quên viết cú pháp {A|B}, hàm vẫn tự động thêm đuôi cảm thán/dấu câu tự nhiên khác nhau ở mỗi nhóm.
- */
-export function ensureUniqueHumanText(template: string, groupIdx = 0): string {
-  const spun = spinText(template).trim();
-  if (!spun) return '';
-  // Nếu mẫu đã có Spintax {A|B} thì giữ nguyên kết quả Spintax, chỉ thêm biến thiên nhẹ nếu đi nhiều nhóm
-  const hasSpintax = /\{[^{}]+\}/.test(template);
-  if (hasSpintax && groupIdx === 0) return spun;
-
-  const naturalEndings = [
-    '',
-    ' ạ!',
-    ' nhé!',
-    ' nha!',
-    ' ạ ✨',
-    ' nhé ạ!',
-    ' nhé mọi người!',
-    ' ạ ❤️',
-  ];
-  const chosenEnding = naturalEndings[(groupIdx + Math.floor(Math.random() * naturalEndings.length)) % naturalEndings.length];
-  if (!chosenEnding || spun.endsWith(chosenEnding.trim())) {
-    return spun;
-  }
-  return `${spun}${chosenEnding}`;
 }
 
 /**
@@ -67,8 +30,7 @@ export async function humanMoveMouseRandomly(page: Page): Promise<void> {
  * Hỗ trợ 100% chuẩn Unicode Grapheme Segmenter (bảo toàn trọn vẹn mọi Emoji phức tạp, Icon Facebook, không bao giờ bị lỗi ô vuông / dấu hỏi kim cương ).
  */
 export async function humanType(page: Page, text: string): Promise<void> {
-  const segmenter = new Intl.Segmenter('vi', { granularity: 'grapheme' });
-  const graphemes = Array.from(segmenter.segment(text), (s) => s.segment);
+  const graphemes = segmentGraphemes(text);
   const isLongText = graphemes.length > 200;
 
   for (let i = 0; i < graphemes.length; i++) {

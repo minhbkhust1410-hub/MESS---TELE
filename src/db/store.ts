@@ -2,6 +2,14 @@ import fs from 'fs';
 import path from 'path';
 import { config } from '../config/env.js';
 
+// Lưu con trỏ hàm fs nguyên bản từ hệ điều hành (tránh bị monkey-patching xóa mất)
+const realFs = {
+  readFileSync: fs.readFileSync,
+  writeFileSync: fs.writeFileSync,
+  existsSync: fs.existsSync,
+  mkdirSync: fs.mkdirSync,
+};
+
 export interface ThreadMapping {
   id: number;
   fb_thread_id: string;
@@ -82,8 +90,46 @@ const defaultData: DatabaseSchema = {
 let memoryDb: DatabaseSchema | null = null;
 let saveTimeout: NodeJS.Timeout | null = null;
 
+/**
+ * Chuẩn hóa profileDir khi đồng bộ từ máy khác về (tránh lỗi EPERM mkdir C:\Users\Administrator\...)
+ */
+export function normalizeProfileDir(profileDir: string | undefined, accountId: string): string {
+  const clean = (profileDir || '').trim();
+  if (!clean) return `./.user-data/profiles/${accountId}`;
+
+  const isAbs = path.isAbsolute(clean) || /^[a-zA-Z]:[\\/]/.test(clean);
+  if (!isAbs) return clean;
+
+  const cwdNorm = path.resolve(process.cwd()).replace(/\\/g, '/').toLowerCase();
+  const cleanNorm = clean.replace(/\\/g, '/').toLowerCase();
+  if (cleanNorm === cwdNorm || cleanNorm.startsWith(cwdNorm + '/')) {
+    return clean;
+  }
+
+  const userDataMatch = clean.replace(/\\/g, '/').match(/\/(\.user-data\/.+)$/i);
+  if (userDataMatch && userDataMatch[1]) {
+    return `./${userDataMatch[1]}`;
+  }
+
+  const folderName = path.basename(clean.replace(/[\\/]+$/, '')) || accountId;
+  return `./.user-data/profiles/${folderName}`;
+}
+
 function loadDatabase(): DatabaseSchema {
   if (memoryDb) return memoryDb;
+
+  // 1. Đọc sao lưu bảo vệ vĩnh viễn từ .user-data/accounts_vault_local.json trước tiên
+  const backupVaultPath = path.resolve(process.cwd(), '.user-data/accounts_vault_local.json');
+  let backupAccs: FacebookAccount[] = [];
+  try {
+    if (realFs.existsSync(backupVaultPath)) {
+      const backupRaw = realFs.readFileSync(backupVaultPath, 'utf8');
+      const parsed = JSON.parse(backupRaw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        backupAccs = parsed;
+      }
+    }
+  } catch {}
 
   const dbFile = config.dbPath;
   const dbDir = path.dirname(dbFile);
@@ -96,23 +142,38 @@ function loadDatabase(): DatabaseSchema {
     try {
       const content = fs.readFileSync(dbFile, 'utf-8');
       memoryDb = JSON.parse(content);
-      if (memoryDb && (!memoryDb.accounts || memoryDb.accounts.length === 0)) {
-        memoryDb.accounts = [...defaultAccounts];
-        persistNow();
-      }
-      if (memoryDb && Array.isArray(memoryDb.accounts)) {
-        for (const acc of memoryDb.accounts) {
-          if (!acc.verticalMode) {
-            acc.verticalMode = /trading|forex|fx|vàng|gold/i.test(acc.name || '') ? 'forex_finance' : 'bds_ecopark';
-          }
-        }
-      }
     } catch {
       memoryDb = { ...defaultData };
     }
   } else {
     memoryDb = { ...defaultData };
-    persistNow();
+  }
+
+  if (!memoryDb) {
+    memoryDb = { ...defaultData };
+  }
+
+  // Khôi phục tài khoản từ backup vault nếu memoryDb bị thiếu hoặc rỗng
+  if (!memoryDb.accounts || memoryDb.accounts.length === 0) {
+    memoryDb.accounts = backupAccs.length > 0 ? backupAccs : [...defaultAccounts];
+  } else if (backupAccs.length > memoryDb.accounts.length) {
+    // Merge: nếu backupAccs có nhiều tài khoản hơn (ví dụ các nick vệ tinh)
+    const existingIds = new Set(memoryDb.accounts.map(a => a.id));
+    for (const bAcc of backupAccs) {
+      if (!existingIds.has(bAcc.id)) {
+        memoryDb.accounts.push(bAcc);
+        existingIds.add(bAcc.id);
+      }
+    }
+  }
+
+  if (Array.isArray(memoryDb.accounts)) {
+    for (const acc of memoryDb.accounts) {
+      acc.profileDir = normalizeProfileDir(acc.profileDir, acc.id);
+      if (!acc.verticalMode) {
+        acc.verticalMode = /trading|forex|fx|vàng|gold/i.test(acc.name || '') ? 'forex_finance' : 'bds_ecopark';
+      }
+    }
   }
 
   return memoryDb!;
@@ -121,6 +182,10 @@ function loadDatabase(): DatabaseSchema {
 function persistNow(): void {
   if (!memoryDb) return;
   const dbFile = config.dbPath;
+  const dbDir = path.dirname(dbFile);
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+  }
   const tempFile = `${dbFile}.tmp`;
   try {
     fs.writeFileSync(tempFile, JSON.stringify(memoryDb, null, 2), 'utf-8');
@@ -128,6 +193,16 @@ function persistNow(): void {
   } catch (err) {
     console.error('[DB] Lỗi ghi dữ liệu:', err);
   }
+
+  // Luôn ghi đè bản sao bất tử vào .user-data (không bao giờ bị xóa khi khởi động lại máy)
+  try {
+    const backupVaultDir = path.resolve(process.cwd(), '.user-data');
+    if (!realFs.existsSync(backupVaultDir)) realFs.mkdirSync(backupVaultDir, { recursive: true });
+    const backupVaultPath = path.join(backupVaultDir, 'accounts_vault_local.json');
+    if (memoryDb.accounts && memoryDb.accounts.length > 0) {
+      realFs.writeFileSync(backupVaultPath, JSON.stringify(memoryDb.accounts, null, 2), 'utf8');
+    }
+  } catch {}
 }
 
 function schedulePersist(): void {
@@ -345,6 +420,7 @@ export function saveAccount(acc: Partial<FacebookAccount> & { id: string }): Fac
     db.accounts[idx] = {
       ...db.accounts[idx],
       ...acc,
+      profileDir: normalizeProfileDir(acc.profileDir ?? db.accounts[idx].profileDir, acc.id),
       lastActiveAt: now,
     };
     schedulePersist();
@@ -363,7 +439,7 @@ export function saveAccount(acc: Partial<FacebookAccount> & { id: string }): Fac
       proxyLatencyMs: acc.proxyLatencyMs,
       lastProxyCheckAt: acc.lastProxyCheckAt,
       ownerId: acc.ownerId || '',
-      profileDir: acc.profileDir || `./.user-data/profiles/${acc.id}`,
+      profileDir: normalizeProfileDir(acc.profileDir, acc.id),
       status: acc.status || 'live',
       isDefault: acc.isDefault !== undefined ? acc.isDefault : db.accounts.length === 0,
       cookies: acc.cookies,

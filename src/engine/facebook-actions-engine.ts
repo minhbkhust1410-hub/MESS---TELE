@@ -10,6 +10,14 @@ import {
   randomSleep,
 } from '../core/human-behavior.js';
 import { messengerEngine } from './messenger-engine.js';
+import { facebookComposer } from '../core/facebook-composer.js';
+import {
+  analyzeThreadOffline,
+  type ThreadMode,
+  type ThreadReadInput,
+  type ThreadAnalysisResult,
+  type CustomWorkflowRule,
+} from '../shared/fb-exten-core.js';
 import { getTargetGroups } from '../db/auto-comment-store.js';
 import { globalLeadPoolService } from '../services/global-lead-pool.js';
 import { getDefaultAccount } from '../db/store.js';
@@ -801,45 +809,56 @@ export class FacebookActionsEngine {
     }
   }
 
-  private async reactToTargetRaw(targetUrl: string, reaction: FacebookReaction, label: string): Promise<string> {
-    return messengerEngine.withNewFacebookPage(async (page) => {
-      await openFacebookTarget(page, targetUrl);
-
-      // Scope đúng container bài viết hoặc story viewer (Khắc phục lỗi F09: không click ngoài phạm vi)
-      let scopeLocator: Locator;
-      if (label === 'Story') {
-        const storyViewer = page.locator('div[role="dialog"], div[data-pagelet*="Stories"], div[aria-label*="Story"]').first();
-        scopeLocator = (await storyViewer.isVisible().catch(() => false)) ? storyViewer : page.locator('body');
+  private async reactOnCurrentPage(page: Page, reaction: FacebookReaction, label: string): Promise<string> {
+    // Scope đúng container: ưu tiên Popup Modal bài viết (div[role="dialog"]) trước div[role="main"]
+    let scopeLocator: Locator;
+    if (label === 'Story') {
+      const storyViewer = page.locator('div[role="dialog"], div[data-pagelet*="Stories"], div[aria-label*="Story"]').first();
+      scopeLocator = (await storyViewer.isVisible().catch(() => false)) ? storyViewer : page.locator('body');
+    } else {
+      const dialogModal = page.locator('div[role="dialog"]').filter({ hasText: /Thích|Bình luận|Chia sẻ|Like|Comment|Share/i }).last();
+      if (await dialogModal.isVisible().catch(() => false)) {
+        scopeLocator = dialogModal;
       } else {
         const postArticle = page.locator('div[role="main"] div[role="article"], div[data-pagelet*="FeedUnit"]').first();
         scopeLocator = (await postArticle.isVisible().catch(() => false)) ? postArticle : page.locator('div[role="main"]');
       }
+    }
 
-      const existingReaction = await firstVisibleButtonInScope(scopeLocator, /^(unlike|remove reaction|gỡ cảm xúc|bỏ thích)$/i);
-      if (existingReaction && reaction === 'like') return `Nội dung này đã được Thích trước đó.`;
+    const existingReaction = await firstVisibleButtonInScope(scopeLocator, /^(unlike|remove reaction|gỡ cảm xúc|bỏ thích)$/i);
+    if (existingReaction && reaction === 'like') return `Nội dung này đã được Thích trước đó.`;
 
-      const reactionButton = await firstVisibleButtonInScope(scopeLocator, /^(like|thích|react|bày tỏ cảm xúc)$/i);
-      if (!reactionButton) throw new Error(`Không tìm thấy nút cảm xúc cho ${label} này.`);
+    const reactionButton = await firstVisibleButtonInScope(scopeLocator, /^(like|thích|react|bày tỏ cảm xúc|thả cảm xúc)/i);
+    if (!reactionButton) throw new Error(`Không tìm thấy nút cảm xúc cho ${label} này.`);
 
-      if (reaction === 'like') {
-        await reactionButton.click({ timeout: 10000 });
-        await page.waitForTimeout(1000);
-        return `Đã chọn Thích cho ${label}.`;
-      }
+    await facebookComposer.highlightTarget(reactionButton, '🎯 [F12] Nút Thích/Cảm xúc', '#f59e0b');
 
-      await reactionButton.hover({ timeout: 5000 }).catch(() => {});
-      await page.waitForTimeout(900);
-      let loveButton = await firstVisibleButton(page, /^(love|yêu thích)$/i);
-      if (!loveButton) {
-        await reactionButton.click({ timeout: 10000 });
-        await page.waitForTimeout(700);
-        loveButton = await firstVisibleButton(page, /^(love|yêu thích)$/i);
-      }
-      if (!loveButton) throw new Error('Facebook không hiển thị lựa chọn cảm xúc Yêu thích cho nội dung này.');
-
-      await loveButton.click({ timeout: 10000 });
+    if (reaction === 'like') {
+      await reactionButton.click({ timeout: 10000 });
       await page.waitForTimeout(1000);
-      return `Đã chọn Yêu thích cho ${label}.`;
+      return `Đã chọn Thích cho ${label}.`;
+    }
+
+    await reactionButton.hover({ timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(900);
+    let loveButton = await firstVisibleButton(page, /^(love|yêu thích)$/i);
+    if (!loveButton) {
+      await reactionButton.click({ timeout: 10000 });
+      await page.waitForTimeout(700);
+      loveButton = await firstVisibleButton(page, /^(love|yêu thích)$/i);
+    }
+    if (!loveButton) throw new Error('Facebook không hiển thị lựa chọn cảm xúc Yêu thích cho nội dung này.');
+
+    await facebookComposer.highlightTarget(loveButton, '🎯 [F12] ❤️ Yêu Thích', '#e11d48');
+    await loveButton.click({ timeout: 10000 });
+    await page.waitForTimeout(1000);
+    return `Đã chọn Yêu thích cho ${label}.`;
+  }
+
+  private async reactToTargetRaw(targetUrl: string, reaction: FacebookReaction, label: string): Promise<string> {
+    return messengerEngine.withNewFacebookPage(async (page) => {
+      await openFacebookTarget(page, targetUrl);
+      return this.reactOnCurrentPage(page, reaction, label);
     });
   }
 
@@ -1078,6 +1097,176 @@ export class FacebookActionsEngine {
       alreadyJoined,
       failed,
     };
+  }
+
+  /**
+   * Chạy Playwright F12 trực quan trên màn hình cho 1 Link bài viết (Hỗ trợ Dry-Run Soi F12 và Chạy Thật: Thả Tim + Comment + Lọc Người Bán)
+   */
+  public async runLinkAgentOnScreen(options: {
+    url: string;
+    mode?: ThreadMode;
+    customRule?: CustomWorkflowRule;
+    doLove?: boolean;
+    doCommentPost?: boolean;
+    doReplyBuyers?: boolean;
+    dryRunOnly?: boolean;
+  }): Promise<{
+    success: boolean;
+    dryRunOnly: boolean;
+    analysis: ThreadAnalysisResult;
+    f12Targets: Array<{ label: string; selector: string }>;
+    lovedCount: number;
+    commentedCount: number;
+    skippedSellerCount: number;
+    proofUrl?: string;
+  }> {
+    const targetUrl = options.url.trim();
+    const mode = options.mode || 'auto';
+    const doLove = options.doLove !== false;
+    const doCommentPost = options.doCommentPost !== false;
+    const doReplyBuyers = options.doReplyBuyers !== false;
+    const dryRunOnly = Boolean(options.dryRunOnly);
+
+    return messengerEngine.withNewFacebookPage(async (page) => {
+      await openFacebookTarget(page, targetUrl);
+      await page.bringToFront().catch(() => {});
+      await page.waitForTimeout(2200);
+
+      // 1. Đọc bài viết & các bình luận qua Playwright DOM (hỗ trợ cả Dialog Modal và Permalink)
+      const threadInput: ThreadReadInput = await page.evaluate((currentUrl) => {
+        const dialogs = Array.from(document.querySelectorAll('div[role="dialog"]')).filter((d) => {
+          const r = d.getBoundingClientRect();
+          return r.width >= 380 && r.height >= 260 && Boolean(d.querySelector('[role="article"], [contenteditable="true"]'));
+        });
+        const root = dialogs.length > 0 ? dialogs[dialogs.length - 1] : document.querySelector('div[role="main"]') || document.body;
+        const isCmt = (el: Element) =>
+          /^(bình luận|comment|phản hồi|reply)/i.test(el.getAttribute('aria-label') || '') ||
+          /bình luận dưới tên|comment by/i.test(el.getAttribute('aria-label') || '');
+
+        const rawComments = Array.from(root.querySelectorAll('div[role="article"]')).filter((n) => n !== root && isCmt(n));
+        const authorEl = Array.from(root.querySelectorAll('h2 a, h3 a, strong a, a[role="link"]')).find(
+          (a) => !rawComments.some((c) => c.contains(a)) && (a.textContent || '').trim().length >= 2
+        );
+        const postAuthor = (authorEl?.textContent || 'Chủ bài viết').trim();
+
+        const postBlocks = Array.from(root.querySelectorAll('div[dir="auto"], span[dir="auto"]'))
+          .filter((el) => !rawComments.some((c) => c.contains(el)) && !el.closest('h2, h3, h4, form'))
+          .map((el) => (el.textContent || '').trim())
+          .filter((t) => t.length >= 6);
+        const postText = Array.from(new Set(postBlocks)).join('\n').slice(0, 1400);
+
+        const comments = rawComments
+          .map((node, idx) => {
+            const cAuthor = (node.querySelector('a[role="link"] span, strong, a[role="link"]')?.textContent || `#${idx + 1}`).trim();
+            const cText = Array.from(node.querySelectorAll('div[dir="auto"], span[dir="auto"]'))
+              .map((el) => (el.textContent || '').trim())
+              .filter((t) => t.length >= 2 && t !== cAuthor)
+              .join(' ');
+            return { index: idx, author: cAuthor, text: cText.slice(0, 500) };
+          })
+          .filter((c) => c.text.length > 0);
+
+        return { url: currentUrl, postAuthor, postText, comments };
+      }, targetUrl);
+
+      // 2. Phân tích AI / Offline + lọc người bán
+      const analysis = analyzeThreadOffline(threadInput, mode, undefined, options.customRule);
+      const skippedSellerCount = analysis.commentEvaluations.filter((c) => c.role === 'seller').length;
+      const f12Targets: Array<{ label: string; selector: string }> = [];
+
+      // 3. Kiểm tra & highlight F12 các ô mục tiêu trực tiếp trên màn hình Playwright
+      let lovedCount = 0;
+      let commentedCount = 0;
+
+      if (dryRunOnly) {
+        const scope = (await page.locator('div[role="dialog"]').last().isVisible().catch(() => false))
+          ? page.locator('div[role="dialog"]').last()
+          : page.locator('div[role="main"]').first();
+
+        const likeLoc = await firstVisibleButtonInScope(scope, /^(like|thích|react|bày tỏ cảm xúc|thả cảm xúc)/i);
+        if (likeLoc) {
+          await facebookComposer.highlightTarget(likeLoc, '🎯 [Playwright F12] Nút Thích', '#f59e0b', 5000);
+          f12Targets.push({ label: 'Nút Thích/Thả Tim', selector: 'Playwright role="button" Thích/Like' });
+        }
+
+        const composerHandle = await facebookComposer.openCommentComposer(page);
+        if (composerHandle) {
+          await facebookComposer.highlightTarget(composerHandle.editor, '🎯 [Playwright F12] Ô Bình Luận', '#10b981', 5000);
+          f12Targets.push({ label: `Ô Bình Luận (${composerHandle.surface})`, selector: 'Playwright [role="textbox"][contenteditable="true"]' });
+        }
+
+        const proofDir = path.resolve('./.tmp_media');
+        fs.mkdirSync(proofDir, { recursive: true });
+        const proofName = `proof_playwright_f12_${Date.now()}.png`;
+        await page.screenshot({ path: path.join(proofDir, proofName), fullPage: false }).catch(() => {});
+        await page.waitForTimeout(3500);
+
+        return {
+          success: true,
+          dryRunOnly: true,
+          analysis,
+          f12Targets,
+          lovedCount: 0,
+          commentedCount: 0,
+          skippedSellerCount,
+          proofUrl: `/proofs/${proofName}`,
+        };
+      }
+
+      // Chạy thật trên màn hình
+      if (doLove && analysis.postAuthorRole !== 'seller') {
+        try {
+          await this.reactOnCurrentPage(page, 'love', 'bài viết');
+          lovedCount++;
+          f12Targets.push({ label: 'Đã Thả Tim Bài Chính', selector: 'Playwright Love Reaction' });
+        } catch (err: any) {
+          f12Targets.push({ label: 'Thả Tim Bài Chính', selector: `Lỗi: ${err.message}` });
+        }
+      }
+
+      if (doCommentPost && analysis.shouldCommentPost && analysis.suggestedPostComment) {
+        const handle = await facebookComposer.openCommentComposer(page);
+        if (handle) {
+          await facebookComposer.fillComment(page, handle, analysis.suggestedPostComment);
+          const sent = await facebookComposer.submitComment(page, handle);
+          if (sent) {
+            commentedCount++;
+            f12Targets.push({ label: `Đã Bình Luận (${handle.surface})`, selector: analysis.suggestedPostComment });
+          }
+        }
+      }
+
+      if (doReplyBuyers) {
+        const buyers = analysis.commentEvaluations.filter((c) => c.shouldEngage && c.role !== 'seller' && c.suggestedReply);
+        for (const buyer of buyers) {
+          const ok = await facebookComposer.replyToComment(page, {
+            targetAuthor: buyer.author,
+            targetText: buyer.text.slice(0, 35),
+            replyText: buyer.suggestedReply,
+          });
+          if (ok) {
+            commentedCount++;
+            f12Targets.push({ label: `Đã Trả Lời @${buyer.author}`, selector: buyer.suggestedReply });
+          }
+        }
+      }
+
+      const proofDir = path.resolve('./.tmp_media');
+      fs.mkdirSync(proofDir, { recursive: true });
+      const proofName = `proof_playwright_run_${Date.now()}.png`;
+      await page.screenshot({ path: path.join(proofDir, proofName), fullPage: false }).catch(() => {});
+
+      return {
+        success: true,
+        dryRunOnly: false,
+        analysis,
+        f12Targets,
+        lovedCount,
+        commentedCount,
+        skippedSellerCount,
+        proofUrl: `/proofs/${proofName}`,
+      };
+    });
   }
 }
 

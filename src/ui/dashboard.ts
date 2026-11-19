@@ -31,6 +31,12 @@ import { loadCannedReplies, saveCannedReply } from '../config/canned-replies.js'
 import { createBrowserSession, checkCookiesLoggedIn, parseProxy, testProxyNetwork, verifyBrowserProxyIP, type SessionResult } from '../core/browser-session.js';
 import { loginFacebookWithCredentials } from '../core/facebook-authenticator.js';
 import {
+  launchNativeChromeForAccount,
+  isProfileRunning,
+  closeNativeChromeForAccount,
+  generateDesktopShortcuts,
+} from '../core/native-chrome-launcher.js';
+import {
   getAutoCommentConfig,
   updateAutoCommentConfig,
   getCommentTemplates,
@@ -62,6 +68,17 @@ import { facebookActionsEngine, type FacebookReaction } from '../engine/facebook
 import { accountHealthService } from '../services/account-health-service.js';
 import { systemDiagnosticService } from '../services/system-diagnostic-service.js';
 import { globalLeadPoolService } from '../services/global-lead-pool.js';
+import {
+  getCaptchaApiKeys,
+  saveCaptchaApiKeys,
+  solveCaptchaImage,
+} from '../core/captcha-solver.js';
+import {
+  scanAllRunningProfilesCaptcha,
+  unlockLiveCaptchaForAccount,
+  autoUnlockAllLiveCaptchas,
+} from '../core/captcha-live-unlocker.js';
+import { autoLoginLiveChromeWindow } from '../core/live-chrome-autologin.js';
 import { autoFriendService } from '../services/auto-friend-service.js';
 import {
   BDS_ECOPARK_FALLBACK_COMMENT,
@@ -107,6 +124,7 @@ import { multiAccountPool } from '../engine/multi-account-pool.js';
 const activeBrowserLogins = new Map<string, SessionResult>();
 // Cache giữ các cửa sổ Chrome trực quan được mở với Proxy riêng biệt
 const activeVisualBrowsers = new Map<string, SessionResult>();
+const openingBrowserLocks = new Set<string>();
 
 /**
  * Ghi nhận kết quả đăng bài THẬT vào trung tâm điều phối:
@@ -509,17 +527,33 @@ export function startDashboard(): void {
     // Tự động gán nick này cho User đang đăng nhập nếu chưa có ownerId
     const finalOwnerId = ownerId || (currentUser ? currentUser.uid : 'usr_admin');
 
-    const saved = saveAccount({
-      id,
-      name,
-      proxy,
-      uid,
-      avatar,
-      isDefault,
-      status,
-      ownerId: finalOwnerId,
-    });
+    const updateData: Partial<FacebookAccount> & { id: string } = { id };
+    if (name !== undefined) updateData.name = name;
+    if (proxy !== undefined) updateData.proxy = proxy;
+    if (uid !== undefined) updateData.uid = uid;
+    if (avatar !== undefined) updateData.avatar = avatar;
+    if (isDefault !== undefined) updateData.isDefault = isDefault;
+    if (status !== undefined) updateData.status = status;
+    if (finalOwnerId) updateData.ownerId = finalOwnerId;
+
+    const saved = saveAccount(updateData);
     res.json({ success: true, account: saved });
+  });
+
+  // API 2.0: Đổi tên hiển thị cho nick Facebook
+  app.post('/api/accounts/:id/rename', (req, res) => {
+    const accId = req.params.id;
+    const { name } = req.body;
+    if (!name || !String(name).trim()) {
+      return res.status(400).json({ success: false, error: 'Vui lòng nhập tên mới cho nick' });
+    }
+    const acc = getAccountById(accId);
+    if (!acc) {
+      return res.status(404).json({ success: false, error: 'Không tìm thấy tài khoản' });
+    }
+    acc.name = String(name).trim();
+    saveAccount(acc);
+    res.json({ success: true, account: acc, message: `Đã đổi tên nick thành "${acc.name}" thành công!` });
   });
 
   // API 2.1: Tự động trích xuất & đồng bộ avatar thật từ Facebook
@@ -657,7 +691,7 @@ export function startDashboard(): void {
   // API 2.5: Đăng nhập Facebook bằng Tài Khoản & Mật Khẩu (Dạng chuẩn: Username + Password)
   app.post('/api/accounts/login-credentials', async (req, res) => {
     try {
-      const { username, password, twoFactorCode, name, makeDefault, proxy, verticalMode } = req.body;
+      const { username, password, twoFactorCode, twoFactorSecret, name, makeDefault, proxy, verticalMode } = req.body;
       if (!username || !password) {
         return res.status(400).json({
           success: false,
@@ -669,6 +703,14 @@ export function startDashboard(): void {
       const cleanPass = String(password).trim();
       const cleanProxy = proxy ? String(proxy).trim() : '';
       const cleanVertical = verticalMode === 'forex_finance' ? 'forex_finance' : resolveRequestMode(req);
+
+      // RÀNG BUỘC BẢO VỆ CHỐNG DÍNH IP (STRICT PROXY LOCK)
+      if (!cleanProxy) {
+        return res.status(400).json({
+          success: false,
+          error: '🚨 BẢO VỆ CHỐNG DÍNH IP: Bắt buộc phải có Proxy riêng (IP:Port:User:Pass) trước khi đăng nhập! Hệ thống kiên quyết chặn đăng nhập bằng IP máy để bảo vệ an toàn cho dàn tài khoản.',
+        });
+      }
 
       let verifiedProxyIp: string | undefined;
       let proxyLatencyMs: number | undefined;
@@ -683,46 +725,73 @@ export function startDashboard(): void {
         }
       }
 
-      const page = (messengerEngine as any).page;
-
-      if (!page || page.isClosed()) {
-        return res.status(500).json({ success: false, error: 'Trình duyệt Facebook chưa sẵn sàng.' });
+      const accountId = `acc_${cleanUser.replace(/[^a-zA-Z0-9]/g, '')}`;
+      const profileDir = path.resolve(`./.user-data/profiles/${accountId}`);
+      if (!fs.existsSync(profileDir)) {
+        fs.mkdirSync(profileDir, { recursive: true });
       }
 
-      const loginResult = await loginFacebookWithCredentials(page, {
-        username: cleanUser,
-        password: cleanPass,
-        twoFactorCode: twoFactorCode ? String(twoFactorCode).trim() : undefined,
-      });
+      let session: any = null;
+      let loginResult: any = null;
+      try {
+        session = await createBrowserSession({
+          userDataDir: profileDir,
+          proxy: cleanProxy,
+          accountId,
+          headless: true,
+        });
 
-      if (!loginResult.success) {
-        return res.status(400).json(loginResult);
+        if (session.verifiedIp) verifiedProxyIp = session.verifiedIp;
+        if (session.proxyLatencyMs) proxyLatencyMs = session.proxyLatencyMs;
+        if (session.proxyCountry) proxyCountry = session.proxyCountry;
+
+        loginResult = await loginFacebookWithCredentials(session.page, {
+          username: cleanUser,
+          password: cleanPass,
+          twoFactorCode: twoFactorCode ? String(twoFactorCode).trim() : undefined,
+          twoFactorSecret: twoFactorSecret ? String(twoFactorSecret).trim() : undefined,
+        });
+
+        if (session) await session.close().catch(() => {});
+      } catch (sessErr: any) {
+        if (session) await session.close().catch(() => {});
+        return res.status(500).json({
+          success: false,
+          error: `Lỗi khởi chạy trình duyệt bọc Proxy: ${sessErr.message}`,
+        });
       }
 
-      const currentAcc = getDefaultAccount();
-      const accountId = currentAcc?.id || `acc_${loginResult.uid || Date.now()}`;
+      if (!loginResult || !loginResult.success) {
+        return res.status(400).json(loginResult || { success: false, error: 'Đăng nhập không thành công.' });
+      }
+
+      const finalUid = loginResult.uid || cleanUser;
+      const finalAccId = `acc_${finalUid}`;
       const savedAcc = saveAccount({
-        id: accountId,
-        uid: loginResult.uid || currentAcc?.uid || 'fb_user',
-        name: name ? name.trim() : (currentAcc?.name || `Facebook (${cleanUser})`),
+        id: finalAccId,
+        uid: finalUid,
+        name: name ? name.trim() : `Facebook (${cleanUser})`,
+        avatar: `https://graph.facebook.com/${finalUid}/picture?type=large`,
         fbUsername: cleanUser,
         fbPassword: cleanPass,
         cookies: loginResult.cookies,
         proxy: cleanProxy,
+        twoFactorSecret: twoFactorSecret ? String(twoFactorSecret).trim() : undefined,
         verifiedProxyIp,
         proxyStatus: cleanProxy ? (verifiedProxyIp ? 'live' : 'dead') : 'unassigned',
         proxyCountry,
         proxyLatencyMs,
         lastProxyCheckAt: cleanProxy ? new Date().toISOString() : undefined,
+        profileDir,
         verticalMode: cleanVertical,
         status: 'live',
         isDefault: makeDefault !== false,
         lastActiveAt: new Date().toISOString(),
       });
 
-      if (currentAcc?.profileDir && loginResult.cookies) {
+      if (profileDir && loginResult.cookies) {
         try {
-          fs.writeFileSync(path.join(currentAcc.profileDir, 'cookies.json'), JSON.stringify(loginResult.cookies, null, 2), 'utf-8');
+          fs.writeFileSync(path.join(profileDir, 'cookies.json'), JSON.stringify(loginResult.cookies, null, 2), 'utf-8');
         } catch {}
       }
 
@@ -1036,104 +1105,315 @@ export function startDashboard(): void {
     }
   });
 
-  // API 4.02: Mở cửa sổ Facebook trực quan bọc sẵn Proxy an toàn cho tài khoản
+  // API 4.02: Mở cửa sổ Facebook THẬT độc lập bọc sẵn Proxy an toàn cho tài khoản
   // RÀNG BUỘC TUYỆT ĐỐI: Bắt buộc mở nick thông qua Proxy ban đầu thiết lập, chống lộ IP máy thật 100%
+  // CỬA SỔ THẬT: Khởi chạy Google Chrome thực tế với Profile và Proxy riêng biệt, hiển thị ngay trên màn hình!
   app.post('/api/accounts/:id/open-browser', async (req, res) => {
     const accId = req.params.id;
     const acc = getAccountById(accId);
     if (!acc) return res.status(404).json({ success: false, error: 'Không tìm thấy tài khoản' });
 
     const { targetUrl } = req.body || {};
-    const destUrl = (typeof targetUrl === 'string' && targetUrl.startsWith('https://www.facebook.com'))
+    const destUrl = (typeof targetUrl === 'string' && (targetUrl.startsWith('https://www.facebook.com') || targetUrl.startsWith('https://accountscenter.facebook.com')))
       ? targetUrl
       : 'https://www.facebook.com/';
 
-    // 1. RÀNG BUỘC BẢO VỆ NGHIÊM NGẶT VỀ PROXY BAN ĐẦU
-    // Nếu tài khoản đã được thiết lập Proxy, KIỂM TRA BẮT BUỘC TRƯỚC KHI MỞ:
-    // Nếu Proxy chết hoặc rò rỉ IP -> CHẶN MỞ NGAY LẬP TỨC để bảo vệ nick không bị lộ IP máy!
-    if (acc.proxy && acc.proxy.trim()) {
-      console.log(`🛡️ [Proxy Guard] Đang kiểm tra ràng buộc Proxy trước khi mở nick "${acc.name}": ${acc.proxy}`);
-      const preCheck = await testProxyNetwork(acc.proxy, 7000);
-      if (!preCheck.alive) {
-        console.error(`🚨 [Proxy Guard Blocked] Proxy của nick "${acc.name}" không phản hồi! ĐÃ CHẶN MỞ TRÌNH DUYỆT.`);
-        return res.status(400).json({
-          success: false,
-          error: `🚨 ĐÃ CHẶN MỞ FACEBOOK ĐỂ BẢO VỆ NICK:\n\nProxy ban đầu của tài khoản (${acc.proxy}) đang bị mất kết nối (${preCheck.error || 'Timeout không phản hồi'})!\n\nHệ thống kiên quyết từ chối mở trình duyệt để tuyệt đối không làm lộ IP máy thật của bạn. Vui lòng kiểm tra lại Proxy hoặc đổi Proxy mới.`,
-          proxy: acc.proxy,
-          proxyAlive: false,
-        });
-      }
-      if (preCheck.isLeakingHostIp) {
-        console.error(`🚨 [Proxy Guard Leak] Proxy của nick "${acc.name}" bị rò rỉ IP trùng với máy chủ! ĐÃ CHẶN MỞ TRÌNH DUYỆT.`);
-        return res.status(400).json({
-          success: false,
-          error: `🚨 ĐÃ CHẶN MỞ FACEBOOK VÌ RÒ RỈ IP:\n\nProxy (${acc.proxy}) bị rò rỉ IP trùng với IP mạng máy thật của bạn (${preCheck.ip})! Hệ thống đã hủy mở trình duyệt để bảo vệ nick.`,
-          proxy: acc.proxy,
-          proxyAlive: true,
-          isLeaking: true,
-        });
-      }
-    }
-
-    // 2. Nếu nick này đang là nick hoạt động chính trong messengerEngine
-    const defaultAcc = getDefaultAccount();
-    if (defaultAcc && defaultAcc.id === accId && messengerEngine.isReady()) {
-      const page = await messengerEngine.getPage();
-      if (page) {
-        await page.bringToFront().catch(() => {});
-        await page.goto(destUrl, { waitUntil: 'domcontentloaded' }).catch(() => {});
-        return res.json({
-          success: true,
-          message: `Cửa sổ FalconX của nick "${acc.name}" đã được đưa lên màn hình (đang chạy qua Proxy: ${acc.proxy || 'Trực tiếp'}).`,
-          proxy: acc.proxy,
-          isDirect: !acc.proxy,
-          destUrl,
-        });
-      }
-    }
-
-    // 3. Nếu đã có cửa sổ Chrome mở sẵn trước đó
-    if (activeVisualBrowsers.has(accId)) {
-      const existing = activeVisualBrowsers.get(accId);
-      await existing?.page.bringToFront().catch(() => {});
-      if (targetUrl) {
-        await existing?.page.goto(destUrl, { waitUntil: 'domcontentloaded' }).catch(() => {});
-      }
-      return res.json({
-        success: true,
-        message: `Cửa sổ Facebook của nick "${acc.name}" đang mở sẵn trên màn hình!`,
-        proxy: acc.proxy,
-        isDirect: !acc.proxy,
-        destUrl,
+    // 1. RÀNG BUỘC BẢO VỆ NGHIÊM NGẶT VỀ PROXY (KHÓA CHẶT IP MÁY THẬT ĐỐI VỚI NICK VỆ TINH)
+    if (acc.id !== 'acc_main' && (!acc.proxy || !acc.proxy.trim())) {
+      console.error(`🚨 [Proxy Guard Blocked] Nick "${acc.name}" chưa có Proxy! ĐÃ CHẶN MỞ TRÌNH DUYỆT ĐỂ BẢO VỆ IP MÁY.`);
+      return res.status(400).json({
+        success: false,
+        error: `🚨 ĐÃ CHẶN MỞ FACEBOOK ĐỂ BẢO VỆ IP:\n\nTài khoản "${acc.name}" CHƯA ĐƯỢC GẮN PROXY RIÊNG!\n\nChế độ bảo vệ nghiêm ngặt đã kích hoạt: Hệ thống kiên quyết không cho phép mở Facebook bằng IP máy thật để tránh bị dính IP và liên đới. Vui lòng bấm nút "🛡️ Gắn Proxy" trước khi mở!`,
+        proxyAlive: false,
       });
     }
 
-    // 4. Mở cửa sổ Chrome độc lập bọc sẵn Proxy riêng của nick đó
     try {
-      const session = await createBrowserSession({
-        userDataDir: acc.profileDir || path.resolve(`./.user-data/profiles/${accId}`),
-        proxy: acc.proxy,
-        headless: false,
-      });
+      const launchResult = await launchNativeChromeForAccount(accId, destUrl);
+      if (!launchResult.success) {
+        return res.status(400).json({
+          success: false,
+          error: launchResult.error || 'Không thể khởi chạy Google Chrome cho nick này.',
+        });
+      }
 
-      activeVisualBrowsers.set(accId, session);
-      await session.page.goto(destUrl, { waitUntil: 'domcontentloaded' }).catch(() => {});
-
-      session.context.on('close', () => {
-        activeVisualBrowsers.delete(accId);
-      });
+      // Cập nhật phím tắt Desktop
+      try { generateDesktopShortcuts(); } catch {}
 
       return res.json({
         success: true,
-        message: `Đã mở cửa sổ Chrome độc lập cho nick "${acc.name}" bọc sẵn Proxy an toàn!`,
+        message: launchResult.message || `Đã mở cửa sổ Google Chrome thật cho nick "${acc.name}" bọc Proxy an toàn!`,
         proxy: acc.proxy,
         isDirect: !acc.proxy,
         destUrl,
       });
     } catch (err: any) {
+      return res.status(500).json({
+        success: false,
+        error: `Lỗi khi mở Chrome: ${err.message || 'Không xác định'}`,
+      });
+    }
+  });
+
+  // API 4.0.1: Lấy danh sách ID các nick đang có cửa sổ Chrome mở trên màn hình
+  app.get('/api/accounts/active-browsers', (_req, res) => {
+    const accounts = getAllAccounts();
+    const activeIds: string[] = [];
+    for (const acc of accounts) {
+      const pDir = path.resolve(acc.profileDir || `./.user-data/profiles/${acc.id}`);
+      if (isProfileRunning(pDir) || activeVisualBrowsers.has(acc.id)) {
+        activeIds.push(acc.id);
+      }
+    }
+    return res.json({
+      success: true,
+      activeIds,
+    });
+  });
+
+  // API 4.0.2: Mở hàng loạt tất cả cửa sổ Chrome (mỗi nick 1 cửa sổ riêng + 1 Proxy riêng)
+  app.post('/api/accounts/open-all-browsers', async (_req, res) => {
+    try {
+      const accounts = getAllAccounts().filter((a) => a.proxy && a.proxy.trim());
+      if (!accounts.length) {
+        return res.status(400).json({
+          success: false,
+          error: 'Chưa có tài khoản nào được gắn Proxy để mở cửa sổ độc lập.',
+        });
+      }
+
+      const openedList: string[] = [];
+      const failedList: Array<{ name: string; error: string }> = [];
+
+      for (const acc of accounts) {
+        try {
+          const r = await launchNativeChromeForAccount(acc.id, 'https://www.facebook.com/');
+          if (r.success) {
+            openedList.push(acc.name);
+          } else {
+            failedList.push({ name: acc.name, error: r.error || 'Lỗi mở' });
+          }
+          await new Promise((resolve) => setTimeout(resolve, 800));
+        } catch (e: any) {
+          failedList.push({ name: acc.name, error: e.message });
+        }
+      }
+
+      try { generateDesktopShortcuts(); } catch {}
+
+      return res.json({
+        success: true,
+        openedCount: openedList.length,
+        openedList,
+        failedList,
+        message: `Đã mở ${openedList.length}/${accounts.length} cửa sổ Google Chrome thật bọc Proxy riêng cho từng nick trên màn hình!`,
+      });
+    } catch (err: any) {
       return res.status(500).json({ success: false, error: err.message });
     }
   });
+
+  // API 4.0.3: Đóng cửa sổ Chrome của một nick cụ thể
+  app.post('/api/accounts/:id/close-browser', async (req, res) => {
+    const accId = req.params.id;
+    try {
+      closeNativeChromeForAccount(accId);
+      const session = activeVisualBrowsers.get(accId);
+      if (session) {
+        await session.close().catch(() => {});
+        activeVisualBrowsers.delete(accId);
+      }
+      return res.json({
+        success: true,
+        message: 'Đã đóng cửa sổ Google Chrome an toàn.',
+      });
+    } catch {
+      return res.json({ success: true, message: 'Đã đóng cửa sổ Chrome.' });
+    }
+  });
+
+  // API 4.0.4: Đóng toàn bộ tất cả cửa sổ Chrome đang mở
+  app.post('/api/accounts/close-all-browsers', async (_req, res) => {
+    let closedCount = 0;
+    const accounts = getAllAccounts();
+    for (const acc of accounts) {
+      try {
+        closeNativeChromeForAccount(acc.id);
+        closedCount++;
+      } catch {}
+    }
+    for (const [_accId, session] of activeVisualBrowsers.entries()) {
+      try {
+        await session.close().catch(() => {});
+      } catch {}
+    }
+    activeVisualBrowsers.clear();
+    return res.json({
+      success: true,
+      closedCount,
+      message: `Đã đóng an toàn toàn bộ ${closedCount} cửa sổ Chrome của các nick.`,
+    });
+  });
+
+  // =========================================================================
+  // CAPTCHA SOLVER APIS (2Captcha, Tesseract.js OCR, Gemini Vision, Jimp)
+  // =========================================================================
+
+  // API C.1: Trạng thái các thư viện và cấu hình CAPTCHA
+  app.get('/api/captcha/status', (_req, res) => {
+    const keys = getCaptchaApiKeys();
+    return res.json({
+      success: true,
+      installedLibraries: [
+        { name: 'tesseract.js', version: '7.0.0', type: 'Local OCR Engine (Offline)', ready: true },
+        { name: '2captcha-ts', version: '2.4.1', type: 'Official Cloud Solver SDK', ready: Boolean(keys.twoCaptchaKey) },
+        { name: 'jimp', version: '1.6.1', type: 'Pure JS Image Preprocessing', ready: true },
+        { name: 'gemini-vision', version: '1.5-flash', type: 'Multimodal AI Vision', ready: Boolean(keys.geminiKey) },
+      ],
+      configuredProviders: {
+        tesseract: true,
+        twoCaptcha: Boolean(keys.twoCaptchaKey),
+        gemini: Boolean(keys.geminiKey),
+        capSolver: Boolean(keys.capSolverKey),
+      },
+      keys: {
+        twoCaptchaKeyMasked: keys.twoCaptchaKey ? `${keys.twoCaptchaKey.substring(0, 4)}...${keys.twoCaptchaKey.substring(keys.twoCaptchaKey.length - 4)}` : '',
+        geminiKeyMasked: keys.geminiKey ? `${keys.geminiKey.substring(0, 4)}...${keys.geminiKey.substring(keys.geminiKey.length - 4)}` : '',
+        capSolverKeyMasked: keys.capSolverKey ? `${keys.capSolverKey.substring(0, 4)}...${keys.capSolverKey.substring(keys.capSolverKey.length - 4)}` : '',
+      },
+    });
+  });
+
+  // API C.2: Cập nhật API Keys cho hệ thống giải CAPTCHA
+  app.post('/api/captcha/settings', (req, res) => {
+    const { twoCaptchaKey, geminiKey, capSolverKey } = req.body || {};
+    const current = getCaptchaApiKeys();
+    saveCaptchaApiKeys({
+      twoCaptchaKey: twoCaptchaKey !== undefined ? String(twoCaptchaKey).trim() : current.twoCaptchaKey,
+      geminiKey: geminiKey !== undefined ? String(geminiKey).trim() : current.geminiKey,
+      capSolverKey: capSolverKey !== undefined ? String(capSolverKey).trim() : current.capSolverKey,
+    });
+    return res.json({
+      success: true,
+      message: 'Đã lưu cấu hình API Key giải mã CAPTCHA thành công!',
+    });
+  });
+
+  // API C.3: Thử nghiệm giải ảnh CAPTCHA (Nhận base64 hoặc file)
+  app.post('/api/captcha/test-solve', async (req, res) => {
+    try {
+      const { imageBase64, numericOnly } = req.body || {};
+      if (!imageBase64) {
+        return res.status(400).json({ success: false, error: 'Thiếu dữ liệu ảnh imageBase64' });
+      }
+      const cleanBase64 = imageBase64.replace(/^data:image\/[a-z]+;base64,/, '');
+      const buffer = Buffer.from(cleanBase64, 'base64');
+
+      const solveRes = await solveCaptchaImage(buffer, {
+        numericOnly: numericOnly !== false,
+      });
+
+      return res.json({
+        success: solveRes.success,
+        solution: solveRes.solution,
+        provider: solveRes.provider,
+        latencyMs: solveRes.latencyMs,
+        confidence: solveRes.confidence,
+        error: solveRes.error,
+      });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // API C.4: Quét toàn bộ các Chrome Profile đang mở xem nick nào đang kẹt CAPTCHA
+  app.get('/api/captcha/live-active', async (_req, res) => {
+    try {
+      const activeList = await scanAllRunningProfilesCaptcha();
+      return res.json({
+        success: true,
+        totalRunning: activeList.length,
+        hasCaptchaCount: activeList.filter((a) => a.hasCaptcha).length,
+        profiles: activeList,
+      });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // API C.5: Mở khóa CAPTCHA cho một tài khoản cụ thể (tự động hoặc bằng mã người dùng nhập)
+  app.post('/api/captcha/unlock/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { code } = req.body || {};
+      const result = await unlockLiveCaptchaForAccount(id, code);
+      return res.json(result);
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // API C.6: Tự động mở khóa tất cả các nick đang bị kẹt CAPTCHA trên toàn bộ trình duyệt
+  app.post('/api/captcha/unlock-all', async (_req, res) => {
+    try {
+      const results = await autoUnlockAllLiveCaptchas();
+      return res.json({
+        success: true,
+        totalAttempted: results.length,
+        unlockedCount: results.filter((r) => r.success).length,
+        details: results,
+      });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err.message });
+    }
+  });
+
+  // API 4.0.5: Tự động đăng nhập lại bằng User/Pass/2FA TOTP trực tiếp trên cửa sổ Chrome thật của nick
+  app.post('/api/accounts/:id/auto-login', async (req, res) => {
+    const accId = req.params.id;
+    const acc = getAccountById(accId);
+    if (!acc) return res.status(404).json({ success: false, error: 'Không tìm thấy tài khoản.' });
+
+    if (!acc.proxy) {
+      return res.status(400).json({ success: false, error: 'Nick này chưa được gắn Proxy riêng để bảo vệ IP máy.' });
+    }
+    if (!acc.fbPassword) {
+      return res.status(400).json({ success: false, error: 'Nick này chưa lưu mật khẩu Facebook trong hệ thống.' });
+    }
+
+    const profileDir = path.resolve(acc.profileDir || `./.user-data/profiles/${accId}`);
+
+    try {
+      // 1. Nếu cửa sổ Chrome thật chưa mở -> Tự động khởi chạy Chrome GUI
+      if (!isProfileRunning(profileDir)) {
+        console.log(`🚀 [Auto-Login API] Cửa sổ Chrome chưa mở. Đang khởi chạy Chrome cho nick "${acc.name}"...`);
+        const launchRes = await launchNativeChromeForAccount(accId);
+        if (!launchRes.success) {
+          return res.status(400).json({ success: false, error: launchRes.error || 'Không thể mở cửa sổ Chrome.' });
+        }
+      }
+
+      // 2. Tự động kết nối DevTools và điền thông tin đăng nhập trên cửa sổ Chrome thật
+      console.log(`🔐 [Auto-Login API] Đang kết nối DevTools để tự động đăng nhập cho "${acc.name}"...`);
+      const loginRes = await autoLoginLiveChromeWindow(accId, profileDir, { forceLogin: true });
+
+      if (loginRes.success) {
+        return res.json({
+          success: true,
+          message: loginRes.message || `Đã tự động đăng nhập thành công cho nick "${acc.name}"!`,
+        });
+      } else {
+        return res.status(400).json({
+          success: false,
+          error: loginRes.error || 'Đăng nhập không thành công',
+          requires2FA: loginRes.requires2FA,
+        });
+      }
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: `Lỗi khi tự động đăng nhập: ${err.message}` });
+    }
+  });
+
 
   // API 4.1: Quét kiểm tra sức khỏe và trạng thái tài khoản trực tiếp
   app.post('/api/accounts/health-check', async (req, res) => {
@@ -1357,25 +1637,30 @@ export function startDashboard(): void {
     let proxyCountry: string | undefined;
 
     const cleanProxy = proxy ? proxy.trim() : undefined;
-    if (cleanProxy) {
-      console.log(`🔍 [Login Cookie] Kiểm tra Pre-flight cho Proxy: ${cleanProxy}...`);
-      const preflight = await testProxyNetwork(cleanProxy, 10_000);
-      if (!preflight.alive) {
-        return res.status(400).json({
-          success: false,
-          error: `Proxy không thể kết nối (${preflight.error || 'Timeout'}). ĐÃ TỰ ĐỘNG CHẶN ĐĂNG NHẬP để chống lộ IP máy thật!`,
-        });
-      }
-      if (preflight.isLeakingHostIp) {
-        return res.status(400).json({
-          success: false,
-          error: `Proxy trả về IP trùng với IP máy thật (${preflight.ip})! ĐÃ HỦY ĐĂNG NHẬP để tránh bị Facebook liên kết các nick với nhau.`,
-        });
-      }
-      verifiedIp = preflight.ip;
-      proxyLatencyMs = preflight.latencyMs;
-      proxyCountry = preflight.country;
+    if (!cleanProxy) {
+      return res.status(400).json({
+        success: false,
+        error: '🚨 BẢO VỆ CHỐNG DÍNH IP BẬT: Bắt buộc phải có Proxy riêng trước khi nạp Cookie! Hệ thống kiên quyết từ chối đăng nhập bằng IP máy thật.',
+      });
     }
+
+    console.log(`🔍 [Login Cookie] Kiểm tra Pre-flight cho Proxy: ${cleanProxy}...`);
+    const preflight = await testProxyNetwork(cleanProxy, 10_000);
+    if (!preflight.alive) {
+      return res.status(400).json({
+        success: false,
+        error: `Proxy không thể kết nối (${preflight.error || 'Timeout'}). ĐÃ TỰ ĐỘNG CHẶN ĐĂNG NHẬP để chống lộ IP máy thật!`,
+      });
+    }
+    if (preflight.isLeakingHostIp) {
+      return res.status(400).json({
+        success: false,
+        error: `Proxy trả về IP trùng với IP máy thật (${preflight.ip})! ĐÃ HỦY ĐĂNG NHẬP để tránh bị Facebook liên kết các nick với nhau.`,
+      });
+    }
+    verifiedIp = preflight.ip;
+    proxyLatencyMs = preflight.latencyMs;
+    proxyCountry = preflight.country;
 
     try {
       tempSession = await createBrowserSession({
@@ -1459,21 +1744,25 @@ export function startDashboard(): void {
     const tempId = `login_${Date.now()}`;
     const profileDir = path.resolve(`./.user-data/profiles/${tempId}`);
     const cleanProxy = proxy ? String(proxy).trim() : undefined;
+    if (!cleanProxy) {
+      return res.status(400).json({
+        success: false,
+        error: '🚨 BẢO VỆ CHỐNG DÍNH IP BẬT: Bắt buộc phải có Proxy trước khi mở trình duyệt đăng nhập thủ công! Không cho phép mở Chrome bằng IP máy.',
+      });
+    }
 
-    if (cleanProxy) {
-      const preflight = await testProxyNetwork(cleanProxy, 10_000);
-      if (!preflight.alive) {
-        return res.status(400).json({
-          success: false,
-          error: `Proxy không thể kết nối (${preflight.error || 'Timeout'}). ĐÃ HỦY MỞ CHROME để ngăn chặn lộ IP máy thật!`,
-        });
-      }
-      if (preflight.isLeakingHostIp) {
-        return res.status(400).json({
-          success: false,
-          error: `Proxy trả về IP trùng với IP máy thật (${preflight.ip})! Không an toàn để mở trình duyệt.`,
-        });
-      }
+    const preflight = await testProxyNetwork(cleanProxy, 10_000);
+    if (!preflight.alive) {
+      return res.status(400).json({
+        success: false,
+        error: `Proxy không thể kết nối (${preflight.error || 'Timeout'}). ĐÃ HỦY MỞ CHROME để ngăn chặn lộ IP máy thật!`,
+      });
+    }
+    if (preflight.isLeakingHostIp) {
+      return res.status(400).json({
+        success: false,
+        error: `Proxy trả về IP trùng với IP máy thật (${preflight.ip})! Không an toàn để mở trình duyệt.`,
+      });
     }
 
     try {
@@ -2385,7 +2674,18 @@ export function startDashboard(): void {
 
   // Đăng bài trực tiếp từ Web Dashboard (Hỗ trợ Text + Ảnh + Lựa chọn Đích đến + First Comment)
   app.post('/api/posts/publish-direct', async (req, res) => {
-    const { content, targetType, groupUrls, photoPaths, photoDataUrls, autoCommentText, firstComment } = req.body;
+    const {
+      content,
+      targetType,
+      groupUrls,
+      photoPaths,
+      photoDataUrls,
+      autoCommentText,
+      firstComment,
+      accountId,
+      accountIds,
+      postMode, // 'single' | 'broadcast_all' | 'custom_multi'
+    } = req.body;
     const uploadedPaths = saveBase64PhotosToDisk(photoDataUrls);
     const allPhotoPaths = [
       ...(Array.isArray(photoPaths) ? photoPaths : []),
@@ -2399,57 +2699,147 @@ export function startDashboard(): void {
     const finalAutoComment = (autoCommentText || firstComment || '').trim();
 
     try {
-      const post = addDailyPost({
-        content: (content || '').trim(),
-        mediaUrls: allPhotoPaths,
-        type: targetType || 'personal_post',
-        firstComment: finalAutoComment || undefined,
-      });
-      post.status = 'running';
-      post.targetType = targetType || 'personal_post';
-      post.targetGroupIds = Array.isArray(groupUrls) ? groupUrls : [];
+      // Xác định danh sách nick tham gia đăng bài
+      let targetAccountList: FacebookAccount[] = [];
+      const allAccs = getAllAccounts();
 
-      const result = await messengerEngine.publishFacebookPost({
-        content: (content || '').trim(),
-        targetType: targetType || 'personal_post',
-        groupUrls: Array.isArray(groupUrls) ? groupUrls : [],
-        photoPaths: allPhotoPaths,
-        autoCommentText: finalAutoComment || undefined,
-      });
-
-      if (result.screenshotPath) {
-        latestPostProofPath = result.screenshotPath;
+      if (postMode === 'broadcast_all') {
+        targetAccountList = allAccs.filter((a) => a.status === 'live' || a.status === 'active');
+        if (targetAccountList.length === 0) targetAccountList = allAccs;
+      } else if (Array.isArray(accountIds) && accountIds.length > 1) {
+        targetAccountList = allAccs.filter((a) => accountIds.includes(a.id));
+      } else {
+        const singleId = accountId || (Array.isArray(accountIds) && accountIds[0]) || undefined;
+        const acc = singleId ? getAccountById(singleId) : getDefaultAccount();
+        if (acc) targetAccountList = [acc];
       }
 
-      // Tự động phân tích và lưu căn hộ vào Quỹ Căn nếu nội dung có thông tin BĐS
+      if (targetAccountList.length === 0) {
+        targetAccountList = [getDefaultAccount()];
+      }
+
+      // TRƯỜNG HỢP 1: Đăng qua 1 nick cụ thể
+      if (targetAccountList.length === 1) {
+        const targetAcc = targetAccountList[0];
+        if (messengerEngine.getCurrentAccountId() !== targetAcc.id) {
+          console.log(`[Publish Direct] Chuyển sang nick ${targetAcc.name} (${targetAcc.id})...`);
+          await messengerEngine.switchAccount(targetAcc.id);
+          await new Promise((r) => setTimeout(r, 2000));
+        }
+
+        const post = addDailyPost({
+          content: (content || '').trim(),
+          mediaUrls: allPhotoPaths,
+          type: targetType || 'personal_post',
+          firstComment: finalAutoComment || undefined,
+        });
+        post.status = 'running';
+        post.targetType = targetType || 'personal_post';
+        post.targetGroupIds = Array.isArray(groupUrls) ? groupUrls : [];
+
+        const result = await messengerEngine.publishFacebookPost({
+          content: (content || '').trim(),
+          targetType: targetType || 'personal_post',
+          groupUrls: Array.isArray(groupUrls) ? groupUrls : [],
+          photoPaths: allPhotoPaths,
+          autoCommentText: finalAutoComment || undefined,
+        });
+
+        if (result.screenshotPath) {
+          latestPostProofPath = result.screenshotPath;
+        }
+
+        // Tự động phân tích và lưu căn hộ vào Quỹ Căn nếu nội dung có thông tin BĐS
+        if (content && typeof content === 'string' && content.trim().length > 10) {
+          ingestPropertiesFromTextWithAI(content, 'web_manual').catch(() => {});
+        }
+
+        // Ghi nhận thực tế: mỗi đích đăng là 1 biên nhận riêng, bình luận chỉ tính khi đã gửi thật
+        recordPublishResult(result, finalAutoComment);
+
+        if (result.success && result.publishedCount > 0) {
+          updateDailyPostStatus(
+            post.id,
+            'completed',
+            `Đã đăng thành công qua [${targetAcc.name}] lên ${result.publishedCount}/${result.totalTargets} đích!`
+          );
+        } else {
+          updateDailyPostStatus(
+            post.id,
+            'failed',
+            `Đăng bài thất bại: ${result.error || 'Facebook từ chối xuất bản'}`
+          );
+        }
+
+        return res.json({
+          success: result.success,
+          error: result.error,
+          accountName: targetAcc.name,
+          result,
+          post,
+        });
+      }
+
+      // TRƯỜNG HỢP 2: Đăng hàng loạt qua nhiều nick (Broadcast Multi-Account)
+      console.log(`[Batch Post] Bắt đầu đăng bài hàng loạt qua ${targetAccountList.length} nick...`);
+      const batchResults: Array<{ accountId: string; accountName: string; success: boolean; result: any }> = [];
+      let totalPublished = 0;
+
+      for (let i = 0; i < targetAccountList.length; i++) {
+        const acc = targetAccountList[i];
+        try {
+          console.log(`[Batch Post ${i + 1}/${targetAccountList.length}] Đang đăng bài qua [${acc.name}]...`);
+          if (messengerEngine.getCurrentAccountId() !== acc.id) {
+            await messengerEngine.switchAccount(acc.id);
+            await new Promise((r) => setTimeout(r, 2500));
+          }
+
+          const result = await messengerEngine.publishFacebookPost({
+            content: (content || '').trim(),
+            targetType: targetType || 'personal_post',
+            groupUrls: Array.isArray(groupUrls) ? groupUrls : [],
+            photoPaths: allPhotoPaths,
+            autoCommentText: finalAutoComment || undefined,
+          });
+
+          if (result.screenshotPath) latestPostProofPath = result.screenshotPath;
+          if (result.success) totalPublished += result.publishedCount;
+          recordPublishResult(result, finalAutoComment);
+
+          batchResults.push({
+            accountId: acc.id,
+            accountName: acc.name,
+            success: result.success,
+            result,
+          });
+
+          // Giãn cách an toàn 5-8s giữa các nick để chống checkpoint
+          if (i < targetAccountList.length - 1) {
+            const delay = Math.floor(Math.random() * 3000) + 5000;
+            await new Promise((r) => setTimeout(r, delay));
+          }
+        } catch (postErr: any) {
+          batchResults.push({
+            accountId: acc.id,
+            accountName: acc.name,
+            success: false,
+            result: { error: postErr.message },
+          });
+        }
+      }
+
       if (content && typeof content === 'string' && content.trim().length > 10) {
         ingestPropertiesFromTextWithAI(content, 'web_manual').catch(() => {});
       }
 
-      // Ghi nhận thực tế: mỗi đích đăng là 1 biên nhận riêng, bình luận chỉ tính khi đã gửi thật
-      recordPublishResult(result, finalAutoComment);
-
-      const proofScreenshot = result.screenshotPath ? '/proofs/' + path.basename(result.screenshotPath) : undefined;
-
-      if (result.success && result.publishedCount > 0) {
-        updateDailyPostStatus(
-          post.id,
-          'completed',
-          `Đã đăng thành công lên ${result.publishedCount}/${result.totalTargets} đích!`
-        );
-      } else {
-        updateDailyPostStatus(
-          post.id,
-          'failed',
-          `Đăng bài thất bại: ${result.error || 'Facebook từ chối xuất bản'}`
-        );
-      }
-
-      res.json({
-        success: result.success,
-        error: result.error,
-        result,
-        post,
+      const overallSuccess = batchResults.some((b) => b.success);
+      return res.json({
+        success: overallSuccess,
+        isBatch: true,
+        totalAccounts: targetAccountList.length,
+        totalPublished,
+        batchResults,
+        message: `Đã hoàn tất đăng bài hàng loạt qua ${targetAccountList.length} nick!`,
       });
     } catch (err: any) {
       res.status(500).json({ success: false, error: err.message });
@@ -3556,7 +3946,7 @@ export function startDashboard(): void {
     const pool = multiAccountPool.getPoolStatus();
     res.status(200).json({
       status: 'ok',
-      service: 'falconx-cloud-cluster',
+      service: 'fb-exten',
       uptimeSec: Math.round(process.uptime()),
       memoryRssMb: Math.round(process.memoryUsage().rss / 1024 / 1024),
       activeBrowserSlots: pool.summary.activeBrowserSlots,
@@ -3565,6 +3955,238 @@ export function startDashboard(): void {
       cloudDb: onlineCloudDb.getStatus().localDiskBytesStored === 0 ? 'zero-local-active' : 'local',
       timestamp: new Date().toISOString(),
     });
+  });
+
+  app.get('/api/extension/status', (_req, res) => {
+    const extDir = path.resolve(process.cwd(), 'fb-exten');
+    const manifestPath = path.join(extDir, 'manifest.json');
+    const coreBuildPath = path.join(extDir, 'core-build/shared/fb-exten-core.js');
+    const watchFiles = [
+      manifestPath,
+      coreBuildPath,
+      path.join(extDir, 'content/graphql-tap.js'),
+      path.join(extDir, 'content/facebook-agent.js'),
+      path.join(extDir, 'content/meta-ai-bridge.js'),
+      path.join(extDir, 'background/service-worker.js'),
+      path.join(extDir, 'sidepanel/app.js'),
+    ];
+    const sig = watchFiles
+      .map((f) => {
+        try {
+          const st = fs.statSync(f);
+          return `${path.basename(f)}:${st.size}:${Math.round(st.mtimeMs)}`;
+        } catch {
+          return `${path.basename(f)}:0`;
+        }
+      })
+      .join('|');
+    const buildHash = crypto.createHash('sha1').update(sig).digest('hex').slice(0, 12);
+
+    res.json({
+      name: 'FB EXTEN',
+      ready: fs.existsSync(manifestPath) && fs.existsSync(coreBuildPath),
+      extensionPath: extDir,
+      manifestExists: fs.existsSync(manifestPath),
+      coreBuildExists: fs.existsSync(coreBuildPath),
+      buildHash,
+    });
+  });
+
+  // Tự động nhận Session (Cookie Facebook live) đồng bộ từ Chrome Extension FB EXTEN
+  app.post('/api/extension/sync-session', async (req, res) => {
+    const { uid, cookies, name, makeDefault } = req.body || {};
+    if (!uid || !Array.isArray(cookies) || cookies.length === 0) {
+      return res.status(400).json({ success: false, error: 'Thiếu UID hoặc danh sách Cookie Facebook từ Extension.' });
+    }
+
+    const cleanUid = String(uid).replace(/[^0-9]/g, '');
+    if (!cleanUid) {
+      return res.status(400).json({ success: false, error: 'UID Facebook không hợp lệ.' });
+    }
+
+    const sanitizedCookies = cookies
+      .filter((c: any) => c && c.name && c.value)
+      .map((c: any) => ({
+        name: String(c.name),
+        value: String(c.value),
+        domain: String(c.domain || '.facebook.com'),
+        path: String(c.path || '/'),
+        ...(typeof c.expirationDate === 'number' ? { expires: Math.floor(c.expirationDate) } : {}),
+      }));
+
+    if (!sanitizedCookies.some((c) => c.name === 'c_user')) {
+      return res.status(400).json({ success: false, error: 'Cookie chưa có phiên c_user hợp lệ.' });
+    }
+
+    const existing = getAllAccounts().find((a) => a.uid === cleanUid || a.id === `acc_${cleanUid}`);
+    const accountId = existing ? existing.id : `acc_${cleanUid}`;
+    const relProfileDir = existing?.profileDir || `./.user-data/profiles/${accountId}`;
+    const absProfileDir = path.resolve(relProfileDir);
+
+    try {
+      fs.mkdirSync(absProfileDir, { recursive: true });
+      fs.writeFileSync(path.join(absProfileDir, 'cookies.json'), JSON.stringify(sanitizedCookies, null, 2), 'utf-8');
+    } catch {}
+
+    const saved = saveAccount({
+      id: accountId,
+      uid: cleanUid,
+      name: existing?.name || name || `FB EXTEN (${cleanUid})`,
+      avatar: existing?.avatar || `https://graph.facebook.com/${cleanUid}/picture?type=large`,
+      proxy: existing?.proxy || '',
+      profileDir: relProfileDir,
+      cookies: sanitizedCookies,
+      status: 'live',
+      isDefault: makeDefault === true ? true : existing?.isDefault,
+    });
+
+    console.log(`🔄 [FB EXTEN Session Sync] Đã tự động cập nhật ${sanitizedCookies.length} cookie cho nick ${saved.name} (UID: ${cleanUid})`);
+
+    res.json({
+      success: true,
+      accountId: saved.id,
+      uid: cleanUid,
+      accountName: saved.name,
+      cookiesCount: sanitizedCookies.length,
+      syncedAt: new Date().toISOString(),
+    });
+  });
+
+  // Sao lưu / đồng bộ Bộ nhớ Tự Học F12 + Nhóm + Kịch Bản MXH của máy người dùng
+  const machineKnowledgeFile = path.resolve('./.user-data/fb_exten_machine_knowledge.json');
+
+  app.get('/api/extension/knowledge', (_req, res) => {
+    try {
+      if (!fs.existsSync(machineKnowledgeFile)) {
+        return res.json({ success: true, exists: false, knowledge: null });
+      }
+      const raw = fs.readFileSync(machineKnowledgeFile, 'utf-8');
+      return res.json({ success: true, exists: true, knowledge: JSON.parse(raw) });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err?.message || String(err) });
+    }
+  });
+
+  app.post('/api/extension/knowledge', (req, res) => {
+    try {
+      const knowledge = req.body?.knowledge || req.body;
+      if (!knowledge || typeof knowledge !== 'object') {
+        return res.status(400).json({ success: false, error: 'Dữ liệu Machine Knowledge không hợp lệ.' });
+      }
+      fs.mkdirSync(path.dirname(machineKnowledgeFile), { recursive: true });
+      fs.writeFileSync(machineKnowledgeFile, JSON.stringify(knowledge, null, 2), 'utf-8');
+      return res.json({
+        success: true,
+        savedAt: new Date().toISOString(),
+        groupsCount: Array.isArray(knowledge.learnedGroups) ? knowledge.learnedGroups.length : 0,
+        workflowsCount: Array.isArray(knowledge.workflows) ? knowledge.workflows.length : 0,
+        rolesCount: knowledge.roleProfiles ? Object.keys(knowledge.roleProfiles).length : 0,
+      });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err?.message || String(err) });
+    }
+  });
+
+  // Mini-CRM Leads & Cảnh báo Lead Nóng tức thì về Telegram Bot từ Chrome Extension v4.0
+  const extensionLeadsFile = path.resolve('./.user-data/fb_exten_leads_crm.json');
+
+  app.get('/api/extension/leads', (_req, res) => {
+    try {
+      if (!fs.existsSync(extensionLeadsFile)) {
+        return res.json({ success: true, leads: [] });
+      }
+      const leads = JSON.parse(fs.readFileSync(extensionLeadsFile, 'utf-8'));
+      return res.json({ success: true, leads: Array.isArray(leads) ? leads : [] });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err?.message || String(err) });
+    }
+  });
+
+  app.post('/api/extension/hot-lead', async (req, res) => {
+    try {
+      const lead = req.body?.lead || req.body;
+      if (!lead || !lead.postUrl) {
+        return res.status(400).json({ success: false, error: 'Thiếu dữ liệu Lead (postUrl).' });
+      }
+
+      let leads: any[] = [];
+      try {
+        if (fs.existsSync(extensionLeadsFile)) {
+          const parsed = JSON.parse(fs.readFileSync(extensionLeadsFile, 'utf-8'));
+          if (Array.isArray(parsed)) leads = parsed;
+        }
+      } catch {}
+
+      const cleanLead = {
+        id: String(lead.id || `lead_${Date.now()}`),
+        author: String(lead.author || 'Khách Group').slice(0, 90),
+        authorUid: lead.authorUid ? String(lead.authorUid) : undefined,
+        groupName: String(lead.groupName || 'Facebook Group').slice(0, 90),
+        postUrl: String(lead.postUrl),
+        snippet: String(lead.snippet || '').slice(0, 320),
+        need: String(lead.need || '').slice(0, 220),
+        leadScore: Number(lead.leadScore) || 0,
+        temperature: lead.temperature === 'hot' ? 'hot' : lead.temperature === 'warm' ? 'warm' : 'cold',
+        suggestedReply: String(lead.suggestedReply || '').slice(0, 260),
+        status: String(lead.status || 'new'),
+        createdAt: lead.createdAt || new Date().toISOString(),
+      };
+
+      const existingIdx = leads.findIndex((l) => l.postUrl === cleanLead.postUrl && l.author === cleanLead.author);
+      if (existingIdx >= 0) leads[existingIdx] = { ...leads[existingIdx], ...cleanLead };
+      else leads.unshift(cleanLead);
+      if (leads.length > 500) leads.length = 500;
+
+      fs.mkdirSync(path.dirname(extensionLeadsFile), { recursive: true });
+      fs.writeFileSync(extensionLeadsFile, JSON.stringify(leads, null, 2), 'utf-8');
+
+      let telegramSent = false;
+      if (req.body?.notifyTelegram !== false && cleanLead.temperature === 'hot' && config.telegramGroupId) {
+        try {
+          const bot = getBot();
+          const profileHint = cleanLead.authorUid
+            ? `\n👤 Profile: https://www.facebook.com/${cleanLead.authorUid}`
+            : '';
+          const msg = [
+            `🔥 LEAD NÓNG TỪ FB EXTEN (${cleanLead.leadScore}/100đ)`,
+            `📂 Nhóm: ${cleanLead.groupName}`,
+            `🧑 Khách: ${cleanLead.author}${profileHint}`,
+            `🎯 Nhu cầu: ${cleanLead.need || cleanLead.snippet}`,
+            cleanLead.suggestedReply ? `💬 Gợi ý trả lời: ${cleanLead.suggestedReply}` : '',
+            `🔗 Link bài: ${cleanLead.postUrl}`,
+          ]
+            .filter(Boolean)
+            .join('\n');
+          await bot.api.sendMessage(config.telegramGroupId, msg);
+          telegramSent = true;
+        } catch {}
+      }
+
+      return res.json({ success: true, lead: cleanLead, telegramSent, totalLeads: leads.length });
+    } catch (err: any) {
+      return res.status(500).json({ success: false, error: err?.message || String(err) });
+    }
+  });
+
+  app.post('/api/agent/run-link', async (req, res) => {
+    const { url, mode, customRule, doLove, doCommentPost, doReplyBuyers, dryRunOnly } = req.body || {};
+    if (!url || typeof url !== 'string') {
+      return res.status(400).json({ success: false, error: 'Thiếu link bài viết Facebook' });
+    }
+    try {
+      const result = await facebookActionsEngine.runLinkAgentOnScreen({
+        url,
+        mode: mode || 'auto',
+        customRule,
+        doLove,
+        doCommentPost,
+        doReplyBuyers,
+        dryRunOnly: Boolean(dryRunOnly),
+      });
+      res.json(result);
+    } catch (err: any) {
+      res.status(500).json({ success: false, error: err?.message || String(err) });
+    }
   });
 
   app.get('/readyz', (_req, res) => {
@@ -3687,10 +4309,10 @@ export function startDashboard(): void {
 
   const host = config.dashboardHost || '0.0.0.0';
   const server = app.listen(config.dashboardPort, host, () => {
-    console.log(`🌐 [FalconX Dashboard] Giao diện điều khiển mở tại: http://${host === '0.0.0.0' ? 'localhost' : host}:${config.dashboardPort} (Lắng nghe toàn mạng: ${host}:${config.dashboardPort})`);
+    console.log(`🌐 [FB EXTEN Dashboard] Giao diện điều khiển mở tại: http://${host === '0.0.0.0' ? 'localhost' : host}:${config.dashboardPort} (Lắng nghe toàn mạng: ${host}:${config.dashboardPort})`);
   });
 
   server.on('error', (err: any) => {
-    console.error(`🚨 [FalconX Dashboard Server Error]:`, err.message);
+    console.error(`🚨 [FB EXTEN Dashboard Server Error]:`, err.message);
   });
 }

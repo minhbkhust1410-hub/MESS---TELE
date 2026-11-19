@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # =========================================================================
-# FalconX Mess x Tele - Professional Unix/Linux/macOS Launcher
+# FB EXTEN - Professional Unix/Linux/macOS Launcher
 # =========================================================================
 
 set -e
@@ -8,7 +8,7 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$DIR"
 
 echo "========================================================================="
-echo "🚀 KHỞI ĐỘNG HỆ THỐNG FALCONX MESS x TELE (UNIX WORKFLOW)"
+echo "🚀 KHỞI ĐỘNG HỆ THỐNG FB EXTEN (UNIX WORKFLOW)"
 echo "========================================================================="
 echo "🌐 Web Dashboard: http://localhost:3300"
 echo "☁️ Cloud DB: 100% Online Encrypted Vault (0 Byte Local)"

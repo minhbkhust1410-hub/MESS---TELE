@@ -10,7 +10,7 @@ process.on('unhandledRejection', (reason: any) => {
 
 async function bootstrap() {
   console.log('===========================================================');
-  console.log('🚀 KHỞI ĐỘNG HỆ THỐNG FALCONX MESS x TELE (100% CLOUD DB)');
+  console.log('🚀 KHỞI ĐỘNG HỆ THỐNG FB EXTEN (HYBRID CORE + PRIVATE EXTENSION)');
   console.log('===========================================================\n');
 
   // 0. Khởi tạo Online Cloud Database trước khi nạp bất kỳ dịch vụ nào (0 Byte lưu Local)
@@ -50,16 +50,16 @@ async function bootstrap() {
     console.error('🚨 [Telegram Bot Polling Error]:', err.message);
   });
 
-  // 4. Khởi chạy FalconX Web Dashboard
+  // 4. Khởi chạy FB EXTEN Web Dashboard
   startDashboard();
 
   // 4.1. Khởi chạy Trình Kiểm Định Toàn Bộ Chức Năng App Hàng Ngày (Facebook Compat Engine)
   systemDiagnosticService.initDailyDiagnosticScheduler();
 
-  // 5. Khởi chạy FalconX Messenger Engine với MutationObserver Realtime
+  // 5. Khởi chạy FB EXTEN Messenger Engine với MutationObserver Realtime
   try {
     await messengerEngine.start();
-    console.log('\n🎉 TOÀN BỘ HỆ THỐNG FALCONX MESS x TELE (100% CLOUD DB) ĐÃ SẴN SÀNG!\n');
+    console.log('\n🎉 TOÀN BỘ HỆ THỐNG FB EXTEN ĐÃ SẴN SÀNG!\n');
   } catch (err: any) {
     console.error('⚠️ Lỗi khởi chạy Messenger Engine:', err.message);
   }

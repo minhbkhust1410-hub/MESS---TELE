@@ -1,11 +1,13 @@
 import { Page, BrowserContext } from 'playwright';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 
 export interface FacebookLoginOptions {
   username: string;
   password: string;
   twoFactorCode?: string;
+  twoFactorSecret?: string;
 }
 
 export interface FacebookLoginResult {
@@ -15,6 +17,51 @@ export interface FacebookLoginResult {
   cookies?: any[];
   error?: string;
   requires2FA?: boolean;
+}
+
+/**
+ * Giải mã Base32 RFC 4648
+ */
+export function base32Decode(base32: string): Buffer {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  const cleaned = base32.toUpperCase().replace(/=+$/, '').replace(/\s+/g, '');
+  let bits = '';
+  for (let i = 0; i < cleaned.length; i++) {
+    const val = alphabet.indexOf(cleaned[i]);
+    if (val === -1) continue;
+    bits += val.toString(2).padStart(5, '0');
+  }
+  const bytes: number[] = [];
+  for (let i = 0; i + 8 <= bits.length; i += 8) {
+    bytes.push(parseInt(bits.slice(i, i + 8), 2));
+  }
+  return Buffer.from(bytes);
+}
+
+/**
+ * Tự động tạo mã 6 số TOTP RFC 6238 từ Secret Key (2FA)
+ */
+export function generateTOTP(secret: string, timeStep = 30): string | null {
+  try {
+    const key = base32Decode(secret);
+    if (!key || key.length === 0) return null;
+    const epoch = Math.floor(Date.now() / 1000);
+    const counter = Math.floor(epoch / timeStep);
+    const counterBuf = Buffer.alloc(8);
+    counterBuf.writeBigInt64BE(BigInt(counter), 0);
+    const hmac = crypto.createHmac('sha1', key);
+    hmac.update(counterBuf);
+    const digest = hmac.digest();
+    const offset = digest[digest.length - 1] & 0xf;
+    const code =
+      ((digest[offset] & 0x7f) << 24) |
+      ((digest[offset + 1] & 0xff) << 16) |
+      ((digest[offset + 2] & 0xff) << 8) |
+      (digest[offset + 3] & 0xff);
+    return String(code % 1000000).padStart(6, '0');
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -86,14 +133,14 @@ async function smartFill(page: Page, selector: string, value: string): Promise<b
 }
 
 /**
- * Tự động đăng nhập Facebook theo dạng chuẩn: Tài khoản (Email/SĐT/UID) + Mật khẩu
- * Tự động xử lý mọi giao diện Facebook: Form thông thường, Account Tile/Chooser, Popup Meta.
+ * Tự động đăng nhập Facebook theo dạng chuẩn: Tài khoản (Email/SĐT/UID) + Mật khẩu + 2FA TOTP
+ * Hỗ trợ giao diện Facebook: Form thông thường, Account Tile/Chooser, Popup Meta.
  */
 export async function loginFacebookWithCredentials(
   page: Page,
   options: FacebookLoginOptions
 ): Promise<FacebookLoginResult> {
-  const { username, password, twoFactorCode } = options;
+  const { username, password, twoFactorCode, twoFactorSecret } = options;
   const cleanUser = String(username || '').trim();
   const cleanPass = String(password || '').trim();
 
@@ -121,7 +168,6 @@ export async function loginFacebookWithCredentials(
 
     // 2. Kiểm tra xem trang có đang ở màn hình Chọn tài khoản (Account Chooser Tile) hay không
     const isTileScreen = await page.evaluate(() => {
-      const body = document.body.innerText || '';
       const hasContinue = Array.from(document.querySelectorAll('div[role="button"]')).some(b => 
         (b.getAttribute('aria-label') || '').includes('Tiếp tục') || (b.textContent || '').trim() === 'Tiếp tục'
       );
@@ -133,8 +179,6 @@ export async function loginFacebookWithCredentials(
 
     if (isTileScreen) {
       console.log('📌 [FB Authenticator] Phát hiện giao diện Thẻ tài khoản Facebook...');
-      
-      // Nếu người dùng nhập username khác hoặc muốn nhập từ form sạch
       const isSpecificOtherUser = cleanUser && !cleanUser.toLowerCase().includes('eco trang') && !cleanUser.toLowerCase().includes('trang');
 
       if (isSpecificOtherUser) {
@@ -146,13 +190,11 @@ export async function loginFacebookWithCredentials(
         await smartClick(page, ['Tiếp tục Eco Trang', 'Tiếp tục', '[aria-label*="Tiếp tục"]']);
         await page.waitForTimeout(2000);
 
-        // Kiểm tra xem popup mật khẩu Meta có hiện không
         const hasMetaPassPopup = await page.evaluate(() => {
           return !!document.querySelector('input[type="password"], input[name="pass"]');
         });
 
         if (!hasMetaPassPopup) {
-          // Fallback: bấm Dùng trang cá nhân khác để mở form nhập đầy đủ
           console.log('🔘 [FB Authenticator] Mở form chuẩn qua "Dùng trang cá nhân khác"...');
           await smartClick(page, ['Dùng trang cá nhân khác', '[aria-label*="Dùng trang cá nhân khác"]']);
           await page.waitForTimeout(2000);
@@ -210,19 +252,39 @@ export async function loginFacebookWithCredentials(
       return { success: false, error: 'Tài khoản Facebook đã bị tạm khóa hoặc vô hiệu hóa.' };
     }
 
-    // 8. Kiểm tra 2FA (mã xác nhận)
+    // 8. Tự động xử lý 2FA (Mã xác nhận bảo mật 2 lớp)
     const twoFactorInput = page.locator('input[name="approvals_code"], input[autocomplete="one-time-code"]').first();
-    if (await twoFactorInput.isVisible({ timeout: 2000 }).catch(() => false)) {
-      if (twoFactorCode) {
-        console.log('🔑 [FB Authenticator] Đang điền mã xác nhận 2FA...');
-        await twoFactorInput.fill(twoFactorCode.trim());
+    const is2FaPresent = await twoFactorInput.isVisible({ timeout: 2500 }).catch(() => false);
+
+    if (is2FaPresent) {
+      let codeToFill = twoFactorCode ? twoFactorCode.trim() : '';
+      if (!codeToFill && twoFactorSecret) {
+        codeToFill = generateTOTP(twoFactorSecret) || '';
+        if (codeToFill) {
+          console.log(`🔑 [FB Authenticator] Tự động tính toán mã 2FA TOTP từ Secret: ${codeToFill}`);
+        }
+      }
+
+      if (codeToFill) {
+        console.log(`🔑 [FB Authenticator] Đang điền mã xác nhận 2FA (${codeToFill})...`);
+        await twoFactorInput.fill(codeToFill);
+        await page.waitForTimeout(300);
         await page.keyboard.press('Enter');
-        await page.waitForTimeout(5000);
+        await page.waitForTimeout(6000);
+
+        // Xử lý bước "Lưu trình duyệt này" (Save browser) nếu có
+        await smartClick(page, [
+          'div[role="button"]:has-text("Lưu trình duyệt")',
+          'div[role="button"]:has-text("Tiếp tục")',
+          'button:has-text("Tiếp tục")',
+          '#checkpointSubmitButton'
+        ]);
+        await page.waitForTimeout(3000);
       } else {
         return {
           success: false,
           requires2FA: true,
-          error: 'Tài khoản có bảo mật 2 lớp (2FA). Vui lòng nhập mã 2FA từ ứng dụng Authenticator hoặc tin nhắn SMS.',
+          error: 'Tài khoản yêu cầu mã 2FA. Vui lòng nhập mã 2FA 6 số hoặc gắn Secret Key để hệ thống tự động giải mã!',
         };
       }
     }
@@ -257,7 +319,7 @@ export async function loginFacebookWithCredentials(
 
     return {
       success: false,
-      error: 'Facebook chưa xác nhận đăng nhập. Vui lòng kiểm tra lại tài khoản & mật khẩu hoặc mở nút "Màn Hình FB".',
+      error: 'Facebook chưa xác nhận đăng nhập. Vui lòng kiểm tra lại tài khoản & mật khẩu hoặc mở nút "Mở Chrome FB".',
     };
   } catch (err: any) {
     console.error('❌ [FB Authenticator] Lỗi ngoại lệ khi đăng nhập:', err.message);

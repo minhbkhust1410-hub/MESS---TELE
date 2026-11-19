@@ -15,6 +15,54 @@ export interface ComposerHandle {
 
 export class FacebookComposerService {
   /**
+   * Vẽ khung ngắm F12 trực quan ngay trên cửa sổ trình duyệt Playwright để kiểm chứng đã trỏ đúng phần tử
+   */
+  public async highlightTarget(locator: Locator, label: string, color = '#10b981', durationMs = 3500): Promise<void> {
+    try {
+      await locator.evaluate(
+        (el, opts) => {
+          if (!(el instanceof HTMLElement)) return;
+          const rect = el.getBoundingClientRect();
+          if (rect.width < 4 || rect.height < 4) return;
+          const box = document.createElement('div');
+          box.className = 'fb-exten-pw-f12-box';
+          box.style.cssText = `
+            position: fixed;
+            left: ${Math.max(0, rect.left - 3)}px;
+            top: ${Math.max(0, rect.top - 3)}px;
+            width: ${rect.width + 6}px;
+            height: ${rect.height + 6}px;
+            border: 2.5px solid ${opts.color};
+            border-radius: 8px;
+            box-shadow: 0 0 18px ${opts.color}99, inset 0 0 8px ${opts.color}33;
+            pointer-events: none;
+            z-index: 2147483645;
+          `;
+          const tag = document.createElement('div');
+          tag.textContent = `${opts.label} <${el.tagName.toLowerCase()}>`;
+          tag.style.cssText = `
+            position: absolute;
+            left: 0;
+            top: ${rect.top > 26 ? '-22px' : `${rect.height + 5}px`};
+            background: ${opts.color};
+            color: #07090e;
+            font-family: monospace;
+            font-size: 11px;
+            font-weight: 800;
+            padding: 2px 7px;
+            border-radius: 5px;
+            white-space: nowrap;
+          `;
+          box.appendChild(tag);
+          document.body.appendChild(box);
+          setTimeout(() => box.remove(), opts.durationMs);
+        },
+        { label, color, durationMs }
+      );
+    } catch {}
+  }
+
+  /**
    * Chẩn đoán nguyên nhân chính xác nếu không thể mở khung bình luận
    */
   async diagnoseIneligibility(page: Page): Promise<string> {
@@ -82,6 +130,24 @@ export class FacebookComposerService {
     }).catch(() => {});
     await randomSleep(800, 1500);
 
+    // 0.3. Ưu tiên Popup Modal bài viết (div[role="dialog"]) nếu link mở dạng modal Group/Permalink
+    try {
+      const dialogModal = page.locator('div[role="dialog"]').filter({ hasText: /Thích|Bình luận|Chia sẻ|Like|Comment|Share/i }).last();
+      if (await dialogModal.isVisible({ timeout: 1500 }).catch(() => false)) {
+        const modalEditor = await this.resolveFirstVisible([
+          dialogModal.locator('form [role="textbox"][contenteditable="true"]').last(),
+          dialogModal.locator('[role="textbox"][contenteditable="true"][aria-label*="Viết bình luận" i]').last(),
+          dialogModal.locator('[role="textbox"][contenteditable="true"][aria-label*="Bình luận" i]').last(),
+          dialogModal.locator('[contenteditable="true"][data-lexical-editor="true"]').last(),
+        ]);
+        if (modalEditor) {
+          await this.highlightTarget(modalEditor, '🎯 [F12] Ô Bình Luận Modal');
+          console.log('[FacebookComposer] 🎯 Tìm thấy khung soạn thảo trong Popup Modal bài viết.');
+          return { surface: 'dialog-modal-comment', editor: modalEditor };
+        }
+      }
+    } catch {}
+
     // 0.5. Ưu tiên tìm trong bài viết đầu tiên (dành cho bài vừa đăng trên Group/Feed)
     try {
       const firstArticle = page.locator('div[role="feed"] div[role="article"], div[role="article"]').first();
@@ -144,6 +210,7 @@ export class FacebookComposerService {
     ]);
 
     if (activeEditor) {
+      await this.highlightTarget(activeEditor, '🎯 [F12] Ô Bình Luận Bài Chính');
       return { surface: 'main-post-comment', editor: activeEditor };
     }
 
@@ -302,6 +369,7 @@ export class FacebookComposerService {
       return false;
     }
 
+    await this.highlightTarget(replyButton, '🎯 [F12] Nút Trả Lời', '#a855f7');
     await humanHoverAndClick(page, replyButton);
     await randomSleep(900, 1600);
 
@@ -315,6 +383,7 @@ export class FacebookComposerService {
 
     if (!replyEditor) return false;
 
+    await this.highlightTarget(replyEditor, '🎯 [F12] Ô Nhập Trả Lời', '#10b981');
     await humanHoverAndClick(page, replyEditor);
     await randomSleep(400, 800);
     await replyEditor.fill('').catch(() => {});

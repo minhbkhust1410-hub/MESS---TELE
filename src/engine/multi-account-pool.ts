@@ -300,24 +300,33 @@ class MultiAccountPoolEngine {
       let verticalMode: 'bds_ecopark' | 'forex_finance' = defaultMode;
       let rawCookies = '';
 
-      // Nếu cột 1 là chuỗi cookie (chứa c_user=)
-      if (parts[0].includes('c_user=')) {
-        rawCookies = parts[0];
-        const mUid = rawCookies.match(/c_user=(\d+)/);
-        uidOrUser = mUid ? mUid[1] : `user_${Date.now()}_${idx}`;
-        proxy = parts[1] || '';
-        name = parts[2] || '';
-        if (parts[3] && /forex|fx|vàng|gold/i.test(parts[3])) verticalMode = 'forex_finance';
-      } else {
-        uidOrUser = parts[0];
-        password = parts[1] || '';
-        proxy = parts[2] || '';
-        name = parts[3] || '';
-        if (parts[4]) {
-          verticalMode = /forex|fx|vàng|gold/i.test(parts[4]) ? 'forex_finance' : 'bds_ecopark';
+      let twoFactorSecret = '';
+
+      // Thông minh tự nhận diện từng trường dựa vào định dạng nội dung
+      for (const p of parts) {
+        if (!p) continue;
+        if (p.includes('c_user=')) {
+          rawCookies = p;
+          const mUid = p.match(/c_user=(\d+)/);
+          if (mUid && !uidOrUser) uidOrUser = mUid[1];
+        } else if (/\d+\.\d+\.\d+\.\d+:\d+/.test(p)) {
+          proxy = p;
+        } else if (/^(bds|ecopark|forex|fx|vàng|gold)$/i.test(p)) {
+          verticalMode = /forex|fx|vàng|gold/i.test(p) ? 'forex_finance' : 'bds_ecopark';
+        } else if (/^[A-Z2-7]{16,32}$/.test(p)) {
+          twoFactorSecret = p;
+        } else if (/^\d{10,18}$/.test(p) && !uidOrUser) {
+          uidOrUser = p;
         }
-        rawCookies = parts[5] || '';
       }
+
+      // Nhận diện theo vị trí nếu chưa có
+      if (!uidOrUser && parts[0]) uidOrUser = parts[0];
+      if (!password && parts[1] && !parts[1].includes('c_user=') && !parts[1].includes(':')) password = parts[1];
+      if (!twoFactorSecret && parts[2] && /^[A-Z2-7]{16,32}$/.test(parts[2])) twoFactorSecret = parts[2];
+      if (!rawCookies && parts[3] && parts[3].includes('c_user=')) rawCookies = parts[3];
+      if (!proxy && parts[4] && /\d+\.\d+\.\d+\.\d+:\d+/.test(parts[4])) proxy = parts[4];
+      if (!proxy && parts[2] && /\d+\.\d+\.\d+\.\d+:\d+/.test(parts[2])) proxy = parts[2];
 
       if (!uidOrUser) {
         skippedCount++;
@@ -336,6 +345,7 @@ class MultiAccountPoolEngine {
         uid: /^\d+$/.test(uidOrUser) ? uidOrUser : '',
         fbUsername: uidOrUser,
         fbPassword: password || undefined,
+        twoFactorSecret: twoFactorSecret || undefined,
         name: displayName,
         proxy,
         proxyStatus: proxy ? 'live' : 'unassigned',

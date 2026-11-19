@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import { execSync } from 'node:child_process';
 import path from 'node:path';
 import { chromium, request, type BrowserContext, type Page } from 'playwright';
 import { config } from '../config/env.js';
@@ -314,6 +315,40 @@ export async function verifyBrowserProxyIP(
   }
 }
 
+
+/**
+ * Dọn dẹp tiến trình treo và xóa sạch các file lock của Chromium / Chrome trên Windows
+ */
+export function unlockProfileDir(profileDir: string): void {
+  const absDir = path.resolve(profileDir);
+  if (!fs.existsSync(absDir)) return;
+
+  if (process.platform === 'win32') {
+    try {
+      const folderName = path.basename(absDir);
+      const query = `powershell -NoProfile -Command "Get-CimInstance Win32_Process -Filter \\\"Name = 'chrome.exe'\\\" | Where-Object { \$_.CommandLine -like '*${folderName}*' } | Select-Object -ExpandProperty ProcessId"`;
+      const out = execSync(query, { timeout: 3500, stdio: ['pipe', 'pipe', 'ignore'] }).toString().trim();
+      if (out) {
+        const pids = out.split(/\r?\n/).map(p => p.trim()).filter(Boolean);
+        for (const pid of pids) {
+          try {
+            execSync(`taskkill /PID ${pid} /F /T`, { stdio: 'ignore' });
+          } catch {}
+        }
+      }
+    } catch {}
+  }
+
+  for (const lockFileName of ['lockfile', 'parent.lock', 'SingletonLock', 'SingletonCookie', 'SingletonSocket']) {
+    const lockPath = path.join(absDir, lockFileName);
+    if (fs.existsSync(lockPath)) {
+      try {
+        fs.unlinkSync(lockPath);
+      } catch {}
+    }
+  }
+}
+
 export async function createBrowserSession(options: SessionOptions = {}): Promise<SessionResult> {
   const profileDir = options.userDataDir || config.fbProfileDir;
 
@@ -321,14 +356,7 @@ export async function createBrowserSession(options: SessionOptions = {}): Promis
     fs.mkdirSync(profileDir, { recursive: true });
   }
 
-  for (const lockFileName of ['lockfile', 'parent.lock', 'SingletonLock', 'SingletonCookie', 'SingletonSocket']) {
-    const lockPath = path.join(profileDir, lockFileName);
-    if (fs.existsSync(lockPath)) {
-      try {
-        fs.unlinkSync(lockPath);
-      } catch {}
-    }
-  }
+  unlockProfileDir(profileDir);
 
   // Tìm tài khoản tương ứng trong Cloud DB (để lấy Proxy riêng & Cookie đồng bộ đám mây)
   const matchedAccount = getAllAccounts().find(
@@ -370,11 +398,11 @@ export async function createBrowserSession(options: SessionOptions = {}): Promis
     console.log(`🌐 [KudoX Network] Tài khoản không gắn Proxy -> Chạy IP trực tiếp của máy.`);
   }
 
-  const context = await chromium.launchPersistentContext(profileDir, {
+  const isVisual = !isHeadless;
+  const launchOptions: any = {
     headless: isHeadless,
     channel: hasRealChrome ? 'chrome' : undefined,
     proxy: parsedProxy,
-    viewport: options.viewport || { width: 1366, height: 768 },
     userAgent:
       'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36',
     locale: 'vi-VN',
@@ -391,9 +419,18 @@ export async function createBrowserSession(options: SessionOptions = {}): Promis
       '--disable-features=WebRtcHideLocalIpsWithMdns',
       '--enforce-webrtc-ip-permission-check',
       '--dns-prefetch-disable',
+      ...(isVisual ? ['--start-maximized'] : []),
     ],
     ignoreDefaultArgs: ['--enable-automation'],
-  });
+  };
+
+  if (isVisual) {
+    launchOptions.viewport = null; // Tự động tối ưu toàn màn hình không bị viền đen
+  } else {
+    launchOptions.viewport = options.viewport || { width: 1366, height: 768 };
+  }
+
+  const context = await chromium.launchPersistentContext(profileDir, launchOptions);
 
   // =========================================================================
   // KHÔI PHỤC COOKIE ĐÁM MÂY TỰ ĐỘNG (Cloud Portable Session Restore)

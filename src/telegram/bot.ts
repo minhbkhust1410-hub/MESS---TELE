@@ -60,6 +60,12 @@ import {
   type PropertyItem,
 } from '../services/property-inventory.js';
 import { globalLeadPoolService } from '../services/global-lead-pool.js';
+import { getCaptchaApiKeys, saveCaptchaApiKeys } from '../core/captcha-solver.js';
+import {
+  scanAllRunningProfilesCaptcha,
+  unlockLiveCaptchaForAccount,
+  autoUnlockAllLiveCaptchas,
+} from '../core/captcha-live-unlocker.js';
 import fs from 'fs';
 import path from 'path';
 import https from 'https';
@@ -519,6 +525,124 @@ export function getBot(): Bot {
   });
 
   // Lệnh xuất báo cáo tổng kết ngày
+  bot.command('captcha', async (ctx) => {
+    if (!(await requireFacebookOperator(ctx))) return;
+    const text = ctx.message?.text?.trim() || '';
+    const parts = text.split(/\s+/);
+
+    if (parts[1] === 'set' && parts[2] && parts[3]) {
+      const provider = parts[2].toLowerCase();
+      const keyVal = parts[3].trim();
+      const currentKeys = getCaptchaApiKeys();
+      if (provider === '2captcha' || provider === 'twocaptcha') {
+        saveCaptchaApiKeys({ ...currentKeys, twoCaptchaKey: keyVal });
+        return ctx.reply('✅ Đã lưu API Key 2Captcha thành công!');
+      } else if (provider === 'gemini') {
+        saveCaptchaApiKeys({ ...currentKeys, geminiKey: keyVal });
+        return ctx.reply('✅ Đã lưu API Key Gemini Vision thành công!');
+      } else if (provider === 'capsolver') {
+        saveCaptchaApiKeys({ ...currentKeys, capSolverKey: keyVal });
+        return ctx.reply('✅ Đã lưu API Key CapSolver thành công!');
+      } else {
+        return ctx.reply('⚠️ Cú pháp: `/captcha set <2captcha|gemini|capsolver> <API_KEY>`', { parse_mode: 'Markdown' });
+      }
+    }
+
+    if (parts[1] === 'scan') {
+      await ctx.reply('🔍 Đang kết nối DevTools quét toàn bộ trình duyệt Chrome...');
+      try {
+        const liveList = await scanAllRunningProfilesCaptcha();
+        if (liveList.length === 0) {
+          return ctx.reply('⚪ Hiện không có trình duyệt Chrome nào đang mở.');
+        }
+        const lines = [
+          '🌐 **KẾT QUẢ QUÉT TRÌNH DUYỆT TRỰC TIẾP:**',
+          `Tổng số Chrome đang mở: **${liveList.length}**`,
+          '',
+        ];
+        for (const item of liveList) {
+          lines.push(
+            `• **${item.accountName}** (ID: \`${item.accountId}\`, Port: \`${item.port}\`): ${
+              item.hasCaptcha ? '🚨 **KẸT CAPTCHA**' : '✅ Bình thường'
+            }`
+          );
+        }
+        lines.push('', '💡 Dùng lệnh `/unlock <ID>` để tự động mở khóa!');
+        return ctx.reply(lines.join('\n'), { parse_mode: 'Markdown' });
+      } catch (err: any) {
+        return ctx.reply(`❌ Lỗi khi quét: ${err.message}`);
+      }
+    }
+
+    const keys = getCaptchaApiKeys();
+    const msg = [
+      '🧩 **HỆ THỐNG GIẢI MÃ CAPTCHA TỰ ĐỘNG (KUDOX 2.5)**',
+      '────────────────────────',
+      '📦 **Thư viện đã tích hợp:**',
+      '• `tesseract.js` v7.0.0 — Local OCR Engine (Offline, 100% Free)',
+      '• `2captcha-ts` v2.4.1 — Official 2Captcha Cloud SDK',
+      '• `jimp` v1.6.1 — Tiền xử lý ảnh (Khử nhiễu, tăng tương phản, 2x scale)',
+      '• `gemini-vision` 1.5-flash — AI Vision đa phương thức & Audio (~1s)',
+      '',
+      '🔑 **Cấu hình API Keys:**',
+      `• 2Captcha: ${keys.twoCaptchaKey ? '🟢 ĐÃ CẤU HÌNH' : '⚪ Chưa có (Dùng OCR miễn phí)'}`,
+      `• Gemini Vision: ${keys.geminiKey ? '🟢 ĐÃ CẤU HÌNH' : '⚪ Chưa có'}`,
+      `• CapSolver: ${keys.capSolverKey ? '🟢 ĐÃ CẤU HÌNH' : '⚪ Chưa có'}`,
+      '',
+      '💡 **Cú pháp điều khiển nhanh:**',
+      '• `/captcha scan` — Quét xem nick nào đang bị kẹt CAPTCHA',
+      '• `/unlock <ID> [Mã]` — Mở khóa CAPTCHA tự động hoặc bằng mã nhập tay',
+      '• `/unlock all` — Tự động mở khóa tất cả nick bị kẹt',
+      '• `/captcha set 2captcha <KEY>`',
+      '• `/captcha set gemini <KEY>`',
+    ].join('\n');
+
+    await ctx.reply(msg, { parse_mode: 'Markdown' });
+  });
+
+  // Lệnh mở khóa CAPTCHA Facebook trực tiếp
+  bot.command('unlock', async (ctx) => {
+    if (!(await requireFacebookOperator(ctx))) return;
+    const text = ctx.message?.text?.trim() || '';
+    const parts = text.split(/\s+/);
+    const target = parts[1];
+
+    if (!target) {
+      return ctx.reply(
+        '⚠️ **Cú pháp mở khóa:**\n• `/unlock <ID_Nick>` (Tự động giải bằng AI/Audio/OCR)\n• `/unlock <ID_Nick> <Mã_6_Số>` (Nhập tay mã)\n• `/unlock all` (Mở khóa toàn bộ)',
+        { parse_mode: 'Markdown' }
+      );
+    }
+
+    if (target.toLowerCase() === 'all') {
+      await ctx.reply('⏳ Đang quét và tự động mở khóa CAPTCHA cho tất cả các nick...');
+      try {
+        const results = await autoUnlockAllLiveCaptchas();
+        if (results.length === 0) {
+          return ctx.reply('✅ Không có nick nào đang bị kẹt CAPTCHA!');
+        }
+        const summary = results.map(r => `• Nick \`${r.accountId}\`: ${r.success ? `✅ THÀNH CÔNG (Mã: ${r.solution})` : `❌ THẤT BẠI (${r.error})`}`).join('\n');
+        return ctx.reply(`🎉 **KẾT QUẢ MỞ KHÓA TỰ ĐỘNG:**\n${summary}`, { parse_mode: 'Markdown' });
+      } catch (err: any) {
+        return ctx.reply(`❌ Lỗi mở khóa tự động: ${err.message}`);
+      }
+    }
+
+    const manualCode = parts[2] ? parts[2].trim() : undefined;
+    await ctx.reply(`⏳ Đang kết nối tới Chrome của Nick \`${target}\` để ${manualCode ? `nhập mã "${manualCode}"` : 'tự động giải và mở khóa'}...`, { parse_mode: 'Markdown' });
+
+    try {
+      const res = await unlockLiveCaptchaForAccount(target, manualCode);
+      if (res.success) {
+        return ctx.reply(`🎉 **MỞ KHÓA THÀNH CÔNG!**\n• Nick: \`${target}\`\n• Mã đã nhập: \`${res.solution || manualCode}\`\n• Trang đã chuyển tiếp sang: \`${res.finalUrl}\``, { parse_mode: 'Markdown' });
+      } else {
+        return ctx.reply(`❌ **Mở khóa chưa thành công:** ${res.error}`);
+      }
+    } catch (err: any) {
+      return ctx.reply(`❌ Lỗi: ${err.message}`);
+    }
+  });
+
   bot.command('baocao', async (ctx) => {
     if (!(await requireFacebookOperator(ctx))) return;
     await sendDailySummaryReport(bot);

@@ -1,10 +1,10 @@
 @echo off
 chcp 65001 >nul
-title FalconX Mess x Tele - Professional Automation System
+title FB EXTEN - Professional Automation & Private Extension System
 cd /d "%~dp0"
 
 echo =========================================================================
-echo 🚀 KHỞI ĐỘNG HỆ THỐNG FALCONX MESS x TELE (PRO WORKFLOW)
+echo 🚀 KHỞI ĐỘNG HỆ THỐNG FB EXTEN (HYBRID CORE + EXTENSION)
 echo =========================================================================
 echo 🌐 Web Dashboard: http://localhost:3300
 echo ☁️ Cloud DB: 100%% Online Encrypted Vault (0 Byte Local)

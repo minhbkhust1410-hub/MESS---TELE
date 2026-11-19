@@ -1,5 +1,5 @@
 ---
-title: FalconX 40-100 Nick Cluster
+title: FB EXTEN — Hybrid Core & Private Chrome Extension
 emoji: 🚀
 colorFrom: blue
 colorTo: indigo
@@ -8,7 +8,9 @@ app_port: 7860
 pinned: false
 ---
 
-# FALCONX MESS x TELE PRO — ENTERPRISE AUTOMATION SYSTEM 🚀
+# FB EXTEN — HYBRID AUTOMATION & PRIVATE CHROME EXTENSION 🚀
+
+> **Cài đặt Chrome Extension Private (`fb-exten/`):** Chạy `npm run build:ext` → mở `chrome://extensions` → bật **Developer mode** → **Load unpacked** chọn thư mục `fb-exten/`. Dùng chung lõi thuật toán tại `src/shared/fb-exten-core.ts`.
 
 > **Hệ thống điều phối đa kênh Facebook Messenger $\leftrightarrow$ Telegram Forum Topics kết hợp Tự Động Hóa Nuôi Khách, Quét Thành Viên Group & Đăng Bài Thông Minh (100% Cloud Database Vault — 0 Byte Lưu Local).**
 
